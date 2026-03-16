@@ -1,0 +1,110 @@
+[
+  {
+    "message": "привет",
+    "recipients": "all",
+    "created_at": "2026-03-03T22:52:22.342640",
+    "status": "sent",
+    "sent_at": "2026-03-03T22:52:55.833163",
+    "sent_count": 1
+  },
+  {
+    "message": "Всем здравствуйте, сейчас кушать будем\r\n",
+    "recipients": "all",
+    "created_at": "2026-03-03T22:53:24.233536",
+    "status": "sent",
+    "sent_at": "2026-03-03T22:54:55.281060",
+    "sent_count": 1
+  },
+  {
+    "message": "сейчас мы все будем жоска пиздится",
+    "recipients": "all",
+    "created_at": "2026-03-03T22:56:44.150144",
+    "status": "sent",
+    "sent_at": "2026-03-03T22:56:55.340682",
+    "sent_count": 2
+  },
+  {
+    "message": "ДЕНИСКА, это я, Оля 100 метров от тебя",
+    "recipients": "all",
+    "created_at": "2026-03-03T22:57:44.511172",
+    "status": "sent",
+    "sent_at": "2026-03-03T22:58:55.542270",
+    "sent_count": 2
+  },
+  {
+    "message": "Денис, это Игорь, муж ОЛи, что у ВаС БылО бЛяТ бХ\r\n",
+    "recipients": "all",
+    "created_at": "2026-03-03T22:59:50.167318",
+    "status": "sent",
+    "sent_at": "2026-03-03T23:00:55.777166",
+    "sent_count": 2
+  },
+  {
+    "message": "123",
+    "recipients": "all",
+    "created_at": "2026-03-04T02:44:13.852746",
+    "status": "sent",
+    "sent_at": "2026-03-04T02:44:36.853178",
+    "sent_count": 1
+  },
+  {
+    "message": "popa",
+    "recipients": "all",
+    "created_at": "2026-03-04T02:52:36.991492",
+    "status": "sent",
+    "sent_at": "2026-03-04T02:54:31.740184",
+    "sent_count": 2
+  },
+  {
+    "message": "Привет Дениска",
+    "recipients": "all",
+    "created_at": "2026-03-04T03:25:56.707368",
+    "status": "sent",
+    "sent_at": "2026-03-04T03:26:31.304897",
+    "sent_count": 3
+  },
+  {
+    "message": "134\r\n",
+    "recipients": "all",
+    "created_at": "2026-03-04T06:15:36.260391",
+    "status": "sent",
+    "sent_at": "2026-03-04T06:16:22.063581",
+    "sent_count": 1
+  },
+  {
+    "id": "b3ccd88e-e646-4744-be8f-815d7bf3fe7b",
+    "message": "Все кушать щя будем, обед",
+    "recipients": "all",
+    "created_at": "2026-03-04T11:11:45.021919",
+    "status": "sent",
+    "sent_at": "2026-03-04T11:12:42.108032",
+    "sent_count": 3
+  },
+  {
+    "id": "2aad18d4-4f84-47cf-8d11-a9fa8a579a50",
+    "message": "Бот находится на техническом обслуживании, следите за новостями в нашем канале!\r\nhttps://t.me/RedPulseChannel\r\n",
+    "recipients": "all",
+    "created_at": "2026-03-04T13:34:42.798854",
+    "status": "sent",
+    "sent_at": "2026-03-04T13:36:06.594922",
+    "sent_count": 4
+  },
+  {
+    "id": "fcde5a91-154a-4cc2-9429-1dc75bb7b5a5",
+    "message": "Тест закроется через 30 минут и будет продолжен уже днём.",
+    "recipients": "all",
+    "created_at": "2026-03-06T01:28:05.377399",
+    "status": "sent",
+    "sent_at": "2026-03-06T01:28:56.771804",
+    "sent_count": 7
+  },
+  {
+    "id": "0360bc38-9f08-45bd-ac92-a17dbef2adea",
+    "message": "Тестирование завершено, бот в спящем режиме.",
+    "recipients": "all",
+    "created_at": "2026-03-06T01:44:08.259442",
+    "status": "sent",
+    "sent_at": "2026-03-06T01:44:57.004961",
+    "sent_count": 7
+  }
+]

@@ -1,0 +1,3150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red Pulse Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #e74c3c;
+            --primary-dark: #c0392b;
+            --primary-light: #ff6b6b;
+            --secondary: #2c3e50;
+            --dark: #121212;
+            --dark-light: #1e1e1e;
+            --dark-lighter: #2d2d2d;
+            --text: #e0e0e0;
+            --text-muted: #aaa;
+            --sidebar-width: 260px;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --info: #3498db;
+        }
+        
+        body {
+            background-color: var(--dark);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+        
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: var(--sidebar-width);
+            background: var(--dark-light);
+            border-right: 1px solid var(--primary);
+            padding: 2rem 0;
+            z-index: 100;
+            overflow-y: auto;
+        }
+        
+        .sidebar-brand {
+            padding: 0 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            color: var(--primary);
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        .sidebar-brand i {
+            margin-right: 10px;
+            font-size: 2rem;
+        }
+        
+        .sidebar-nav {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .nav-item {
+            margin: 0.5rem 1rem;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.8rem 1rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .nav-link:hover {
+            background: rgba(231, 76, 60, 0.1);
+            color: white;
+        }
+        
+        .nav-link.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .nav-link i {
+            margin-right: 12px;
+            font-size: 1.2rem;
+            width: 24px;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: var(--dark-light);
+            border-radius: 12px;
+            padding: 1.2rem;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(231, 76, 60, 0.15);
+        }
+        
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+        }
+        
+        .stat-title {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-icon {
+            font-size: 1.5rem;
+            color: var(--primary);
+            opacity: 0.8;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 0.3rem;
+            line-height: 1.2;
+        }
+        
+        .stat-sub {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .stat-today {
+            color: var(--success);
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        @media (max-width: 1400px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .chart-container {
+            background: var(--dark-light);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            height: 350px;
+            position: relative;
+        }
+        
+        .chart-title {
+            color: white;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            font-weight: 500;
+        }
+        
+        .data-table {
+            background: var(--dark-light);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.2rem;
+        }
+        
+        .table-title {
+            color: white;
+            font-size: 1.2rem;
+            margin: 0;
+            font-weight: 500;
+        }
+        
+        .table-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+            max-height: 450px;
+            overflow-y: auto;
+            border-radius: 8px;
+        }
+        
+        .table {
+            color: var(--text);
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table thead th {
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+            font-weight: 600;
+            white-space: nowrap;
+            padding: 0.8rem 0.5rem;
+            background: var(--dark-light);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .table td {
+            padding: 0.8rem 0.5rem;
+            border-bottom: 1px solid var(--dark-lighter);
+            white-space: nowrap;
+        }
+        
+        .table tbody tr:hover {
+            background: var(--dark-lighter);
+        }
+        
+        .badge-active {
+            background: rgba(39, 174, 96, 0.15);
+            color: #2ecc71;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
+        
+        .badge-inactive {
+            background: rgba(231, 76, 60, 0.15);
+            color: #ff6b6b;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            display: inline-block;
+        }
+        
+        .badge-banned {
+            background: rgba(231, 76, 60, 0.25);
+            color: #ff6b6b;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            border: 1px solid var(--primary);
+            display: inline-block;
+        }
+        
+        .badge-warning {
+            background: rgba(243, 156, 18, 0.15);
+            color: #f39c12;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        
+        .badge-info {
+            background: rgba(52, 152, 219, 0.15);
+            color: #3498db;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        
+        .badge-gold {
+            background: rgba(241, 196, 15, 0.15);
+            color: #f1c40f;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        
+        .badge-success {
+            background: rgba(39, 174, 96, 0.15);
+            color: #2ecc71;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        
+        .badge-purple {
+            background: rgba(155, 89, 182, 0.15);
+            color: #9b59b6;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        
+        .filter-bar {
+            background: var(--dark-light);
+            border-radius: 12px;
+            padding: 1.2rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--dark-lighter);
+            padding: 0.3rem 1rem;
+            border-radius: 8px;
+        }
+        
+        .filter-group label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        .filter-group select, .filter-group input {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 0.3rem 0;
+            outline: none;
+        }
+        
+        .filter-group option {
+            background: var(--dark-lighter);
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--dark-lighter);
+            padding-bottom: 0.5rem;
+        }
+        
+        .tab {
+            padding: 0.6rem 1.5rem;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--text-muted);
+        }
+        
+        .tab:hover {
+            background: rgba(231, 76, 60, 0.1);
+            color: white;
+        }
+        
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .log-item {
+            padding: 0.8rem;
+            border-bottom: 1px solid var(--dark-lighter);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .log-item:hover {
+            background: var(--dark-lighter);
+        }
+        
+        .log-time {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            min-width: 120px;
+        }
+        
+        .log-type {
+            min-width: 100px;
+        }
+        
+        .log-user {
+            min-width: 150px;
+        }
+        
+        .log-action {
+            flex: 1;
+        }
+        
+        .log-details {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .chat-container {
+            background: var(--dark-light);
+            border-radius: 12px;
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .chat-message {
+            max-width: 70%;
+            padding: 0.8rem 1.2rem;
+            border-radius: 12px;
+            position: relative;
+        }
+        
+        .chat-message.admin {
+            align-self: flex-end;
+            background: var(--primary);
+            color: white;
+        }
+        
+        .chat-message.user {
+            align-self: flex-start;
+            background: var(--dark-lighter);
+            color: var(--text);
+        }
+        
+        .chat-message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.3rem;
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .chat-message-text {
+            word-break: break-word;
+        }
+        
+        .chat-input {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            border-top: 1px solid var(--dark-lighter);
+        }
+        
+        .chat-input textarea {
+            flex: 1;
+            background: var(--dark-lighter);
+            border: none;
+            color: white;
+            padding: 0.8rem;
+            border-radius: 8px;
+            resize: none;
+        }
+        
+        .chat-list {
+            background: var(--dark-light);
+            border-radius: 12px;
+            height: 600px;
+            overflow-y: auto;
+        }
+        
+        .chat-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--dark-lighter);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .chat-item:hover {
+            background: var(--dark-lighter);
+        }
+        
+        .chat-item.active {
+            background: var(--dark-lighter);
+            border-left: 3px solid var(--primary);
+        }
+        
+        .chat-item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.3rem;
+        }
+        
+        .chat-item-user {
+            font-weight: bold;
+        }
+        
+        .chat-item-time {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        
+        .chat-item-preview {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .chat-item-unread {
+            background: var(--primary);
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-left: 0.5rem;
+        }
+        
+        .support-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .support-stat-card {
+            background: var(--dark-light);
+            border-radius: 12px;
+            padding: 1.2rem;
+            text-align: center;
+        }
+        
+        .support-stat-value {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .support-stat-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .quick-action-card {
+            background: var(--dark-light);
+            border-radius: 12px;
+            padding: 1.2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        
+        .quick-action-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        .quick-action-icon {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .quick-action-title {
+            font-size: 0.9rem;
+            color: var(--text);
+        }
+        
+        .progress {
+            height: 8px;
+            background: var(--dark-lighter);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        
+        .progress-bar {
+            background: var(--primary);
+            height: 100%;
+            transition: width 0.3s;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--dark-light);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 3px;
+        }
+
+        .card {
+            background: var(--dark-light);
+            border: 1px solid var(--dark-lighter);
+            border-radius: 12px;
+        }
+
+        .form-control, .form-select {
+            background: var(--dark-lighter);
+            border: 1px solid var(--dark-lighter);
+            color: white;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: var(--dark-lighter);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 0.2rem rgba(231, 76, 60, 0.25);
+            color: white;
+        }
+
+        /* Тёмные модальные окна (задания, сезоны, бан, валюта и т.д.) */
+        .modal-content {
+            background: var(--dark-light);
+            border: 1px solid var(--dark-lighter);
+            color: var(--text);
+            border-radius: 12px;
+        }
+        .modal-header {
+            border-bottom-color: var(--dark-lighter);
+            color: white;
+        }
+        .modal-header .btn-close {
+            filter: invert(1);
+            opacity: 0.8;
+        }
+        .modal-body {
+            background: var(--dark-light);
+            color: var(--text);
+        }
+        .modal-footer {
+            border-top-color: var(--dark-lighter);
+            background: var(--dark-light);
+        }
+        .modal-title {
+            color: white;
+        }
+        .modal-body .form-label,
+        .modal-body label {
+            color: var(--text-muted);
+        }
+        .modal-body .form-control,
+        .modal-body .form-select {
+            background: var(--dark-lighter);
+            border-color: var(--dark-lighter);
+            color: white;
+        }
+        .modal-body .form-control:focus,
+        .modal-body .form-select:focus {
+            background: var(--dark-lighter);
+            border-color: var(--primary);
+            color: white;
+        }
+        .sidebar-section {
+            margin: 12px 16px 6px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <i class="bi bi-lightning-charge-fill"></i>
+            <span>RedPulse</span>
+        </div>
+        
+        <ul class="sidebar-nav">
+            <div class="sidebar-section">Важное</div>
+            <li class="nav-item">
+                <a href="/" class="nav-link {% if page == 'dashboard' %}active{% endif %}">
+                    <i class="bi bi-speedometer2"></i> Дашборд
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/users" class="nav-link {% if page == 'users' %}active{% endif %}">
+                    <i class="bi bi-people"></i> Пользователи
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/support" class="nav-link {% if page == 'support' %}active{% endif %}">
+                    <i class="bi bi-headset"></i> Поддержка
+                    {% if open_support_tickets > 0 %}
+                    <span class="badge-support-new ms-2">{{ open_support_tickets }}</span>
+                    {% endif %}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/notices" class="nav-link {% if page == 'notices' %}active{% endif %}">
+                    <i class="bi bi-exclamation-triangle"></i> Сообщения/предупреждения
+                </a>
+            </li>
+            <div class="sidebar-section">Контент</div>
+            <li class="nav-item">
+                <a href="/tasks" class="nav-link {% if page == 'tasks' %}active{% endif %}">
+                    <i class="bi bi-list-task"></i> Задания
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/seasons" class="nav-link {% if page == 'seasons' %}active{% endif %}">
+                    <i class="bi bi-calendar-event"></i> Сезоны
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/broadcast" class="nav-link {% if page == 'broadcast' %}active{% endif %}">
+                    <i class="bi bi-megaphone"></i> Рассылка
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/promocodes" class="nav-link {% if page == 'promocodes' %}active{% endif %}">
+                    <i class="bi bi-ticket-perforated"></i> Промокоды
+                </a>
+            </li>
+            <div class="sidebar-section">Игровое</div>
+            <li class="nav-item">
+                <a href="/titles" class="nav-link {% if page == 'titles' %}active{% endif %}">
+                    <i class="bi bi-award"></i> Титулы
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/achievements" class="nav-link {% if page == 'achievements' %}active{% endif %}">
+                    <i class="bi bi-trophy"></i> Ачивки
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/clans" class="nav-link {% if page == 'clans' %}active{% endif %}">
+                    <i class="bi bi-shield"></i> Кланы
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/bank" class="nav-link {% if page == 'bank' %}active{% endif %}">
+                    <i class="bi bi-bank"></i> Общая казна
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/wheel" class="nav-link {% if page == 'wheel' %}active{% endif %}">
+                    <i class="bi bi-arrow-repeat"></i> Колесо
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/auction" class="nav-link {% if page == 'auction' %}active{% endif %}">
+                    <i class="bi bi-hammer"></i> Аукцион
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/events" class="nav-link {% if page == 'events' %}active{% endif %}">
+                    <i class="bi bi-calendar-heart"></i> Ивенты
+                </a>
+            </li>
+            <div class="sidebar-section">Аналитика</div>
+            <li class="nav-item">
+                <a href="/stats" class="nav-link {% if page == 'stats' %}active{% endif %}">
+                    <i class="bi bi-graph-up"></i> Статистика
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/logs" class="nav-link {% if page == 'logs' %}active{% endif %}">
+                    <i class="bi bi-journal-text"></i> Логи
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <div class="quick-action-card" onclick="window.location.href='/tasks'">
+                <div class="quick-action-icon"><i class="bi bi-plus-circle"></i></div>
+                <div class="quick-action-title">Создать задание</div>
+            </div>
+            <div class="quick-action-card" onclick="window.location.href='/seasons'">
+                <div class="quick-action-icon"><i class="bi bi-calendar-plus"></i></div>
+                <div class="quick-action-title">Новый сезон</div>
+            </div>
+            <div class="quick-action-card" onclick="window.location.href='/broadcast'">
+                <div class="quick-action-icon"><i class="bi bi-send"></i></div>
+                <div class="quick-action-title">Сделать рассылку</div>
+            </div>
+            <div class="quick-action-card" onclick="window.location.href='/support'">
+                <div class="quick-action-icon"><i class="bi bi-headset"></i></div>
+                <div class="quick-action-title">Поддержка</div>
+            </div>
+            <div class="quick-action-card" onclick="window.location.href='/stats'">
+                <div class="quick-action-icon"><i class="bi bi-graph-up"></i></div>
+                <div class="quick-action-title">Аналитика</div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD PAGE -->
+        {% if page is not defined or page == 'dashboard' %}
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Пользователи</span>
+                    <i class="bi bi-people stat-icon"></i>
+                </div>
+                <div class="stat-value">{{ total_users }}</div>
+                <div class="stat-sub">
+                    <span>Активных: {{ active_users }}</span>
+                    <span class="stat-today">+{{ new_users_today }} сегодня</span>
+                </div>
+                <div class="stat-sub">
+                    <span>Забанено: {{ banned_users }}</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Экономика</span>
+                    <i class="bi bi-coin stat-icon"></i>
+                </div>
+                <div class="stat-value">{{ total_coins }} 🪙</div>
+                <div class="stat-sub">
+                    <span>{{ total_stars }} ⭐</span>
+                    <span>{{ total_crystals }} 💎</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Активность</span>
+                    <i class="bi bi-activity stat-icon"></i>
+                </div>
+                <div class="stat-value">{{ total_clicks }} 🖱️</div>
+                <div class="stat-sub">
+                    <span>Заданий: {{ total_tasks }}</span>
+                    <span class="stat-today">+{{ tasks_completed_today }} сегодня</span>
+                </div>
+                <div class="stat-sub">
+                    <span>Кликов сегодня: {{ clicks_today }}</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Рефералы</span>
+                    <i class="bi bi-person-plus stat-icon"></i>
+                </div>
+                <div class="stat-value">{{ total_referrals }}</div>
+                <div class="stat-sub">
+                    <span>Бонусов: {{ total_referral_bonus }} ⭐</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Задания</span>
+                    <i class="bi bi-list-check stat-icon"></i>
+                </div>
+                <div class="stat-value">{{ active_tasks }}</div>
+                <div class="stat-sub">
+                    <span>активных заданий</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-header">
+                    <span class="stat-title">Поддержка</span>
+                    <i class="bi bi-headset stat-icon"></i>
+                </div>
+                <div class="stat-value">{{ open_support_tickets }}</div>
+                <div class="stat-sub">
+                    <span>открытых тикетов</span>
+                    <span class="stat-today">+{{ new_tickets_today }} сегодня</span>
+                </div>
+                <div class="stat-sub">
+                    <span>Закрыто: {{ closed_support_tickets }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="dashboard-grid">
+            <div class="chart-container">
+                <div class="chart-title">Новые пользователи по дням</div>
+                <canvas id="usersChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <div class="chart-title">Активность (задания/клики)</div>
+                <canvas id="activityChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Скрытые данные для графиков -->
+        <div id="chart-data"
+             data-labels='{{ chart_days|safe }}'
+             data-new-users='{{ chart_new_users|safe }}'
+             data-tasks='{{ chart_tasks|safe }}'
+             data-clicks='{{ chart_clicks|safe }}'
+             style="display: none;"></div>
+
+        <script>
+        var ADMIN_PAGE = "{{ page | default('') }}";
+        document.addEventListener('DOMContentLoaded', function() {
+            if (ADMIN_PAGE === 'dashboard') {
+                setInterval(function() { window.location.reload(); }, 45000);
+            }
+            try {
+                var dataDiv = document.getElementById('chart-data');
+                if (dataDiv) {
+                    var chartLabels = JSON.parse(dataDiv.dataset.labels || '[]');
+                    var newUsersData = JSON.parse(dataDiv.dataset.newUsers || '[]');
+                    var tasksData = JSON.parse(dataDiv.dataset.tasks || '[]');
+                    var clicksData = JSON.parse(dataDiv.dataset.clicks || '[]');
+
+                    if (document.getElementById('usersChart') && chartLabels.length > 0) {
+                        var usersCtx = document.getElementById('usersChart').getContext('2d');
+                        new Chart(usersCtx, {
+                            type: 'line',
+                            data: {
+                                labels: chartLabels,
+                                datasets: [{
+                                    label: 'Новые пользователи',
+                                    data: newUsersData,
+                                    borderColor: '#e74c3c',
+                                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                                    tension: 0.4,
+                                    fill: true
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                                    x: { grid: { display: false } }
+                                }
+                            }
+                        });
+                    }
+
+                    if (document.getElementById('activityChart') && chartLabels.length > 0) {
+                        var activityCtx = document.getElementById('activityChart').getContext('2d');
+                        var clicksProcessed = clicksData.map(function(v) { return Math.round(v / 100); });
+                        
+                        new Chart(activityCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: chartLabels,
+                                datasets: [
+                                    {
+                                        label: 'Задания',
+                                        data: tasksData,
+                                        backgroundColor: '#3498db',
+                                        borderRadius: 4
+                                    },
+                                    {
+                                        label: 'Клики (÷100)',
+                                        data: clicksProcessed,
+                                        backgroundColor: '#e74c3c',
+                                        borderRadius: 4
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { labels: { color: '#e0e0e0' } }
+                                },
+                                scales: {
+                                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                                    x: { grid: { display: false } }
+                                }
+                            }
+                        });
+                    }
+                }
+            } catch(e) {
+                console.log('Графики не загрузились:', e);
+            }
+        });
+        </script>
+
+        <!-- Top Lists -->
+        <div class="dashboard-grid">
+            <div class="data-table">
+                <div class="table-header">
+                    <h5 class="table-title">🏆 Топ по звёздам</h5>
+                    <span class="badge-gold">Топ-10</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Пользователь</th>
+                                <th>⭐ Звёзды</th>
+                                <th>🪙 Монеты</th>
+                                <th>💎 Кристаллы</th>
+                                <th>🖱️ Клики</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in top_users %}
+                            <tr>
+                                <td>{% if loop.index == 1 %}🥇{% elif loop.index == 2 %}🥈{% elif loop.index == 3 %}🥉{% else %}{{ loop.index }}{% endif %}</td>
+                                <td>{{ user.first_name or 'Нет имени' }}{% if user.username %}<br><small>@{{ user.username }}</small>{% endif %}</td>
+                                <td><strong>{{ user.stars }}</strong></td>
+                                <td>{{ user.click_coins }}</td>
+                                <td>{{ user.crystals }}</td>
+                                <td>{{ user.total_clicks }}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="6" class="text-center">Нет данных</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="data-table">
+                <div class="table-header">
+                    <h5 class="table-title">🖱️ Топ по кликам</h5>
+                    <span class="badge-info">Топ-10</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Пользователь</th>
+                                <th>🖱️ Клики</th>
+                                <th>⭐ Звёзды</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in top_clickers %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ user.first_name or 'Нет имени' }}{% if user.username %}<br><small>@{{ user.username }}</small>{% endif %}</td>
+                                <td><strong>{{ user.total_clicks }}</strong></td>
+                                <td>{{ user.stars }}</td>
+                                <td>{% if user.is_banned %}<span class="badge-banned">Бан</span>{% else %}<span class="badge-active">Активен</span>{% endif %}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="5" class="text-center">Нет данных</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid" style="margin-top: 1.5rem;">
+            <div class="data-table">
+                <div class="table-header">
+                    <h5 class="table-title">📅 Последние регистрации</h5>
+                    <span class="badge-info">Новые</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Пользователь</th>
+                                <th>Дата</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in recent_users %}
+                            <tr>
+                                <td>{{ user.telegram_id }}</td>
+                                <td>{{ user.first_name or 'Нет имени' }}{% if user.username %}<br><small>@{{ user.username }}</small>{% endif %}</td>
+                                <td>{{ user.created_at[:10] if user.created_at else '—' }}</td>
+                                <td>{% if user.is_banned %}<span class="badge-banned">Бан</span>{% else %}<span class="badge-active">Активен</span>{% endif %}</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center">Нет данных</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="data-table">
+                <div class="table-header">
+                    <h5 class="table-title">👥 Топ по рефералам</h5>
+                    <span class="badge-success">Топ-10</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Пользователь</th>
+                                <th>👥 Рефералы</th>
+                                <th>💰 Бонус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in top_referrers %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ user.first_name or 'Нет имени' }}{% if user.username %}<br><small>@{{ user.username }}</small>{% endif %}</td>
+                                <td><strong>{{ user.referrals_count }}</strong></td>
+                                <td>{{ user.referral_bonus }} ⭐</td>
+                            </tr>
+                            {% else %}
+                            <tr><td colspan="4" class="text-center">Нет данных</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+                <!-- USERS PAGE -->
+        {% if page == 'users' %}
+        <div class="filter-bar">
+            <div class="filter-group">
+                <i class="bi bi-search"></i>
+                <input type="text" placeholder="Поиск..." id="searchInput" value="{{ current_search or '' }}">
+            </div>
+            <div class="filter-group">
+                <label>Статус:</label>
+                <select id="statusFilter">
+                    <option value="all" {% if current_status == 'all' or not current_status %}selected{% endif %}>Все</option>
+                    <option value="active" {% if current_status == 'active' %}selected{% endif %}>Активные ({{ total_active }})</option>
+                    <option value="banned" {% if current_status == 'banned' %}selected{% endif %}>Забаненные ({{ total_banned }})</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Сортировка:</label>
+                <select id="sortFilter">
+                    <option value="id_desc" {% if current_sort == 'id_desc' %}selected{% endif %}>Новые сначала</option>
+                    <option value="id_asc" {% if current_sort == 'id_asc' %}selected{% endif %}>Старые сначала</option>
+                    <option value="stars_desc" {% if current_sort == 'stars_desc' %}selected{% endif %}>По звёздам (убыв)</option>
+                    <option value="stars_asc" {% if current_sort == 'stars_asc' %}selected{% endif %}>По звёздам (возр)</option>
+                    <option value="clicks_desc" {% if current_sort == 'clicks_desc' %}selected{% endif %}>По кликам (убыв)</option>
+                    <option value="clicks_asc" {% if current_sort == 'clicks_asc' %}selected{% endif %}>По кликам (возр)</option>
+                </select>
+            </div>
+            <button class="btn btn-sm btn-primary" onclick="applyFilters()">Применить</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="resetFilters()">Сброс</button>
+        </div>
+
+        <div class="data-table">
+            <div class="table-header">
+                <h5 class="table-title">👥 Все пользователи</h5>
+                <span class="badge-info">Всего: {{ total_users_all }}</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Telegram ID</th>
+                            <th>Имя</th>
+                            <th>Username</th>
+                            <th>⭐ Звёзды</th>
+                            <th>🪙 Монеты</th>
+                            <th>💎 Кристаллы</th>
+                            <th>👥 Рефералы</th>
+                            <th>🖱️ Клики</th>
+                            <th>📋 Задания</th>
+                            <th>Статус</th>
+                            <th>Дата</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>
+                                <a href="/users/view/{{ user.telegram_id }}" class="text-decoration-none"><code>{{ user.telegram_id }}</code></a>
+                                <button class="btn btn-sm btn-outline-secondary ms-1" onclick="navigator.clipboard.writeText('{{ user.telegram_id }}')" title="Копировать ID">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                            </td>
+                            <td>{{ user.first_name or '—' }}</td>
+                            <td>
+                                @{{ user.username or '—' }}
+                                {% if user.username %}
+                                <button class="btn btn-sm btn-outline-secondary ms-1" onclick="navigator.clipboard.writeText('@{{ user.username }}')" title="Копировать username">
+                                    <i class="bi bi-clipboard"></i>
+                                </button>
+                                {% endif %}
+                            </td>
+                            <td><strong>{{ user.stars }}</strong></td>
+                            <td>{{ user.click_coins }}</td>
+                            <td>{{ user.crystals }}</td>
+                            <td>{{ user.referrals_count or 0 }}</td>
+                            <td>{{ user.total_clicks or 0 }}</td>
+                            <td>{{ user.tasks_completed or 0 }}</td>
+                            <td>
+                                {% if user.is_banned %}
+                                    <span class="badge-banned">Забанен</span>
+                                    {% if user.ban_expires %}<br><small>до {{ user.ban_expires[:10] }}</small>{% endif %}
+                                {% else %}
+                                    <span class="badge-active">Активен</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.created_at[:10] if user.created_at else '—' }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a class="btn btn-sm btn-outline-primary" href="/users/view/{{ user.telegram_id }}" title="Профиль"><i class="bi bi-person-vcard"></i></a>
+                                    {% if user.is_banned %}
+                                        <button class="btn btn-sm btn-outline-success" onclick="unbanUser('{{ user.telegram_id }}')" title="Разбанить"><i class="bi bi-check-circle"></i></button>
+                                    {% else %}
+                                        <button class="btn btn-sm btn-outline-danger" onclick="banUser('{{ user.telegram_id }}', '{{ user.first_name }}')" title="Забанить"><i class="bi bi-slash-circle"></i></button>
+                                    {% endif %}
+                                    <button class="btn btn-sm btn-outline-warning" onclick="giveCurrency('{{ user.telegram_id }}', '{{ user.first_name }}')" title="Выдать валюту"><i class="bi bi-gift"></i></button>
+                                    <button class="btn btn-sm btn-outline-info" onclick="openSupportChat('{{ user.telegram_id }}')" title="Чат с пользователем"><i class="bi bi-chat-dots"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="13" class="text-center">Нет пользователей</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Ban Modal -->
+        <div class="modal fade" id="banModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">🚫 Бан пользователя</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="post" action="" id="banForm">
+                        <div class="modal-body">
+                            <p>Вы уверены, что хотите забанить <b id="banUserName"></b>?</p>
+                            <div class="mb-3">
+                                <label class="form-label">Срок бана</label>
+                                <select name="ban_duration" class="form-select" required>
+                                    <option value="1">1 день</option>
+                                    <option value="3">3 дня</option>
+                                    <option value="7">7 дней</option>
+                                    <option value="30">30 дней</option>
+                                    <option value="forever">Навсегда</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Причина</label>
+                                <input type="text" name="ban_reason" class="form-control" required placeholder="Нарушение правил...">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                            <button type="submit" class="btn btn-danger">Забанить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Currency Modal -->
+        <div class="modal fade" id="currencyModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">🎁 Выдать валюту</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="post" action="" id="currencyForm">
+                        <div class="modal-body">
+                            <p>Выдать валюту пользователю <b id="currencyUserName"></b></p>
+                            <div class="mb-3">
+                                <label class="form-label">Тип валюты</label>
+                                <select name="currency_type" class="form-select" required>
+                                    <option value="coins">🪙 Клик-монеты</option>
+                                    <option value="stars">⭐ RED PULSE STARS</option>
+                                    <option value="crystals">💎 Кристаллы</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Количество</label>
+                                <input type="number" name="amount" class="form-control" required min="1" max="1000000000" value="100">
+                                <small class="form-text text-muted">Максимум: 1,000,000,000</small>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Причина</label>
+                                <input type="text" name="reason" class="form-control" required placeholder="Бонус, награда...">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                            <button type="submit" class="btn btn-success">Выдать</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- USER VIEW PAGE -->
+        {% if page == 'user_view' %}
+        <div class="data-table">
+            <div class="table-header">
+                <h5 class="table-title">👤 Профиль пользователя</h5>
+                <span class="badge-info"><code>{{ u.telegram_id }}</code></span>
+            </div>
+            <div style="padding: 1rem;">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="stat-card">
+                            <div class="stat-header"><span class="stat-title">Основное</span><i class="bi bi-person stat-icon"></i></div>
+                            <div class="stat-sub">
+                                <div><b>Имя:</b> {{ u.first_name or '—' }}</div>
+                                <div><b>Username:</b> @{{ u.username or '—' }}</div>
+                                <div><b>ID:</b> <code>{{ u.telegram_id }}</code>
+                                    <button class="btn btn-sm btn-outline-secondary ms-1" onclick="navigator.clipboard.writeText('{{ u.telegram_id }}')"><i class="bi bi-clipboard"></i></button>
+                                </div>
+                                <div><b>В боте с:</b> {{ (u.created_at or '')[:16] }}</div>
+                                <div><b>Статус:</b> {% if u.is_banned %}<span class="badge-banned">Забанен</span>{% else %}<span class="badge-active">Активен</span>{% endif %}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="stat-card">
+                            <div class="stat-header"><span class="stat-title">Прогресс</span><i class="bi bi-graph-up stat-icon"></i></div>
+                            <div class="stat-sub">
+                                <div><b>Уровень:</b> {{ u.level or 1 }} | <b>XP:</b> {{ u.xp or 0 }}</div>
+                                <div><b>Streak:</b> {{ u.streak_days or 0 }}</div>
+                                <div><b>Предупреждений:</b> {{ u.warnings_count or 0 }}</div>
+                                <div><b>Кликов:</b> {{ u.total_clicks or 0 }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-md-6">
+                        <div class="data-table">
+                            <div class="table-header"><h5 class="table-title">💰 Валюты</h5></div>
+                            <div style="padding: 1rem;">
+                                <div>🪙 {{ u.click_coins or 0 }}</div>
+                                <div>⭐ {{ u.stars or 0 }}</div>
+                                <div>💎 {{ u.crystals or 0 }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="data-table">
+                            <div class="table-header"><h5 class="table-title">🏰 Клан</h5></div>
+                            <div style="padding: 1rem;">
+                                {% if clan %}
+                                <div><b>{{ clan.name }}</b> {% if clan.tag %}<code>[{{ clan.tag }}]</code>{% endif %}</div>
+                                <div>Роль: {{ clan.role }}</div>
+                                {% else %}
+                                <div class="text-muted">Не в клане</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-md-6">
+                        <div class="data-table">
+                            <div class="table-header"><h5 class="table-title">🆘 Поддержка (последние)</h5></div>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead><tr><th>ID</th><th>Тип</th><th>Статус</th><th>Тема</th></tr></thead>
+                                    <tbody>
+                                        {% for t in support_tickets %}
+                                        <tr>
+                                            <td>#{{ t.id }}</td>
+                                            <td>{{ t.ticket_type or '' }}</td>
+                                            <td>{{ t.status }}</td>
+                                            <td>{{ (t.subject or '')[:40] }}</td>
+                                        </tr>
+                                        {% else %}
+                                        <tr><td colspan="4" class="text-center">Нет тикетов</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div style="padding: 0 1rem 1rem;">
+                                <a class="btn btn-sm btn-outline-primary" href="/support?user={{ u.telegram_id }}">Открыть поддержку</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="data-table">
+                            <div class="table-header"><h5 class="table-title">⚠️ Сообщения/предупреждения</h5></div>
+                            <div class="table-responsive">
+                                <table class="table">
+                                    <thead><tr><th>ID</th><th>Тип</th><th>Статус</th><th>Тема</th></tr></thead>
+                                    <tbody>
+                                        {% for n in notices %}
+                                        <tr>
+                                            <td><a href="/notices?notice_id={{ n.id }}"><code>#{{ n.id }}</code></a></td>
+                                            <td>{{ n.notice_type }}</td>
+                                            <td>{{ n.status }}</td>
+                                            <td>{{ (n.subject or '')[:40] }}</td>
+                                        </tr>
+                                        {% else %}
+                                        <tr><td colspan="4" class="text-center">Нет сообщений</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div style="padding: 0 1rem 1rem;">
+                                <a class="btn btn-sm btn-outline-primary" href="/notices">Открыть сообщения</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <a class="btn btn-sm btn-outline-secondary" href="/users">← Назад к пользователям</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- TASKS PAGE -->
+        {% if page == 'tasks' %}
+        {% if request.query_params.error %}
+        <div class="alert alert-danger mb-3" role="alert">
+            {{ request.query_params.error }}
+        </div>
+        {% endif %}
+        <div class="data-table">
+            <div class="table-header">
+                <h5 class="table-title">📋 Управление заданиями</h5>
+                <button class="btn btn-primary" id="createTaskBtn">
+                    <i class="bi bi-plus"></i> Создать задание
+                </button>
+            </div>
+            
+            <!-- Таблица заданий -->
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Название</th>
+                            <th>Тип</th>
+                            <th>Канал</th>
+                            <th>🪙</th>
+                            <th>⭐</th>
+                            <th>💎</th>
+                            <th>Статус</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in tasks %}
+                        <tr>
+                            <td>{{ task.id }}</td>
+                            <td><strong>{{ task.title }}</strong><br><small>{{ task.description or '' }}</small></td>
+                            <td>
+                                {# В актуальной версии поддерживаем только задания-подписки #}
+                                <span class="badge-info">📱 Подписка</span>
+                            </td>
+                            <td>{% if task.channel_id %}<small>{{ task.channel_id }}</small>{% if task.channel_url %}<br><a href="{{ task.channel_url }}" target="_blank">🔗</a>{% endif %}{% endif %}</td>
+                            <td>{{ task.reward_coins }}</td>
+                            <td>{{ task.reward_stars }}</td>
+                            <td>{{ task.reward_crystals }}</td>
+                            <td>{% if task.is_active %}<span class="badge-active">Активно</span>{% else %}<span class="badge-inactive">Неактивно</span>{% endif %}</td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary edit-task-btn" data-task-id="{{ task.id }}" title="Редактировать">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-task-btn" data-task-id="{{ task.id }}" title="Удалить">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Скрытые данные для заданий -->
+        <div id="tasks-data" style="display: none;" data-tasks='{{ tasks|tojson|safe }}'></div>
+
+        <!-- Модальное окно для создания/редактирования задания -->
+        <div class="modal fade" id="taskModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="taskModalTitle">Создание задания</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="post" action="/tasks/create" id="taskForm">
+                        <input type="hidden" name="task_id" id="task_id" value="">
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Название</label>
+                                    <input type="text" name="title" id="task_title" class="form-control" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Тип</label>
+                                    <select name="task_type" id="task_type" class="form-select">
+                                        <option value="subscribe">📱 Подписка на канал</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Описание</label>
+                                <textarea name="description" id="task_description" class="form-control" rows="2"></textarea>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">ID канала</label>
+                                    <input type="text" name="channel_id" id="task_channel_id" class="form-control" placeholder="@channel или -100...">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Ссылка</label>
+                                    <input type="url" name="channel_url" id="task_channel_url" class="form-control" placeholder="https://t.me/...">
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-4 mb-3">
+                                    <label class="form-label">🪙 Монеты</label>
+                                    <input type="number" name="reward_coins" id="task_reward_coins" class="form-control" value="10">
+                                </div>
+                                <div class="col-4 mb-3">
+                                    <label class="form-label">⭐ Звёзды</label>
+                                    <input type="number" name="reward_stars" id="task_reward_stars" class="form-control" value="0">
+                                </div>
+                                <div class="col-4 mb-3">
+                                    <label class="form-label">💎 Кристаллы</label>
+                                    <input type="number" name="reward_crystals" id="task_reward_crystals" class="form-control" value="0">
+                                </div>
+                            </div>
+                            
+                            {# Параметры max_completions / cooldown больше не используются и скрыты из интерфейса #}
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="task_is_active" checked>
+                                <label class="form-check-label" for="task_is_active">Активно</label>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно подтверждения удаления задания -->
+        <div class="modal fade" id="deleteTaskModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Удаление задания</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body"><p>Вы уверены, что хотите удалить это задание?</p></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <form id="deleteTaskForm" method="post" action="">
+                            <button type="submit" class="btn btn-danger">Удалить</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- SEASONS PAGE -->
+        {% if page == 'seasons' %}
+        {% if request.query_params.error %}
+        <div class="alert alert-danger mb-3" role="alert">
+            {{ request.query_params.error }}
+        </div>
+        {% endif %}
+        <div class="data-table">
+            <div class="table-header">
+                <h5 class="table-title">📅 Управление сезонами</h5>
+                <button class="btn btn-primary" id="createSeasonBtn">
+                    <i class="bi bi-plus"></i> Создать сезон
+                </button>
+            </div>
+            
+            <!-- Таблица сезонов -->
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Название</th>
+                            <th>Период</th>
+                            <th>Статус</th>
+                            <th>Призы</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for season in seasons %}
+                        <tr>
+                            <td>{{ season.id }}</td>
+                            <td><strong>{{ season.name }}</strong><br><small>{{ season.description or '' }}</small></td>
+                            <td>{% if season.start_date %}{{ season.start_date[:10] }} – {{ season.end_date[:10] if season.end_date }}<br><small class="text-muted">{{ season.start_date[11:16] if season.start_date }} - {{ season.end_date[11:16] if season.end_date }}</small>{% endif %}</td>
+                            <td>{% if season.is_active %}<span class="badge-active">Активен</span>{% else %}<span class="badge-inactive">Неактивен</span>{% endif %}</td>
+                            <td><small>🥇 {{ season.prize_1st or '—' }}</small><br><small>🥈 {{ season.prize_2nd or '—' }}</small><br><small>🥉 {{ season.prize_3rd or '—' }}</small></td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary edit-season-btn" data-season-id="{{ season.id }}">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-season-btn" data-season-id="{{ season.id }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Скрытые данные для сезонов -->
+        <div id="seasons-data" style="display: none;" data-seasons='{{ seasons|tojson|safe }}'></div>
+
+        <!-- Модальное окно для создания/редактирования сезона -->
+        <div class="modal fade" id="seasonModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="seasonModalTitle">Создание сезона</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="post" action="/seasons/create" id="seasonForm">
+                        <input type="hidden" name="season_id" id="season_id" value="">
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Название сезона</label>
+                                    <input type="text" name="name" id="season_name" class="form-control" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Описание</label>
+                                    <input type="text" name="description" id="season_description" class="form-control">
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Дата начала</label>
+                                    <input type="datetime-local" name="start_date" id="season_start_date" class="form-control" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Дата окончания</label>
+                                    <input type="datetime-local" name="end_date" id="season_end_date" class="form-control" required>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">🥇 1 место</label>
+                                    <input type="text" name="prize_1st" id="season_prize_1st" class="form-control">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">🥈 2 место</label>
+                                    <input type="text" name="prize_2nd" id="season_prize_2nd" class="form-control">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">🥉 3 место</label>
+                                    <input type="text" name="prize_3rd" id="season_prize_3rd" class="form-control">
+                                </div>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" name="is_active" id="season_is_active">
+                                <label class="form-check-label" for="season_is_active">Активен</label>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                            <button type="submit" class="btn btn-primary">Сохранить</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно подтверждения удаления сезона -->
+        <div class="modal fade" id="deleteSeasonModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Удаление сезона</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body"><p>Вы уверены, что хотите удалить этот сезон?</p></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <form id="deleteSeasonForm" method="post" action="">
+                            <button type="submit" class="btn btn-danger">Удалить</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- BROADCAST PAGE -->
+        {% if page == 'broadcast' %}
+        <div class="data-table">
+            <div class="table-header">
+                <h5 class="table-title">📢 Рассылка</h5>
+            </div>
+            {% if request.query_params.success %}
+            <div class="alert-success mb-3">✅ Сообщение сохранено</div>
+            {% endif %}
+            <form method="post" action="/broadcast/send">
+                <div class="mb-3">
+                    <label class="form-label">Сообщение</label>
+                    <textarea name="message" class="form-control" rows="5" required placeholder="Текст рассылки..."></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Получатели</label>
+                    <select name="recipients" class="form-select">
+                        <option value="all">Все пользователи ({{ total_users }})</option>
+                        <option value="active">Активные за неделю ({{ active_week_users }})</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Отправить</button>
+            </form>
+        </div>
+        <div class="data-table mt-4">
+            <div class="table-header">
+                <h5 class="table-title">🗂 История рассылок</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Время</th>
+                            <th>Статус</th>
+                            <th>Кому</th>
+                            <th>Отправлено</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in broadcasts or [] %}
+                        <tr>
+                            <td>{{ (b.created_at or '')[:16].replace('T',' ') }}</td>
+                            <td>
+                                {% if b.status == 'sent' %}<span class="badge-success">SENT</span>
+                                {% else %}<span class="badge-warning">PENDING</span>{% endif %}
+                            </td>
+                            <td>{{ b.recipients }}</td>
+                            <td>{{ b.sent_count or 0 }}</td>
+                            <td>
+                                <form method="post" action="/broadcast/delete/{{ b.id }}" style="display:inline;">
+                                    <button class="btn btn-sm btn-danger" type="submit">Удалить у всех</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- PROMOCODES PAGE -->
+        {% if page == 'promocodes' %}
+        <div class="data-table">
+            <div class="table-header">
+                <h5 class="table-title">🎟 Промокоды</h5>
+            </div>
+            {% if request.query_params.success %}
+            <div class="alert-success mb-3">✅ Промокод создан</div>
+            {% endif %}
+            {% if request.query_params.error %}
+            <div class="alert-danger mb-3">❌ {{ request.query_params.error }}</div>
+            {% endif %}
+            <form method="post" action="/promocodes/create">
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label">Код</label>
+                        <input name="code" class="form-control" required placeholder="REDPULSE2026">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">🪙</label>
+                        <input name="reward_coins" type="number" class="form-control" value="0" min="0">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">⭐</label>
+                        <input name="reward_stars" type="number" class="form-control" value="0" min="0">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">💎</label>
+                        <input name="reward_crystals" type="number" class="form-control" value="0" min="0">
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">Лимит</label>
+                        <input name="max_uses" type="number" class="form-control" value="1" min="0">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Истекает</label>
+                        <input name="expires_at" type="datetime-local" class="form-control">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Создать</button>
+            </form>
+        </div>
+
+        <div class="data-table mt-4">
+            <div class="table-header">
+                <h5 class="table-title">📋 Список</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Код</th>
+                            <th>Награда</th>
+                            <th>Использовано</th>
+                            <th>Активен</th>
+                            <th>Истекает</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in promos or [] %}
+                        <tr>
+                            <td><code>{{ p.code }}</code></td>
+                            <td>{{ p.reward_coins }}🪙 {{ p.reward_stars }}⭐ {{ p.reward_crystals }}💎</td>
+                            <td>{{ p.used_count }}/{{ p.max_uses if p.max_uses else '∞' }}</td>
+                            <td>{% if p.is_active %}✅{% else %}⛔{% endif %}</td>
+                            <td>{{ (p.expires_at or '')[:16].replace('T',' ') }}</td>
+                            <td class="text-end">
+                                <form method="post" action="/promocodes/toggle/{{ p.id }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-warning">Вкл/Выкл</button>
+                                </form>
+                                <form method="post" action="/promocodes/delete/{{ p.id }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- TITLES PAGE -->
+        {% if page == 'titles' %}
+        <div class="data-table">
+            <div class="table-header">
+                <h5 class="table-title">🎖 Титулы</h5>
+            </div>
+            {% if request.query_params.success %}
+            <div class="alert-success mb-3">✅ Операция выполнена</div>
+            {% endif %}
+            {% if request.query_params.error %}
+            <div class="alert-danger mb-3">❌ {{ request.query_params.error }}</div>
+            {% endif %}
+
+            <form method="post" action="/titles/create">
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label">Код</label>
+                        <input name="code" class="form-control" required placeholder="CLICKER_1K">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Название</label>
+                        <input name="name" class="form-control" required placeholder="Кликер • 1 000">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Описание</label>
+                        <input name="description" class="form-control" placeholder="За 1 000 кликов">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Категория</label>
+                        <input name="category" class="form-control" value="admin">
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-primary" type="submit">Создать титул</button>
+                </div>
+            </form>
+
+            <hr class="my-3" style="border-color: rgba(255,255,255,0.1);">
+
+            <form method="post" action="/titles/grant">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Telegram ID пользователя</label>
+                        <input name="user_id" class="form-control" required type="number" min="1">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">ID титула</label>
+                        <input name="title_id" class="form-control" required type="number" min="1">
+                        <div class="form-text">Возьми ID из таблицы ниже</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="set_current" value="1" id="setCurrentTitle">
+                            <label class="form-check-label" for="setCurrentTitle">Сразу поставить как активный</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-sm btn-success w-100" type="submit">Выдать</button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="table-responsive mt-3">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Код</th>
+                            <th>Название</th>
+                            <th>Категория</th>
+                            <th>Активен</th>
+                            <th class="text-end">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in titles or [] %}
+                        <tr>
+                            <td>{{ t.id }}</td>
+                            <td><code>{{ t.code }}</code></td>
+                            <td><strong>{{ t.name }}</strong><br><small>{{ t.description or '' }}</small></td>
+                            <td>{{ t.category or '' }}</td>
+                            <td>{% if t.is_active %}✅{% else %}⛔{% endif %}</td>
+                            <td class="text-end">
+                                <form method="post" action="/titles/toggle/{{ t.id }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-warning">Вкл/Выкл</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ACHIEVEMENTS PAGE -->
+        {% if page == 'achievements' %}
+        <div class="data-table">
+            <div class="table-header">
+                <h5 class="table-title">🏆 Ачивки</h5>
+            </div>
+            {% if request.query_params.success %}
+            <div class="alert-success mb-3">✅ Операция выполнена</div>
+            {% endif %}
+            {% if request.query_params.error %}
+            <div class="alert-danger mb-3">❌ {{ request.query_params.error }}</div>
+            {% endif %}
+
+            <form method="post" action="/achievements/create">
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label">Код</label>
+                        <input name="code" class="form-control" required placeholder="ACH_CLICKS_1K">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Название</label>
+                        <input name="name" class="form-control" required placeholder="1 000 кликов">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Метрика</label>
+                        <select name="metric" class="form-select">
+                            <option value="total_clicks">total_clicks</option>
+                            <option value="streak_days">streak_days</option>
+                            <option value="stars">stars</option>
+                            <option value="xp">xp</option>
+                            <option value="level">level</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Порог</label>
+                        <input name="threshold" type="number" class="form-control" value="0" min="0">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Титул (награда)</label>
+                        <select name="reward_title_id" class="form-select">
+                            <option value="">—</option>
+                            {% for t in titles or [] %}
+                            <option value="{{ t.id }}">{{ t.id }} • {{ t.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-primary" type="submit">Создать ачивку</button>
+                </div>
+            </form>
+
+            <div class="table-responsive mt-3">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Код</th>
+                            <th>Название</th>
+                            <th>Метрика</th>
+                            <th>Порог</th>
+                            <th>Титул</th>
+                            <th>Активна</th>
+                            <th class="text-end">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in achievements or [] %}
+                        <tr>
+                            <td>{{ a.id }}</td>
+                            <td><code>{{ a.code }}</code></td>
+                            <td><strong>{{ a.name }}</strong></td>
+                            <td>{{ a.metric }}</td>
+                            <td>{{ a.threshold }}</td>
+                            <td>{{ a.reward_title_id or '—' }}</td>
+                            <td>{% if a.is_active %}✅{% else %}⛔{% endif %}</td>
+                            <td class="text-end">
+                                <form method="post" action="/achievements/toggle/{{ a.id }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-warning">Вкл/Выкл</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- CLANS PAGE -->
+        {% if page == 'clans' %}
+        <div class="data-table">
+            <div class="table-header">
+                <h5 class="table-title">🛡 Кланы</h5>
+            </div>
+            {% if request.query_params.success %}
+            <div class="alert-success mb-3">✅ Сохранено</div>
+            {% endif %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Клан</th>
+                            <th>Глава</th>
+                            <th>Участники</th>
+                            <th>Казна</th>
+                            <th>Активен</th>
+                            <th class="text-end">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in clans or [] %}
+                        <tr>
+                            <td>{{ c.id }}</td>
+                            <td><strong>{{ c.name }}</strong> {% if c.tag %}<code>[{{ c.tag }}]</code>{% endif %}</td>
+                            <td><code>{{ c.owner_id }}</code></td>
+                            <td>{{ c.members_count }}</td>
+                            <td>{{ c.treasury_coins }}🪙 {{ c.treasury_stars }}⭐ {{ c.treasury_crystals }}💎</td>
+                            <td>{% if c.is_active %}✅{% else %}⛔{% endif %}</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#clanEdit{{ c.id }}">Редактировать</button>
+                                <form method="post" action="/clans/toggle/{{ c.id }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-warning">Вкл/Выкл</button>
+                                </form>
+                                <form method="post" action="/clans/delete/{{ c.id }}" style="display:inline;" onsubmit="return confirm('Удалить клан?')">
+                                    <button type="submit" class="btn btn-sm btn-danger">Удалить</button>
+                                </form>
+                            </td>
+                        </tr>
+
+                        <!-- Modal edit clan -->
+                        <div class="modal fade" id="clanEdit{{ c.id }}" tabindex="-1">
+                          <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                              <div class="modal-header">
+                                <h5 class="modal-title">Редактирование клана #{{ c.id }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                              </div>
+                              <form method="post" action="/clans/update/{{ c.id }}">
+                                <div class="modal-body">
+                                  <div class="row g-2">
+                                    <div class="col-md-12">
+                                      <label class="form-label">Описание</label>
+                                      <input class="form-control" name="description" value="{{ c.description or '' }}">
+                                    </div>
+                                    <div class="col-md-12">
+                                      <label class="form-label">Расписание войн (JSON)</label>
+                                      <textarea class="form-control" name="war_schedule_json" rows="3">{{ c.war_schedule_json or '' }}</textarea>
+                                    </div>
+                                    <div class="col-md-4">
+                                      <label class="form-label">Казна 🪙</label>
+                                      <input class="form-control" name="treasury_coins" type="number" min="0" value="{{ c.treasury_coins }}">
+                                    </div>
+                                    <div class="col-md-4">
+                                      <label class="form-label">Казна ⭐</label>
+                                      <input class="form-control" name="treasury_stars" type="number" min="0" value="{{ c.treasury_stars }}">
+                                    </div>
+                                    <div class="col-md-4">
+                                      <label class="form-label">Казна 💎</label>
+                                      <input class="form-control" name="treasury_crystals" type="number" min="0" value="{{ c.treasury_crystals }}">
+                                    </div>
+                                  </div>
+                                </div>
+                                <div class="modal-footer">
+                                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                                  <button type="submit" class="btn btn-primary">Сохранить</button>
+                                </div>
+                              </form>
+                            </div>
+                          </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- BANK PAGE -->
+        {% if page == 'bank' %}
+        <div class="data-table">
+            <div class="table-header">
+                <h5 class="table-title">🏦 Общая казна</h5>
+            </div>
+            {% if request.query_params.success %}
+            <div class="alert-success mb-3">✅ Сохранено</div>
+            {% endif %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="stat-card">
+                        <div class="stat-header"><span class="stat-title">Монеты</span><i class="bi bi-coin stat-icon"></i></div>
+                        <div class="stat-value">{{ bank.coins if bank else 0 }} 🪙</div>
+                        <div class="stat-sub">Цель: {{ bank.target if bank else 0 }}</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="stat-card">
+                        <div class="stat-header"><span class="stat-title">Уровень банка</span><i class="bi bi-bar-chart stat-icon"></i></div>
+                        <div class="stat-value">{{ bank.level if bank else 1 }}</div>
+                        <div class="stat-sub">Бонус до: {{ (bank.bonus_active_until or '')[:16] if bank else '' }}</div>
+                    </div>
+                </div>
+            </div>
+            <form method="post" action="/bank/update" class="mt-3">
+                <div class="row g-2">
+                    <div class="col-md-2">
+                        <label class="form-label">🪙 coins</label>
+                        <input name="coins" type="number" class="form-control" min="0" value="{{ bank.coins if bank else 0 }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">⭐ xp</label>
+                        <input name="xp" type="number" class="form-control" min="0" value="{{ bank.xp if bank else 0 }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">level</label>
+                        <input name="level" type="number" class="form-control" min="1" value="{{ bank.level if bank else 1 }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">target</label>
+                        <input name="target" type="number" class="form-control" min="1" value="{{ bank.target if bank else 100000 }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">bonus_active_until</label>
+                        <input name="bonus_active_until" class="form-control" placeholder="YYYY-MM-DD HH:MM" value="{{ (bank.bonus_active_until or '')[:16].replace('T',' ') if bank else '' }}">
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- WHEEL PAGE -->
+        {% if page == 'wheel' %}
+        <div class="data-table">
+            <div class="table-header">
+                <h5 class="table-title">🎡 Колесо фортуны</h5>
+            </div>
+            {% if request.query_params.success %}
+            <div class="alert-success mb-3">✅ Сохранено</div>
+            {% endif %}
+            {% if request.query_params.error %}
+            <div class="alert-danger mb-3">❌ {{ request.query_params.error }}</div>
+            {% endif %}
+            <form method="post" action="/wheel/update">
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label">Пресет призов</label>
+                        <select name="preset" class="form-select">
+                            <option value="default">По умолчанию (сбалансировано)</option>
+                            <option value="easy">Лёгкое (больше наград)</option>
+                            <option value="hard">Жёсткое (меньше наград)</option>
+                        </select>
+                        <div class="form-text">JSON больше не нужен — выбирай пресет.</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Cooldown (часы)</label>
+                        <input name="cooldown_hours" type="number" class="form-control" min="1" max="168" value="{{ wheel.cooldown_hours if wheel else 24 }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Активно</label>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="is_active" value="1" id="wheelActive" {% if wheel and wheel.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="wheelActive">Включено</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-primary" type="submit">Сохранить</button>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- AUCTION PAGE -->
+        {% if page == 'auction' %}
+        <div class="data-table">
+            <div class="table-header">
+                <h5 class="table-title">🧾 Аукцион</h5>
+            </div>
+            {% if request.query_params.success %}
+            <div class="alert-success mb-3">✅ Сохранено</div>
+            {% endif %}
+            {% if request.query_params.error %}
+            <div class="alert-danger mb-3">❌ {{ request.query_params.error }}</div>
+            {% endif %}
+
+            <form method="post" action="/auction/create">
+                <div class="row g-2">
+                    <div class="col-md-4">
+                        <label class="form-label">Название лота</label>
+                        <input name="name" class="form-control" required placeholder="Редкий предмет">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Описание</label>
+                        <input name="description" class="form-control" placeholder="Только один победитель">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Длительность (ч)</label>
+                        <input name="duration_hours" type="number" class="form-control" min="1" max="168" value="24">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Мин. ставка</label>
+                        <input name="min_bid" type="number" class="form-control" min="0" value="0">
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-primary" type="submit">Создать лот</button>
+                </div>
+            </form>
+
+            <div class="table-responsive mt-3">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Лот</th>
+                            <th>Период</th>
+                            <th>Мин.</th>
+                            <th>Статус</th>
+                            <th>Лидер</th>
+                            <th class="text-end">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in lots or [] %}
+                        <tr>
+                            <td>{{ l.id }}</td>
+                            <td><strong>{{ l.name }}</strong><br><small>{{ l.description or '' }}</small></td>
+                            <td>{{ (l.start_at or '')[:16] }} → {{ (l.end_at or '')[:16] }}</td>
+                            <td>{{ l.min_bid }} 🪙</td>
+                            <td>{% if l.status == 'active' %}🟢 active{% else %}⚫ closed{% endif %}</td>
+                            <td><code>{{ l.winner_user_id or '-' }}</code><br><small>{{ l.winner_bid or 0 }} 🪙</small></td>
+                            <td class="text-end">
+                                {% if l.status == 'active' %}
+                                <form method="post" action="/auction/close/{{ l.id }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-warning">Закрыть</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- EVENTS PAGE -->
+        {% if page == 'events' %}
+        <div class="data-table">
+            <div class="table-header">
+                <h5 class="table-title">🎉 Ивенты</h5>
+            </div>
+            {% if request.query_params.success %}
+            <div class="alert-success mb-3">✅ Сохранено</div>
+            {% endif %}
+            {% if request.query_params.error %}
+            <div class="alert-danger mb-3">❌ {{ request.query_params.error }}</div>
+            {% endif %}
+
+            <form method="post" action="/events/create">
+                <div class="row g-2">
+                    <div class="col-md-2">
+                        <label class="form-label">Код</label>
+                        <input name="code" class="form-control" required placeholder="NEW_YEAR">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Название</label>
+                        <input name="name" class="form-control" required placeholder="Новый год">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Старт</label>
+                        <input name="start_at" class="form-control" placeholder="YYYY-MM-DD HH:MM">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Конец</label>
+                        <input name="end_at" class="form-control" placeholder="YYYY-MM-DD HH:MM">
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">On</label>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="is_active" value="1">
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Описание</label>
+                        <input name="description" class="form-control" placeholder="Особые награды/множители">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">settings_json</label>
+                        <textarea name="settings_json" class="form-control" rows="6" placeholder='{"daily_coins_mult":1.5,"daily_xp_mult":2,"female_xp_mult":2}'></textarea>
+                        <div class="form-text">Поддержка: daily_coins_mult, daily_xp_mult, female_xp_mult.</div>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-primary" type="submit">Создать ивент</button>
+                </div>
+            </form>
+
+            <div class="table-responsive mt-3">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Код</th>
+                            <th>Название</th>
+                            <th>Период</th>
+                            <th>Активен</th>
+                            <th>settings_json</th>
+                            <th class="text-end">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for e in events or [] %}
+                        <tr>
+                            <td>{{ e.id }}</td>
+                            <td><code>{{ e.code }}</code></td>
+                            <td><strong>{{ e.name }}</strong><br><small>{{ e.description or '' }}</small></td>
+                            <td>{{ (e.start_at or '-')[:16] }} → {{ (e.end_at or '-')[:16] }}</td>
+                            <td>{% if e.is_active %}✅{% else %}⛔{% endif %}</td>
+                            <td><small><code>{{ (e.settings_json or '')[:120] }}</code></small></td>
+                            <td class="text-end">
+                                <form method="post" action="/events/toggle/{{ e.id }}" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm btn-warning">Вкл/Выкл</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- STATS PAGE -->
+        {% if page == 'stats' %}
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-title">Всего пользователей</span><i class="bi bi-people stat-icon"></i></div>
+                <div class="stat-value">{{ total_users }}</div>
+                <div class="stat-sub">Активных: {{ active_users }} | Забанено: {{ banned_users }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-title">Экономика</span><i class="bi bi-coin stat-icon"></i></div>
+                <div class="stat-value">{{ total_coins }} 🪙</div>
+                <div class="stat-sub">{{ total_stars }} ⭐ | {{ total_crystals }} 💎</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-title">Активность</span><i class="bi bi-activity stat-icon"></i></div>
+                <div class="stat-value">{{ total_clicks }} 🖱️</div>
+                <div class="stat-sub">Заданий: {{ total_tasks }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-title">Рефералы</span><i class="bi bi-person-plus stat-icon"></i></div>
+                <div class="stat-value">{{ total_referrals }}</div>
+                <div class="stat-sub">Бонусов: {{ total_referral_bonus }} ⭐</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-title">Уровни</span><i class="bi bi-stars stat-icon"></i></div>
+                <div class="stat-value">avg {{ avg_level }}</div>
+                <div class="stat-sub">max {{ max_level }} | XP всего {{ total_xp }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-title">Streak</span><i class="bi bi-fire stat-icon"></i></div>
+                <div class="stat-value">{{ total_streak }}</div>
+                <div class="stat-sub">Сумма streak-дней</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-title">Кланы</span><i class="bi bi-shield stat-icon"></i></div>
+                <div class="stat-value">{{ clans_count }}</div>
+                <div class="stat-sub">Участников: {{ clan_members }}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-title">Общая казна</span><i class="bi bi-bank stat-icon"></i></div>
+                <div class="stat-value">{{ bank_coins }} 🪙</div>
+                <div class="stat-sub">lvl {{ bank_level }} | цель {{ bank_target }}</div>
+            </div>
+        </div>
+
+        <!-- Distribution and Daily Stats -->
+        <div class="dashboard-grid">
+            <div class="data-table">
+                <div class="table-header"><h5 class="table-title">📊 Распределение пользователей</h5></div>
+                <div style="padding: 1rem;">
+                    {% set total = total_users if total_users and total_users > 0 else 1 %}
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>VIP (1000+ ⭐)</span>
+                        <span class="badge-gold">{{ vip_users }}</span>
+                    </div>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" style="width: {{ (vip_users / total * 100)|round(1) }}%"></div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>PRO (500-999 ⭐)</span>
+                        <span class="badge-purple">{{ pro_users }}</span>
+                    </div>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" style="width: {{ (pro_users / total * 100)|round(1) }}%"></div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Regular (100-499 ⭐)</span>
+                        <span class="badge-info">{{ regular_users }}</span>
+                    </div>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" style="width: {{ (regular_users / total * 100)|round(1) }}%"></div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Newbie (&lt;100 ⭐)</span>
+                        <span class="badge-success">{{ newbie_users }}</span>
+                    </div>
+                    <div class="progress mb-3">
+                        <div class="progress-bar" style="width: {{ (newbie_users / total * 100)|round(1) }}%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="data-table">
+                <div class="table-header"><h5 class="table-title">📅 Статистика по дням</h5></div>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead><tr><th>Дата</th><th>Новые</th><th>Задания</th><th>Клики</th><th>Активные</th></tr></thead>
+                        <tbody>
+                            {% for day in daily_stats %}
+                            <tr><td>{{ day.date }}</td><td>{{ day.new_users }}</td><td>{{ day.tasks }}</td><td>{{ day.clicks }}</td><td>{{ day.active }}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- LOGS PAGE -->
+        {% if page == 'logs' %}
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label>Тип:</label>
+                <select id="logType" onchange="applyLogFilters()">
+                    <option value="all" {% if current_type == 'all' or not current_type %}selected{% endif %}>Все</option>
+                    <option value="ban" {% if current_type == 'ban' %}selected{% endif %}>Баны</option>
+                    <option value="currency" {% if current_type == 'currency' %}selected{% endif %}>Выдачи</option>
+                    <option value="broadcast" {% if current_type == 'broadcast' %}selected{% endif %}>Рассылки</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Дней:</label>
+                <select id="logDays" onchange="applyLogFilters()">
+                    <option value="1" {% if current_days == 1 %}selected{% endif %}>1 день</option>
+                    <option value="3" {% if current_days == 3 %}selected{% endif %}>3 дня</option>
+                    <option value="7" {% if current_days == 7 %}selected{% endif %}>7 дней</option>
+                    <option value="30" {% if current_days == 30 %}selected{% endif %}>30 дней</option>
+                    <option value="0" {% if current_days == 0 %}selected{% endif %}>Всё</option>
+                </select>
+            </div>
+            <span class="badge-info">Всего записей: {{ total_logs }}</span>
+        </div>
+
+        <div class="data-table">
+            <div class="table-header"><h5 class="table-title">📋 Системные логи</h5></div>
+            <div class="logs-container" style="max-height: 600px; overflow-y: auto;">
+                {% for log in logs %}
+                <div class="log-item">
+                    <span class="log-time">{{ log.time }}</span>
+                    <span class="log-type">
+                        {% if log.type == 'ban' %}<span class="badge-banned">БАН</span>
+                        {% elif log.type == 'currency' %}<span class="badge-warning">ВЫДАЧА</span>
+                        {% elif log.type == 'broadcast' %}<span class="badge-info">РАССЫЛКА</span>
+                        {% else %}<span class="badge-secondary">{{ log.type }}</span>{% endif %}
+                    </span>
+                    <span class="log-user">{% if log.user_id != '-' %}<i class="bi bi-person"></i> {{ log.user_id }}{% else %}{{ log.user_id }}{% endif %}</span>
+                    <span class="log-action">{{ log.action }}</span>
+                    <span class="log-details" title="{{ log.details }}">{{ log.details }}</span>
+                </div>
+                {% else %}
+                <div class="text-center py-4">Логов пока нет</div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- NOTICES PAGE -->
+        {% if page == 'notices' %}
+        <div class="support-stats">
+            <div class="support-stat-card"><div class="support-stat-value">⚠️</div><div class="support-stat-label">Экстренные сообщения</div></div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab {% if current_view != 'closed' %}active{% endif %}" onclick="window.location.href='/notices?view=active'">Активные</div>
+            <div class="tab {% if current_view == 'closed' %}active{% endif %}" onclick="window.location.href='/notices?view=closed'">Закрытые</div>
+        </div>
+
+        {% if request.query_params.error %}
+        <div class="alert-danger mb-3">❌ {{ request.query_params.error }}</div>
+        {% endif %}
+        {% if request.query_params.success %}
+        <div class="alert-success mb-3">✅ Сохранено</div>
+        {% endif %}
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="chat-list">
+                    <h5 class="mb-3">Список тикетов</h5>
+                    {% for n in notices %}
+                    <div class="chat-item {% if selected_notice and n.id == selected_notice.id %}active{% endif %}"
+                         onclick="window.location.href='/notices?view={{ current_view }}&notice_id={{ n.id }}'">
+                        <div class="chat-item-header">
+                            <span class="chat-item-user">
+                                {% if n.notice_type == 'warning' %}⚠️{% else %}📩{% endif %}
+                                #{{ n.id }} • {{ n.user_id }}
+                            </span>
+                            <span class="chat-item-time">{{ (n.last_activity or '')[:16] }}</span>
+                        </div>
+                        <div class="chat-item-preview">
+                            {{ (n.subject or 'Без темы')[:50] }}
+                        </div>
+                        <div class="chat-item-status">
+                            {% if n.status == 'closed' %}
+                                <span class="badge-inactive">Закрыт</span>
+                            {% elif n.status == 'waiting_admin' %}
+                                <span class="badge-warning">Ждёт админа</span>
+                            {% elif n.status == 'waiting_user' %}
+                                <span class="badge-info">Ждёт пользователя</span>
+                            {% else %}
+                                <span class="badge-active">Открыт</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">Нет тикетов</p>
+                    {% endfor %}
+                </div>
+
+                <div class="data-table mt-3">
+                    <div class="table-header"><h5 class="table-title">➕ Новое сообщение</h5></div>
+                    <form method="post" action="/notices/create" style="padding: 1rem;">
+                        <label class="form-label">User ID</label>
+                        <input name="user_id" type="number" class="form-control" required>
+                        <label class="form-label mt-2">Тип</label>
+                        <select name="notice_type" class="form-select">
+                            <option value="message">Сообщение</option>
+                            <option value="warning">Предупреждение</option>
+                        </select>
+                        <label class="form-label mt-2">Тема</label>
+                        <input name="subject" class="form-control" placeholder="Коротко о причине">
+                        <label class="form-label mt-2">Сообщение</label>
+                        <textarea name="message" class="form-control" rows="4" required></textarea>
+                        <button class="btn btn-primary mt-2" type="submit">Отправить</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="chat-container">
+                    {% if not selected_notice %}
+                    <div class="text-center text-muted py-5">Выбери тикет слева</div>
+                    {% else %}
+                    <div class="chat-messages" style="max-height:600px; overflow-y:auto;">
+                        {% for m in notice_messages %}
+                        <div class="message {% if m.sender_type == 'admin' %}admin{% else %}user{% endif %}">
+                            <div class="message-header">
+                                <strong>{% if m.sender_type == 'admin' %}Админ{% else %}Пользователь{% endif %}</strong>
+                                <small class="text-muted ms-2">{{ (m.created_at or '')[:16] }}</small>
+                            </div>
+                            <div class="message-text">{{ m.message }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="chat-input">
+                        {% if selected_notice.status != 'closed' %}
+                        <form method="post" action="/notices/send/{{ selected_notice.id }}" style="display:flex; gap:.5rem; width:100%;">
+                            <textarea name="message" class="form-control" rows="2" placeholder="Ответ пользователю..." required></textarea>
+                            <button class="btn btn-primary" type="submit">Отправить</button>
+                        </form>
+                        <form method="post" action="/notices/close/{{ selected_notice.id }}" class="mt-2">
+                            <button class="btn btn-outline-danger" type="submit">Закрыть тикет</button>
+                        </form>
+                        {% else %}
+                        <div class="text-muted">Тикет закрыт.</div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- SUPPORT PAGE -->
+        {% if page == 'support' %}
+        <div class="support-stats">
+            <div class="support-stat-card"><div class="support-stat-value">{{ total_support_tickets }}</div><div class="support-stat-label">Всего обращений</div></div>
+            <div class="support-stat-card"><div class="support-stat-value">{{ open_support_tickets }}</div><div class="support-stat-label">Открытых</div></div>
+            <div class="support-stat-card"><div class="support-stat-value">{{ waiting_user_support_tickets }}</div><div class="support-stat-label">Ожидают ответа</div></div>
+            <div class="support-stat-card"><div class="support-stat-value">{{ closed_support_tickets }}</div><div class="support-stat-label">Закрытых</div></div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab {% if current_view == 'active' %}active{% endif %}" onclick="window.location.href='/support?view=active'">Активные</div>
+            <div class="tab {% if current_view == 'closed' %}active{% endif %}" onclick="window.location.href='/support?view=closed'">Закрытые</div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="chat-list">
+                    <h5 class="mb-3">{% if current_view == 'active' %}👥 Активные чаты{% else %}📜 История тикетов{% endif %}</h5>
+                    {% for chat in support_chats %}
+                    <div class="chat-item {% if chat.user_id|string == selected_user %}active{% endif %}" 
+                         data-user-id="{{ chat.user_id }}" 
+                         data-ticket-id="{{ chat.ticket_id }}"
+                         data-status="{{ chat.status }}"
+                         onclick="loadChat(this)">
+                        <div class="chat-item-header">
+                            <span class="chat-item-user">
+                                {{ chat.first_name or 'Нет имени' }}
+                                {% if chat.username %}<br><small>@{{ chat.username }}</small>{% endif %}
+                                {% if chat.ticket_type %}<br><small>Тип: {{ chat.ticket_type }}</small>{% endif %}
+                            </span>
+                            <span class="chat-item-time">
+                                {% if current_view == 'active' %}
+                                    {{ chat.last_message_time[:10] if chat.last_message_time else '' }}
+                                {% else %}
+                                    {{ chat.closed_at[:10] if chat.closed_at else '' }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        <div class="chat-item-preview">
+                            {% if chat.last_message %}
+                                {{ chat.last_message[:50] }}...
+                            {% else %}
+                                Нет сообщений
+                            {% endif %}
+                            {% if chat.unread is defined and chat.unread > 0 %}
+                                <span class="chat-item-unread">{{ chat.unread }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="chat-item-status">
+                            {% if chat.status == 'open' %}
+                                <span class="badge-active">Открыт</span>
+                            {% elif chat.status == 'waiting_user' %}
+                                <span class="badge-warning">Ждёт вас</span>
+                            {% elif chat.status == 'waiting_admin' %}
+                                <span class="badge-info">Ждёт админа</span>
+                            {% elif chat.status == 'closed' %}
+                                <span class="badge-inactive">Закрыт</span>
+                            {% endif %}
+                            <span>#{{ chat.ticket_id }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">Нет чатов</p>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="chat-container">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="text-center text-muted py-5" id="noChatSelected">Выберите чат</div>
+                    </div>
+                    <div class="chat-input" id="chatInputArea" style="display: none;">
+                        <textarea id="chatMessageInput" placeholder="Ответ..." rows="2"></textarea>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-primary" onclick="sendSupportMessage()">Отправить</button>
+                            <button class="btn btn-outline-danger" onclick="closeSupportTicket()">Закрыть</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // ----- Глобальные переменные -----
+        var currentChatUserId = null;
+        var currentTicketId = null;
+        var messageInterval = null;
+
+        // ----- Функции работы с пользователями -----
+        function banUser(userId, userName) {
+            document.getElementById('banUserName').textContent = userName;
+            document.getElementById('banForm').action = '/users/ban/' + userId;
+            new bootstrap.Modal(document.getElementById('banModal')).show();
+        }
+
+        function unbanUser(userId) {
+            if (confirm('Разбанить пользователя?')) {
+                var form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/users/unban/' + userId;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        function giveCurrency(userId, userName) {
+            document.getElementById('currencyUserName').textContent = userName;
+            document.getElementById('currencyForm').action = '/users/give_currency/' + userId;
+            new bootstrap.Modal(document.getElementById('currencyModal')).show();
+        }
+
+        function openSupportChat(userId) {
+            window.location.href = '/support?user=' + userId;
+        }
+
+        // ----- Фильтры -----
+        function applyFilters() {
+            var search = document.getElementById('searchInput') ? document.getElementById('searchInput').value : '';
+            var status = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : 'all';
+            var sort = document.getElementById('sortFilter') ? document.getElementById('sortFilter').value : 'id_desc';
+            window.location.href = '/users?search=' + encodeURIComponent(search) + '&status=' + status + '&sort=' + sort;
+        }
+
+        function resetFilters() {
+            window.location.href = '/users';
+        }
+
+        function applyLogFilters() {
+            var type = document.getElementById('logType') ? document.getElementById('logType').value : 'all';
+            var days = document.getElementById('logDays') ? document.getElementById('logDays').value : '7';
+            window.location.href = '/logs?type=' + type + '&days=' + days;
+        }
+
+        // ----- Scroll restore (не прыгать вверх после фильтров/переходов) -----
+        (function() {
+            try {
+                var key = 'scroll:' + window.location.pathname + window.location.search;
+                var saved = sessionStorage.getItem(key);
+                if (saved !== null) {
+                    var y = parseInt(saved, 10);
+                    if (!isNaN(y)) {
+                        window.requestAnimationFrame(function() { window.scrollTo(0, y); });
+                    }
+                    sessionStorage.removeItem(key);
+                }
+                window.addEventListener('beforeunload', function() {
+                    sessionStorage.setItem(key, String(window.scrollY || 0));
+                });
+            } catch (e) {}
+        })();
+
+        // ----- Задания -----
+        var tasksData = [];
+        var tasksDataElement = document.getElementById('tasks-data');
+        if (tasksDataElement) {
+            try {
+                tasksData = JSON.parse(tasksDataElement.dataset.tasks || '[]');
+            } catch(e) {
+                console.log('Ошибка парсинга заданий:', e);
+            }
+        }
+
+        document.getElementById('createTaskBtn')?.addEventListener('click', function() {
+            document.getElementById('taskModalTitle').textContent = 'Создание задания';
+            document.getElementById('taskForm').action = '/tasks/create';
+            document.getElementById('task_id').value = '';
+            document.getElementById('task_title').value = '';
+            document.getElementById('task_description').value = '';
+            document.getElementById('task_type').value = 'subscribe';
+            document.getElementById('task_channel_id').value = '';
+            document.getElementById('task_channel_url').value = '';
+            document.getElementById('task_reward_coins').value = '10';
+            document.getElementById('task_reward_stars').value = '0';
+            document.getElementById('task_reward_crystals').value = '0';
+            // max_completions / cooldown скрыты и используются только как технические поля со значениями по умолчанию
+            document.getElementById('task_is_active').checked = true;
+            new bootstrap.Modal(document.getElementById('taskModal')).show();
+        });
+
+        document.querySelectorAll('.edit-task-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var taskId = this.getAttribute('data-task-id');
+                var task = tasksData.find(function(t) { return t.id == taskId; });
+                
+                if (task) {
+                    document.getElementById('taskModalTitle').textContent = 'Редактирование задания';
+                    document.getElementById('taskForm').action = '/tasks/edit/' + taskId;
+                    document.getElementById('task_id').value = task.id || '';
+                    document.getElementById('task_title').value = task.title || '';
+                    document.getElementById('task_description').value = task.description || '';
+                    document.getElementById('task_type').value = 'subscribe';
+                    document.getElementById('task_channel_id').value = task.channel_id || '';
+                    document.getElementById('task_channel_url').value = task.channel_url || '';
+                    document.getElementById('task_reward_coins').value = task.reward_coins || 10;
+                    document.getElementById('task_reward_stars').value = task.reward_stars || 0;
+                    document.getElementById('task_reward_crystals').value = task.reward_crystals || 0;
+                    // max_completions / cooldown не редактируются из интерфейса
+                    document.getElementById('task_is_active').checked = task.is_active == 1 || task.is_active === true;
+                    
+                    new bootstrap.Modal(document.getElementById('taskModal')).show();
+                }
+            });
+        });
+
+        document.querySelectorAll('.delete-task-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var taskId = this.getAttribute('data-task-id');
+                document.getElementById('deleteTaskForm').action = '/tasks/delete/' + taskId;
+                new bootstrap.Modal(document.getElementById('deleteTaskModal')).show();
+            });
+        });
+
+        // ----- Сезоны -----
+        var seasonsData = [];
+        var seasonsDataElement = document.getElementById('seasons-data');
+        if (seasonsDataElement) {
+            try {
+                seasonsData = JSON.parse(seasonsDataElement.dataset.seasons || '[]');
+            } catch(e) {
+                console.log('Ошибка парсинга сезонов:', e);
+            }
+        }
+
+        document.getElementById('createSeasonBtn')?.addEventListener('click', function() {
+            document.getElementById('seasonModalTitle').textContent = 'Создание сезона';
+            document.getElementById('seasonForm').action = '/seasons/create';
+            document.getElementById('season_id').value = '';
+            document.getElementById('season_name').value = '';
+            document.getElementById('season_description').value = '';
+            document.getElementById('season_start_date').value = '';
+            document.getElementById('season_end_date').value = '';
+            document.getElementById('season_prize_1st').value = '';
+            document.getElementById('season_prize_2nd').value = '';
+            document.getElementById('season_prize_3rd').value = '';
+            document.getElementById('season_is_active').checked = false;
+            new bootstrap.Modal(document.getElementById('seasonModal')).show();
+        });
+
+        document.querySelectorAll('.edit-season-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var seasonId = this.getAttribute('data-season-id');
+                var season = seasonsData.find(function(s) { return s.id == seasonId; });
+                
+                if (season) {
+                    document.getElementById('seasonModalTitle').textContent = 'Редактирование сезона';
+                    document.getElementById('seasonForm').action = '/seasons/edit/' + seasonId;
+                    document.getElementById('season_id').value = season.id || '';
+                    document.getElementById('season_name').value = season.name || '';
+                    document.getElementById('season_description').value = season.description || '';
+                    
+                    if (season.start_date) {
+                        document.getElementById('season_start_date').value = season.start_date.slice(0, 16);
+                    } else {
+                        document.getElementById('season_start_date').value = '';
+                    }
+                    
+                    if (season.end_date) {
+                        document.getElementById('season_end_date').value = season.end_date.slice(0, 16);
+                    } else {
+                        document.getElementById('season_end_date').value = '';
+                    }
+                    
+                    document.getElementById('season_prize_1st').value = season.prize_1st || '';
+                    document.getElementById('season_prize_2nd').value = season.prize_2nd || '';
+                    document.getElementById('season_prize_3rd').value = season.prize_3rd || '';
+                    document.getElementById('season_is_active').checked = season.is_active == 1 || season.is_active === true;
+                    
+                    new bootstrap.Modal(document.getElementById('seasonModal')).show();
+                }
+            });
+        });
+
+        document.querySelectorAll('.delete-season-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var seasonId = this.getAttribute('data-season-id');
+                document.getElementById('deleteSeasonForm').action = '/seasons/delete/' + seasonId;
+                new bootstrap.Modal(document.getElementById('deleteSeasonModal')).show();
+            });
+        });
+
+        // ----- Чат поддержки -----
+        function loadChat(element) {
+            if (!element) {
+                return;
+            }
+
+            var userId = element.getAttribute('data-user-id');
+            var ticketId = element.getAttribute('data-ticket-id');
+            var status = element.getAttribute('data-status');
+            
+            currentChatUserId = userId;
+            currentTicketId = ticketId;
+            
+            document.querySelectorAll('.chat-item').forEach(function(i) {
+                i.classList.remove('active');
+            });
+            element.classList.add('active');
+            
+            var inputArea = document.getElementById('chatInputArea');
+            var noChat = document.getElementById('noChatSelected');
+            
+            // Для закрытых тикетов скрываем поле ввода
+            if (status === 'closed') {
+                if (inputArea) inputArea.style.display = 'none';
+            } else {
+                if (inputArea) inputArea.style.display = 'flex';
+            }
+            
+            if (noChat) noChat.style.display = 'none';
+            
+            // Для активных тикетов загружаем последний открытый диалог пользователя,
+            // для закрытых — историю конкретного тикета.
+            if (status === 'closed' && ticketId) {
+                fetchTicketMessages(ticketId);
+            } else if (userId) {
+                fetchMessagesByUser(userId);
+            }
+            
+            if (messageInterval) clearInterval(messageInterval);
+            messageInterval = setInterval(function() { 
+                if (status !== 'closed' && userId) {
+                    fetchMessagesByUser(userId); 
+                }
+            }, 5000);
+        }
+        
+        function fetchMessagesByUser(userId) {
+            fetch('/api/support/messages/' + userId)
+                .then(function(response) { return response.json(); })
+                .then(function(messages) {
+                    var chat = document.getElementById('chatMessages');
+                    if (!chat) return;
+                    chat.innerHTML = '';
+                    
+                    if (!messages || messages.length === 0) {
+                        chat.innerHTML = '<div class="text-center text-muted py-4">Нет сообщений</div>';
+                        return;
+                    }
+                    
+                    for (var i = 0; i < messages.length; i++) {
+                        var msg = messages[i];
+                        var div = document.createElement('div');
+                        div.className = 'chat-message ' + (msg.sender_type === 'admin' ? 'admin' : 'user');
+                        
+                        var html = '<div class="chat-message-header">';
+                        html += '<span>' + (msg.sender_name || '') + '</span>';
+                        html += '<span>' + (msg.time || '') + '</span>';
+                        html += '</div>';
+                        html += '<div class="chat-message-text">' + (msg.text || '').replace(/\n/g, '<br>') + '</div>';
+                        
+                        div.innerHTML = html;
+                        chat.appendChild(div);
+                    }
+                    
+                    chat.scrollTop = chat.scrollHeight;
+                })
+                .catch(function(error) {
+                    console.log('Ошибка загрузки сообщений:', error);
+                });
+        }
+
+        function fetchTicketMessages(ticketId) {
+            fetch('/api/support/ticket/' + ticketId + '/messages')
+                .then(function(response) { return response.json(); })
+                .then(function(messages) {
+                    var chat = document.getElementById('chatMessages');
+                    if (!chat) return;
+                    chat.innerHTML = '';
+                    
+                    if (!messages || messages.length === 0) {
+                        chat.innerHTML = '<div class="text-center text-muted py-4">Нет сообщений</div>';
+                        return;
+                    }
+                    
+                    for (var i = 0; i < messages.length; i++) {
+                        var msg = messages[i];
+                        var div = document.createElement('div');
+                        div.className = 'chat-message ' + (msg.sender_type === 'admin' ? 'admin' : 'user');
+                        
+                        var html = '<div class="chat-message-header">';
+                        html += '<span>' + (msg.sender_name || '') + '</span>';
+                        html += '<span>' + (msg.time || '') + '</span>';
+                        html += '</div>';
+                        html += '<div class="chat-message-text">' + (msg.text || '').replace(/\\n/g, '<br>') + '</div>';
+                        
+                        div.innerHTML = html;
+                        chat.appendChild(div);
+                    }
+                    
+                    chat.scrollTop = chat.scrollHeight;
+                })
+                .catch(function(error) {
+                    console.log('Ошибка загрузки сообщений:', error);
+                });
+        }
+
+        function sendSupportMessage() {
+            var input = document.getElementById('chatMessageInput');
+            if (!input) return;
+            var msg = input.value.trim();
+            if (!msg || !currentChatUserId) return;
+            
+            fetch('/api/support/send', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    user_id: parseInt(currentChatUserId),
+                    message: msg,
+                    ticket_id: currentTicketId ? parseInt(currentTicketId) : null
+                })
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    input.value = '';
+                    fetchMessages(currentChatUserId);
+                }
+            })
+            .catch(function(error) {
+                console.log('Ошибка отправки:', error);
+            });
+        }
+
+        function closeSupportTicket() {
+            if (!currentTicketId) {
+                alert('Нет активного тикета');
+                return;
+            }
+            if (!confirm('Закрыть тикет?')) return;
+            
+            fetch('/api/support/close/' + currentTicketId, {method: 'POST'})
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    if (data.success) {
+                        alert('Тикет закрыт');
+                        location.reload();
+                    } else {
+                        alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+                    }
+                })
+                .catch(function(error) {
+                    console.log('Ошибка закрытия:', error);
+                    alert('Ошибка при закрытии тикета');
+                });
+        }
+
+        // ----- Загрузка чата из URL -----
+        (function() {
+            var urlParams = new URLSearchParams(window.location.search);
+            var chatUser = urlParams.get('user');
+            if (chatUser) {
+                setTimeout(function() {
+                    var el = document.querySelector('.chat-item[data-user-id="' + chatUser + '"]');
+                    if (el) loadChat(el);
+                }, 500);
+            }
+        })();
+    </script>
+</body>
+</html>

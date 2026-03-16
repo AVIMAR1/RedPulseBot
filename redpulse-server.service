@@ -1,0 +1,14 @@
+[Unit]
+Description=Red Pulse Mini App Server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/home/ВАШ_ПОЛЬЗОВАТЕЛЬ/redpulse-bot
+ExecStart=/usr/bin/python3 run_server.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

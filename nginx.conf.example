@@ -1,0 +1,33 @@
+# Шаблон конфига nginx для Red Pulse Mini App
+# Скопируйте в /etc/nginx/sites-available/redpulse и замените your-domain.com
+
+server {
+    listen 80;
+    server_name your-domain.com www.your-domain.com;
+
+    # Mini App (FastAPI)
+    location /webapp {
+        proxy_pass http://127.0.0.1:8000/webapp;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # API для Mini App
+    location /api {
+        proxy_pass http://127.0.0.1:8000/api;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # Админ-панель и главное
+    location / {
+        proxy_pass http://127.0.0.1:8000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

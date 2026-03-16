@@ -1,0 +1,14 @@
+[Unit]
+Description=Red Pulse Telegram Bot
+After=network.target redpulse-server.service
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/home/ВАШ_ПОЛЬЗОВАТЕЛЬ/redpulse-bot
+ExecStart=/usr/bin/python3 run_bot.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

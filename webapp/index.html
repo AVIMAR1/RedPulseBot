@@ -1,0 +1,1927 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#e74c3c">
+    <title>Red Pulse | Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #e74c3c;
+            --primary-dark: #c0392b;
+            --primary-light: #ff6b6b;
+            --bg-dark: #0f0f0f;
+            --bg-card: #1a1a1a;
+            --bg-card-hover: #252525;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --gold: #f1c40f;
+            --crystal: #3498db;
+            --gradient-primary: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            --gradient-gold: linear-gradient(135deg, #f1c40f 0%, #d4ac0d 100%);
+            --gradient-crystal: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --shadow-glow: 0 0 20px rgba(231, 76, 60, 0.3);
+            --border-radius: 16px;
+            --border-radius-sm: 12px;
+            --border-radius-lg: 24px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-bottom: 80px;
+        }
+
+        .app {
+            max-width: 480px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-card);
+            padding: 16px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--gradient-primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .user-avatar:active {
+            transform: scale(0.95);
+        }
+
+        /* Balance Card */
+        .balance-card {
+            background: var(--gradient-primary);
+            margin: 16px;
+            padding: 20px;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-glow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .balance-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        }
+
+        .balance-title {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 12px;
+        }
+
+        .balance-main {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .balance-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 16px;
+            border-radius: var(--border-radius-sm);
+            backdrop-filter: blur(10px);
+        }
+
+        .balance-item i {
+            font-size: 20px;
+        }
+
+        .balance-item .amount {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .coins { color: var(--gold); }
+        .stars { color: #fff; }
+        .crystals { color: var(--crystal); }
+
+        /* Navigation */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 8px 16px;
+            padding-bottom: max(8px, env(safe-area-inset-bottom));
+            z-index: 1000;
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-around;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 12px;
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+
+        .nav-item i {
+            font-size: 20px;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .nav-item:active {
+            transform: scale(0.95);
+        }
+
+        /* Pages */
+        .page {
+            display: none;
+            padding: 16px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Section Title */
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .action-card {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .action-card:active {
+            transform: scale(0.98);
+            background: var(--bg-card-hover);
+        }
+
+        .action-card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .action-card-icon.clicker { background: var(--gradient-primary); }
+        .action-card-icon.casino { background: var(--gradient-gold); }
+        .action-card-icon.shop { background: var(--gradient-crystal); }
+        .action-card-icon.tasks { background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); }
+        .action-card-icon.profile { background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); }
+        .action-card-icon.rating { background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); }
+
+        .action-card-name {
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* Clicker Page */
+        .clicker-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            padding: 20px 0;
+        }
+
+        .clicker-stats {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .stat-box {
+            background: var(--bg-card);
+            padding: 12px 20px;
+            border-radius: var(--border-radius-sm);
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .click-btn {
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            border: 6px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            color: white;
+            box-shadow: 0 20px 60px rgba(231, 76, 60, 0.4), inset 0 -10px 40px rgba(0, 0, 0, 0.3);
+            transition: all 0.1s;
+            user-select: none;
+            -webkit-user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .click-btn::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .click-btn:active {
+            transform: scale(0.95) translateY(5px);
+            box-shadow: 0 10px 30px rgba(231, 76, 60, 0.5), inset 0 -5px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .click-btn:active::before {
+            opacity: 1;
+        }
+
+        .energy-bar-container {
+            width: 100%;
+            max-width: 320px;
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: var(--border-radius);
+        }
+
+        .energy-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .energy-bar {
+            width: 100%;
+            height: 20px;
+            background: var(--bg-dark);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .energy-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .energy-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Boosts Panel */
+        .boosts-panel {
+            width: 100%;
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: var(--border-radius);
+            margin-top: 16px;
+        }
+
+        .boosts-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .boosts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .boost-item {
+            background: var(--bg-dark);
+            padding: 14px;
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            text-align: center;
+        }
+
+        .boost-item:active {
+            transform: scale(0.98);
+            border-color: var(--primary);
+        }
+
+        .boost-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .boost-name {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .boost-price {
+            font-size: 12px;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* Casino Games */
+        .casino-games {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .game-card {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .game-card:active {
+            transform: scale(0.98);
+            background: var(--bg-card-hover);
+        }
+
+        .game-card-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .game-card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .game-card-icon.dice { background: var(--gradient-gold); }
+        .game-card-icon.slots { background: var(--gradient-primary); }
+        .game-card-icon.bj { background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%); }
+
+        .game-card-title {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .game-card-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .game-card-btn {
+            background: var(--gradient-primary);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: var(--border-radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        /* Shop */
+        .shop-categories {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+            scrollbar-width: none;
+        }
+
+        .shop-categories::-webkit-scrollbar {
+            display: none;
+        }
+
+        .shop-category {
+            background: var(--bg-card);
+            padding: 10px 20px;
+            border-radius: 20px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .shop-category.active {
+            background: var(--gradient-primary);
+            border-color: transparent;
+        }
+
+        .shop-items-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .shop-item {
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .shop-item:active {
+            transform: scale(0.98);
+            border-color: var(--primary);
+        }
+
+        .shop-item-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .shop-item-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .shop-item-price {
+            font-size: 13px;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* Tasks */
+        .tasks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-item {
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-info {
+            flex: 1;
+        }
+
+        .task-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .task-reward {
+            font-size: 13px;
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .task-btn {
+            background: var(--gradient-primary);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .task-btn.completed {
+            background: var(--bg-dark);
+            color: var(--text-secondary);
+        }
+
+        /* Profile */
+        .profile-header {
+            background: var(--bg-card);
+            padding: 24px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient-primary);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin: 0 auto 16px;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .profile-name {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .profile-username {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .profile-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .profile-stat {
+            background: var(--bg-dark);
+            padding: 12px;
+            border-radius: var(--border-radius-sm);
+        }
+
+        .profile-stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .profile-stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .profile-details {
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: var(--border-radius);
+        }
+
+        .profile-detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .profile-detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .profile-detail-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .profile-detail-value {
+            font-weight: 600;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: var(--border-radius-lg);
+            padding: 24px;
+            max-width: 360px;
+            width: 100%;
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: var(--border-radius-sm);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .modal-btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .modal-btn-secondary {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+        }
+
+        .modal-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--bg-card);
+            padding: 14px 24px;
+            border-radius: 50px;
+            box-shadow: var(--shadow-card);
+            z-index: 3000;
+            transition: transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success {
+            border-color: var(--success);
+        }
+
+        .toast.error {
+            border-color: var(--primary);
+        }
+
+        .toast-icon {
+            font-size: 18px;
+        }
+
+        .toast.success .toast-icon { color: var(--success); }
+        .toast.error .toast-icon { color: var(--primary); }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--bg-card);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Bet buttons */
+        .bet-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .bet-btn {
+            background: var(--bg-dark);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 12px;
+            border-radius: var(--border-radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .bet-btn:active {
+            transform: scale(0.95);
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .bet-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Game result */
+        .game-result {
+            text-align: center;
+            padding: 20px;
+            background: var(--bg-dark);
+            border-radius: var(--border-radius);
+            margin-top: 16px;
+        }
+
+        .game-result-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .game-result-text {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .game-result-amount {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .game-result-amount.win { color: var(--success); }
+        .game-result-amount.lose { color: var(--primary); }
+
+        /* Hidden */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">⚡</div>
+                    <span>RedPulse</span>
+                </div>
+                <div class="user-avatar" onclick="showPage('profile')">
+                    👤
+                </div>
+            </div>
+        </header>
+
+        <!-- Balance Card -->
+        <div class="balance-card">
+            <div class="balance-title">Твой баланс</div>
+            <div class="balance-main">
+                <div class="balance-item">
+                    <i class="fas fa-coins coins"></i>
+                    <span class="amount" id="balance-coins">0</span>
+                </div>
+                <div class="balance-item">
+                    <i class="fas fa-star stars"></i>
+                    <span class="amount" id="balance-stars">0</span>
+                </div>
+                <div class="balance-item">
+                    <i class="fas fa-gem crystals"></i>
+                    <span class="amount" id="balance-crystals">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Home Page -->
+        <div id="home" class="page active">
+            <div class="section-title">
+                <i class="fas fa-compass"></i>
+                Разделы
+            </div>
+            <div class="cards-grid">
+                <div class="action-card" onclick="showPage('clicker')">
+                    <div class="action-card-icon clicker">
+                        <i class="fas fa-hand-pointer"></i>
+                    </div>
+                    <div class="action-card-name">Кликер</div>
+                </div>
+                <div class="action-card" onclick="showPage('casino')">
+                    <div class="action-card-icon casino">
+                        <i class="fas fa-dice"></i>
+                    </div>
+                    <div class="action-card-name">Казино</div>
+                </div>
+                <div class="action-card" onclick="showPage('shop')">
+                    <div class="action-card-icon shop">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="action-card-name">Магазин</div>
+                </div>
+                <div class="action-card" onclick="showPage('tasks')">
+                    <div class="action-card-icon tasks">
+                        <i class="fas fa-list-check"></i>
+                    </div>
+                    <div class="action-card-name">Задания</div>
+                </div>
+                <div class="action-card" onclick="showPage('profile')">
+                    <div class="action-card-icon profile">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="action-card-name">Профиль</div>
+                </div>
+                <div class="action-card" onclick="showPage('rating')">
+                    <div class="action-card-icon rating">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="action-card-name">Рейтинг</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clicker Page -->
+        <div id="clicker" class="page">
+            <div class="clicker-container">
+                <div class="clicker-stats">
+                    <div class="stat-box">
+                        <div class="stat-label">Кликов</div>
+                        <div class="stat-value" id="clicker-clicks">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Уровень</div>
+                        <div class="stat-value" id="clicker-level">1</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Сила</div>
+                        <div class="stat-value" id="clicker-power">1x</div>
+                    </div>
+                </div>
+
+                <button class="click-btn" id="clickBtn">
+                    <i class="fas fa-bolt"></i>
+                </button>
+
+                <div class="energy-bar-container">
+                    <div class="energy-header">
+                        <span>⚡ Энергия</span>
+                        <span id="energy-text">1000/1000</span>
+                    </div>
+                    <div class="energy-bar">
+                        <div class="energy-fill" id="energy-fill" style="width: 100%"></div>
+                    </div>
+                </div>
+
+                <div class="boosts-panel">
+                    <div class="boosts-title">
+                        <i class="fas fa-rocket"></i>
+                        Бусты
+                    </div>
+                    <div class="boosts-grid">
+                        <div class="boost-item" onclick="buyBoost('energy')">
+                            <div class="boost-icon">🔋</div>
+                            <div class="boost-name">Энергия +500</div>
+                            <div class="boost-price" id="boost-energy-price">500 🪙</div>
+                        </div>
+                        <div class="boost-item" onclick="buyBoost('power')">
+                            <div class="boost-icon">⚡</div>
+                            <div class="boost-name">Сила +1</div>
+                            <div class="boost-price" id="boost-power-price">300 🪙</div>
+                        </div>
+                        <div class="boost-item" onclick="buyBoost('auto')">
+                            <div class="boost-icon">🤖</div>
+                            <div class="boost-name">Автокликер</div>
+                            <div class="boost-price" id="boost-auto-price">1000 🪙</div>
+                        </div>
+                        <div class="boost-item" onclick="exchangeToCrystals()">
+                            <div class="boost-icon">💎</div>
+                            <div class="boost-name">Кристалл</div>
+                            <div class="boost-price">100 🪙</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Casino Page -->
+        <div id="casino" class="page">
+            <div class="section-title">
+                <i class="fas fa-dice"></i>
+                Казино
+            </div>
+            <div class="casino-games">
+                <div class="game-card" onclick="showGame('dice')">
+                    <div class="game-card-header">
+                        <div class="game-card-icon dice">🎲</div>
+                        <div>
+                            <div class="game-card-title">Кости</div>
+                            <div class="game-card-desc">Выпадет 4-6 — выигрыш x2</div>
+                        </div>
+                    </div>
+                    <button class="game-card-btn">Играть</button>
+                </div>
+                <div class="game-card" onclick="showGame('slots')">
+                    <div class="game-card-header">
+                        <div class="game-card-icon slots">🎰</div>
+                        <div>
+                            <div class="game-card-title">Слоты</div>
+                            <div class="game-card-desc">Собирай комбинации</div>
+                        </div>
+                    </div>
+                    <button class="game-card-btn">Играть</button>
+                </div>
+                <div class="game-card" onclick="showGame('bj')">
+                    <div class="game-card-header">
+                        <div class="game-card-icon bj">🃏</div>
+                        <div>
+                            <div class="game-card-title">21 очко</div>
+                            <div class="game-card-desc">Обыграй дилера</div>
+                        </div>
+                    </div>
+                    <button class="game-card-btn">Играть</button>
+                </div>
+            </div>
+
+            <!-- Game Modal -->
+            <div id="game-modal" class="modal-overlay">
+                <div class="modal">
+                    <div class="modal-title" id="game-modal-title">Кости</div>
+                    <div class="modal-body">
+                        <div id="game-content"></div>
+                    </div>
+                    <div class="modal-buttons">
+                        <button class="modal-btn modal-btn-secondary" onclick="closeGameModal()">Закрыть</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shop Page -->
+        <div id="shop" class="page">
+            <div class="section-title">
+                <i class="fas fa-shopping-cart"></i>
+                Магазин
+            </div>
+            <div class="shop-categories">
+                <div class="shop-category active" onclick="showShopCategory('cases', this)">Кейсы</div>
+                <div class="shop-category" onclick="showShopCategory('boosts', this)">Бусты</div>
+                <div class="shop-category" onclick="showShopCategory('skins', this)">Скины</div>
+                <div class="shop-category" onclick="showShopCategory('avatars', this)">Аватары</div>
+            </div>
+            <div id="shop-content" class="shop-items-grid"></div>
+        </div>
+
+        <!-- Tasks Page -->
+        <div id="tasks" class="page">
+            <div class="section-title">
+                <i class="fas fa-list-check"></i>
+                Задания
+            </div>
+            <div id="tasks-list" class="tasks-list"></div>
+        </div>
+
+        <!-- Profile Page -->
+        <div id="profile" class="page">
+            <div class="profile-header">
+                <div class="profile-avatar" id="profile-avatar">👤</div>
+                <div class="profile-name" id="profile-name">Загрузка...</div>
+                <div class="profile-username" id="profile-username">@username</div>
+                <div class="profile-stats-grid">
+                    <div class="profile-stat">
+                        <div class="profile-stat-value" id="profile-level">1</div>
+                        <div class="profile-stat-label">Уровень</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="profile-stat-value" id="profile-clicks">0</div>
+                        <div class="profile-stat-label">Клики</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="profile-stat-value" id="profile-tasks">0</div>
+                        <div class="profile-stat-label">Задания</div>
+                    </div>
+                </div>
+            </div>
+            <div class="profile-details">
+                <div class="profile-detail-item">
+                    <span class="profile-detail-label">🔥 Streak</span>
+                    <span class="profile-detail-value" id="profile-streak">0 дней</span>
+                </div>
+                <div class="profile-detail-item">
+                    <span class="profile-detail-label">⚡ Сила клика</span>
+                    <span class="profile-detail-value" id="profile-click-power">1x</span>
+                </div>
+                <div class="profile-detail-item">
+                    <span class="profile-detail-label">👥 Рефералов</span>
+                    <span class="profile-detail-value" id="profile-referrals">0</span>
+                </div>
+                <div class="profile-detail-item">
+                    <span class="profile-detail-label">📅 В боте с</span>
+                    <span class="profile-detail-value" id="profile-created">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rating Page -->
+        <div id="rating" class="page">
+            <div class="section-title">
+                <i class="fas fa-trophy"></i>
+                Рейтинг игроков
+            </div>
+            <div id="rating-list" class="tasks-list"></div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="nav-bar">
+            <div class="nav-content">
+                <div class="nav-item active" data-page="home" onclick="showPage('home')">
+                    <i class="fas fa-home"></i>
+                    <span>Главная</span>
+                </div>
+                <div class="nav-item" data-page="clicker" onclick="showPage('clicker')">
+                    <i class="fas fa-hand-pointer"></i>
+                    <span>Кликер</span>
+                </div>
+                <div class="nav-item" data-page="casino" onclick="showPage('casino')">
+                    <i class="fas fa-dice"></i>
+                    <span>Казино</span>
+                </div>
+                <div class="nav-item" data-page="shop" onclick="showPage('shop')">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Магазин</span>
+                </div>
+                <div class="nav-item" data-page="profile" onclick="showPage('profile')">
+                    <i class="fas fa-user"></i>
+                    <span>Профиль</span>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span class="toast-icon">✓</span>
+        <span class="toast-message">Сообщение</span>
+    </div>
+
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // Получаем userId из Telegram или используем тестовый (для локальной разработки)
+        const userId = tg.initDataUnsafe?.user?.id || 123456789; // TEST MODE для локалки
+        const user = tg.initDataUnsafe?.user || {
+            id: userId,
+            first_name: 'Тестовый пользователь',
+            username: 'test_user',
+            language_code: 'ru'
+        };
+        
+        // Флаг локального режима
+        const isLocalMode = !tg.initDataUnsafe?.user;
+        if (isLocalMode) {
+            console.log('🔧 LOCAL MODE: используется тестовый пользователь ID=' + userId);
+        }
+
+        // Состояние приложения
+        let state = {
+            click_coins: 0,
+            stars: 0,
+            crystals: 0,
+            total_clicks: 0,
+            level: 1,
+            xp: 0,
+            click_power: 1,
+            energy: 1000,
+            max_energy: 1000,
+            auto_clicker: false,
+            streak_days: 0,
+            referrals_count: 0,
+            tasks_completed: 0,
+            theme: 'default'
+        };
+
+        let currentGame = null;
+        let currentBet = 0;
+        let bjGame = null;
+
+        // Показать страницу
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            
+            document.getElementById(pageId).classList.add('active');
+            const navItem = document.querySelector(`.nav-item[data-page="${pageId}"]`);
+            if (navItem) navItem.classList.add('active');
+
+            if (pageId === 'profile') loadProfile();
+            if (pageId === 'tasks') loadTasks();
+            if (pageId === 'rating') loadRating();
+            if (pageId === 'shop') showShopCategory('cases', document.querySelector('.shop-category'));
+        }
+
+        // Показать уведомление
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = toast.querySelector('.toast-icon');
+            const msg = toast.querySelector('.toast-message');
+            
+            icon.textContent = type === 'success' ? '✓' : '✕';
+            msg.textContent = message;
+            toast.className = `toast ${type} show`;
+            
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        // Загрузка данных пользователя
+        async function loadUserData() {
+            if (!userId) return;
+            
+            try {
+                const response = await fetch(`/api/user/${userId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    state = { ...state, ...data };
+                    updateUI();
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+            }
+        }
+
+        // Обновление интерфейса
+        function updateUI() {
+            document.getElementById('balance-coins').textContent = state.click_coins.toLocaleString();
+            document.getElementById('balance-stars').textContent = state.stars.toLocaleString();
+            document.getElementById('balance-crystals').textContent = state.crystals.toLocaleString();
+            document.getElementById('clicker-clicks').textContent = state.total_clicks.toLocaleString();
+            document.getElementById('clicker-level').textContent = state.level;
+            document.getElementById('clicker-power').textContent = state.click_power + 'x';
+            
+            const energyPercent = (state.energy / state.max_energy) * 100;
+            document.getElementById('energy-fill').style.width = energyPercent + '%';
+            document.getElementById('energy-text').textContent = `${Math.floor(state.energy)}/${state.max_energy}`;
+            
+            updateBoostPrices();
+        }
+
+        // Обновление цен бустов
+        function updateBoostPrices() {
+            const energyLevel = Math.floor((state.max_energy - 1000) / 500) + 1;
+            const energyPrice = Math.floor(800 * Math.pow(1.55, energyLevel - 1));
+            const powerPrice = Math.floor(500 * Math.pow(1.5, state.click_power - 1));
+            const autoPrice = state.auto_clicker ? '—' : '2000 🪙';
+            
+            document.getElementById('boost-energy-price').textContent = energyPrice + ' 🪙';
+            document.getElementById('boost-power-price').textContent = powerPrice + ' 🪙';
+            document.getElementById('boost-auto-price').textContent = autoPrice;
+        }
+
+        // Клик
+        document.getElementById('clickBtn').addEventListener('click', () => {
+            if (state.energy < state.click_power) {
+                showToast('Недостаточно энергии!', 'error');
+                return;
+            }
+            
+            state.energy -= state.click_power;
+            state.click_coins += state.click_power;
+            state.total_clicks++;
+            
+            // Вибрация
+            if (tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('light');
+            }
+            
+            updateUI();
+            
+            // Шанс на кристалл 1%
+            if (Math.random() < 0.01) {
+                state.crystals++;
+                showToast('✨ Найден кристалл! +1 💎', 'success');
+            }
+            
+            // Сохранение каждые 25 кликов
+            if (state.total_clicks % 25 === 0) {
+                saveData();
+            }
+        });
+
+        // Покупка буста
+        async function buyBoost(type) {
+            const prices = {
+                energy: Math.floor(800 * Math.pow(1.55, Math.floor((state.max_energy - 1000) / 500))),
+                power: Math.floor(500 * Math.pow(1.5, state.click_power - 1)),
+                auto: 2000
+            };
+            
+            const price = prices[type];
+            if (state.click_coins < price) {
+                showToast('Недостаточно монет!', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/buy-boost', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, type })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        state.click_coins -= price;
+                        if (type === 'energy') state.max_energy += 500;
+                        if (type === 'power') state.click_power++;
+                        if (type === 'auto') state.auto_clicker = true;
+                        updateUI();
+                        showToast('Буст куплен!', 'success');
+                    }
+                }
+            } catch (error) {
+                showToast('Ошибка покупки', 'error');
+            }
+        }
+
+        // Обмен на кристаллы
+        async function exchangeToCrystals() {
+            if (state.click_coins < 100) {
+                showToast('Нужно 100 монет!', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/exchange-to-crystals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, amount: 100 })
+                });
+                
+                if (response.ok) {
+                    state.click_coins -= 100;
+                    state.crystals++;
+                    updateUI();
+                    showToast('Обмен успешен! +1 💎', 'success');
+                }
+            } catch (error) {
+                showToast('Ошибка обмена', 'error');
+            }
+        }
+
+        // Сохранение данных
+        async function saveData() {
+            if (!userId) return;
+            
+            try {
+                await fetch('/api/save-clicks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId,
+                        click_coins: state.click_coins,
+                        stars: state.stars,
+                        crystals: state.crystals,
+                        total_clicks: state.total_clicks,
+                        click_power: state.click_power,
+                        auto_clicker: state.auto_clicker,
+                        max_energy: state.max_energy
+                    })
+                });
+            } catch (error) {
+                console.error('Ошибка сохранения:', error);
+            }
+        }
+
+        // Показать игру
+        function showGame(gameType) {
+            currentGame = gameType;
+            const modal = document.getElementById('game-modal');
+            const title = document.getElementById('game-modal-title');
+            const content = document.getElementById('game-content');
+            
+            const titles = {
+                dice: '🎲 Кости',
+                slots: '🎰 Слоты',
+                bj: '🃏 21 очко'
+            };
+            
+            title.textContent = titles[gameType];
+            modal.classList.add('active');
+            
+            if (gameType === 'dice') showDiceGame();
+            if (gameType === 'slots') showSlotsGame();
+            if (gameType === 'bj') showBJGame();
+        }
+
+        // Закрыть игру
+        function closeGameModal() {
+            document.getElementById('game-modal').classList.remove('active');
+            currentGame = null;
+        }
+
+        // Игра в кости
+        function showDiceGame() {
+            const content = document.getElementById('game-content');
+            content.innerHTML = `
+                <p style="text-align:center;margin-bottom:16px;color:var(--text-secondary);">
+                    Выпадет 4, 5 или 6 — выигрыш x2
+                </p>
+                <div class="bet-buttons">
+                    <button class="bet-btn" onclick="setBet(10)">10</button>
+                    <button class="bet-btn" onclick="setBet(50)">50</button>
+                    <button class="bet-btn" onclick="setBet(100)">100</button>
+                    <button class="bet-btn" onclick="setBet(500)">500</button>
+                    <button class="bet-btn" onclick="setBet(1000)">1K</button>
+                    <button class="bet-btn" onclick="setMaxBet()">MAX</button>
+                </div>
+                <button class="game-card-btn" onclick="playDice()" style="margin-top:16px;">
+                    Бросить кубик
+                </button>
+                <div id="dice-result"></div>
+            `;
+        }
+
+        function setBet(amount) {
+            currentBet = amount;
+            document.querySelectorAll('.bet-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function setMaxBet() {
+            currentBet = Math.min(5000, Math.floor(state.click_coins * 0.5));
+            document.querySelectorAll('.bet-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        async function playDice() {
+            if (!currentBet || currentBet > state.click_coins) {
+                showToast('Недостаточно средств!', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/casino-dice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, bet: currentBet })
+                });
+                
+                const result = await response.json();
+                const resultDiv = document.getElementById('dice-result');
+                
+                if (result.win) {
+                    state.click_coins += result.winAmount;
+                    resultDiv.innerHTML = `
+                        <div class="game-result">
+                            <div class="game-result-icon">🎲 ${result.roll}</div>
+                            <div class="game-result-text">Выигрыш!</div>
+                            <div class="game-result-amount win">+${result.winAmount} 🪙</div>
+                        </div>
+                    `;
+                    showToast(`Выигрыш: +${result.winAmount} 🪙`, 'success');
+                } else {
+                    state.click_coins -= currentBet;
+                    resultDiv.innerHTML = `
+                        <div class="game-result">
+                            <div class="game-result-icon">🎲 ${result.roll}</div>
+                            <div class="game-result-text">Проигрыш</div>
+                            <div class="game-result-amount lose">-${currentBet} 🪙</div>
+                        </div>
+                    `;
+                    showToast('Не повезло!', 'error');
+                }
+                
+                updateUI();
+            } catch (error) {
+                showToast('Ошибка игры', 'error');
+            }
+        }
+
+        // Слоты
+        function showSlotsGame() {
+            const content = document.getElementById('game-content');
+            content.innerHTML = `
+                <p style="text-align:center;margin-bottom:16px;color:var(--text-secondary);">
+                    💎💎💎 x10 | ⭐⭐⭐ x5 | 🍒🍒🍒 x3 | 🍒🍒? x2
+                </p>
+                <div class="bet-buttons">
+                    <button class="bet-btn" onclick="setBet(10)">10</button>
+                    <button class="bet-btn" onclick="setBet(50)">50</button>
+                    <button class="bet-btn" onclick="setBet(100)">100</button>
+                    <button class="bet-btn" onclick="setBet(500)">500</button>
+                    <button class="bet-btn" onclick="setBet(1000)">1K</button>
+                    <button class="bet-btn" onclick="setMaxBet()">MAX</button>
+                </div>
+                <button class="game-card-btn" onclick="playSlots()" style="margin-top:16px;">
+                    Крутить
+                </button>
+                <div id="slots-result"></div>
+            `;
+        }
+
+        async function playSlots() {
+            if (!currentBet || currentBet > state.click_coins) {
+                showToast('Недостаточно средств!', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/casino-slots', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, bet: currentBet })
+                });
+                
+                const result = await response.json();
+                const resultDiv = document.getElementById('slots-result');
+                
+                if (result.win) {
+                    state.click_coins += result.winAmount;
+                    resultDiv.innerHTML = `
+                        <div class="game-result">
+                            <div class="game-result-icon">${result.reels.join(' ')}</div>
+                            <div class="game-result-text">Выигрыш x${result.multiplier}!</div>
+                            <div class="game-result-amount win">+${result.winAmount} 🪙</div>
+                        </div>
+                    `;
+                    showToast(`Выигрыш: +${result.winAmount} 🪙`, 'success');
+                } else {
+                    state.click_coins -= currentBet;
+                    resultDiv.innerHTML = `
+                        <div class="game-result">
+                            <div class="game-result-icon">${result.reels.join(' ')}</div>
+                            <div class="game-result-text">Проигрыш</div>
+                            <div class="game-result-amount lose">-${currentBet} 🪙</div>
+                        </div>
+                    `;
+                    showToast('Попробуй ещё!', 'error');
+                }
+                
+                updateUI();
+            } catch (error) {
+                showToast('Ошибка игры', 'error');
+            }
+        }
+
+        // Блэкджек
+        function showBJGame() {
+            const content = document.getElementById('game-content');
+            content.innerHTML = `
+                <p style="text-align:center;margin-bottom:16px;color:var(--text-secondary);">
+                    Обобыграй дилера — набери ближе к 21
+                </p>
+                <div class="bet-buttons">
+                    <button class="bet-btn" onclick="setBet(10)">10</button>
+                    <button class="bet-btn" onclick="setBet(50)">50</button>
+                    <button class="bet-btn" onclick="setBet(100)">100</button>
+                    <button class="bet-btn" onclick="setBet(500)">500</button>
+                    <button class="bet-btn" onclick="setBet(1000)">1K</button>
+                    <button class="bet-btn" onclick="setMaxBet()">MAX</button>
+                </div>
+                <button class="game-card-btn" onclick="startBJ()" style="margin-top:16px;">
+                    Начать игру
+                </button>
+                <div id="bj-result"></div>
+            `;
+        }
+
+        async function startBJ() {
+            if (!currentBet || currentBet > state.click_coins) {
+                showToast('Недостаточно средств!', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/casino-bj-start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, bet: currentBet })
+                });
+                
+                const result = await response.json();
+                bjGame = result;
+                renderBJ();
+            } catch (error) {
+                showToast('Ошибка игры', 'error');
+            }
+        }
+
+        function renderBJ() {
+            if (!bjGame) return;
+            
+            const resultDiv = document.getElementById('bj-result');
+            resultDiv.innerHTML = `
+                <div style="background:var(--bg-dark);padding:16px;border-radius:12px;margin-bottom:12px;">
+                    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">Дилер</div>
+                    <div style="font-size:24px;">${bjGame.dealer[0]} ?</div>
+                </div>
+                <div style="background:var(--bg-dark);padding:16px;border-radius:12px;margin-bottom:12px;">
+                    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">Твоя рука</div>
+                    <div style="font-size:24px;">${bjGame.player.join(' ')} = <b>${bjGame.playerValue}</b></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    <button class="game-card-btn" onclick="bjHit()">Ещё</button>
+                    <button class="game-card-btn" style="background:var(--bg-dark)" onclick="bjStand()">Хватит</button>
+                </div>
+            `;
+        }
+
+        async function bjHit() {
+            try {
+                const response = await fetch('/api/casino-bj-hit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                
+                const result = await response.json();
+                bjGame = result;
+                
+                if (result.busted) {
+                    state.click_coins -= currentBet;
+                    renderBJEnd('Проигрыш', `Перебор! ${result.playerValue}`, 'lose');
+                } else {
+                    renderBJ();
+                }
+                updateUI();
+            } catch (error) {
+                showToast('Ошибка', 'error');
+            }
+        }
+
+        async function bjStand() {
+            try {
+                const response = await fetch('/api/casino-bj-stand', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.win) {
+                    state.click_coins += result.winAmount;
+                    renderBJEnd('Победа!', `+${result.winAmount} 🪙`, 'win');
+                } else if (result.push) {
+                    renderBJEnd('Ничья', 'Ставка возвращена', 'success');
+                } else {
+                    state.click_coins -= currentBet;
+                    renderBJEnd('Проигрыш', `-${currentBet} 🪙`, 'lose');
+                }
+                updateUI();
+            } catch (error) {
+                showToast('Ошибка', 'error');
+            }
+        }
+
+        function renderBJEnd(title, text, type) {
+            const resultDiv = document.getElementById('bj-result');
+            resultDiv.innerHTML = `
+                <div class="game-result">
+                    <div class="game-result-text">${title}</div>
+                    <div class="game-result-amount ${type}">${text}</div>
+                </div>
+                <button class="game-card-btn" onclick="showGame('bj')" style="margin-top:12px;">
+                    Ещё партия
+                </button>
+            `;
+        }
+
+        // Загрузка профиля
+        async function loadProfile() {
+            if (!userId) return;
+            
+            try {
+                const response = await fetch(`/api/profile/${userId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('profile-name').textContent = data.first_name || 'Игрок';
+                    document.getElementById('profile-username').textContent = data.username ? '@' + data.username : '';
+                    document.getElementById('profile-level').textContent = data.level || 1;
+                    document.getElementById('profile-clicks').textContent = (data.total_clicks || 0).toLocaleString();
+                    document.getElementById('profile-tasks').textContent = data.tasks_completed || 0;
+                    document.getElementById('profile-streak').textContent = (data.streak_days || 0) + ' дней';
+                    document.getElementById('profile-click-power').textContent = (data.click_power || 1) + 'x';
+                    document.getElementById('profile-referrals').textContent = data.referrals_count || 0;
+                    document.getElementById('profile-created').textContent = data.created_at ? new Date(data.created_at).toLocaleDateString('ru-RU') : '-';
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки профиля:', error);
+            }
+        }
+
+        // Загрузка заданий
+        async function loadTasks() {
+            try {
+                const response = await fetch(`/api/tasks/${userId}`);
+                if (response.ok) {
+                    const tasks = await response.json();
+                    const container = document.getElementById('tasks-list');
+                    
+                    if (tasks.length === 0) {
+                        container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">Нет доступных заданий</p>';
+                        return;
+                    }
+                    
+                    container.innerHTML = tasks.map(task => `
+                        <div class="task-item">
+                            <div class="task-info">
+                                <div class="task-title">${task.title}</div>
+                                <div class="task-reward">+${task.reward_coins} 🪙 ${task.reward_stars ? '+ ' + task.reward_stars + ' ⭐' : ''}</div>
+                            </div>
+                            <button class="task-btn ${task.completed ? 'completed' : ''}" 
+                                    onclick="${task.completed ? '' : `completeTask(${task.id})`}">
+                                ${task.completed ? '✓' : 'Выполнить'}
+                            </button>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки заданий:', error);
+            }
+        }
+
+        // Выполнение задания
+        async function completeTask(taskId) {
+            try {
+                const response = await fetch('/api/complete-task', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, taskId })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    if (result.reward_coins) state.click_coins += result.reward_coins;
+                    if (result.reward_stars) state.stars += result.reward_stars;
+                    updateUI();
+                    showToast('Задание выполнено!', 'success');
+                    loadTasks();
+                } else {
+                    showToast(result.error || 'Ошибка', 'error');
+                }
+            } catch (error) {
+                showToast('Ошибка выполнения', 'error');
+            }
+        }
+
+        // Загрузка рейтинга
+        async function loadRating() {
+            try {
+                const response = await fetch('/api/rating');
+                if (response.ok) {
+                    const rating = await response.json();
+                    const container = document.getElementById('rating-list');
+                    
+                    container.innerHTML = rating.map((player, index) => {
+                        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+                        const isCurrentUser = player.telegram_id === userId;
+                        
+                        return `
+                            <div class="task-item" style="${isCurrentUser ? 'border-color:var(--primary)' : ''}">
+                                <div style="display:flex;align-items:center;gap:12px;flex:1;">
+                                    <div style="font-size:20px;font-weight:700;width:30px;">${medal}</div>
+                                    <div>
+                                        <div style="font-weight:600;">${player.first_name || 'Игрок'}</div>
+                                        <div style="font-size:12px;color:var(--text-secondary);">@${player.username || 'unknown'}</div>
+                                    </div>
+                                </div>
+                                <div style="font-weight:700;color:var(--gold);">${player.stars} ⭐</div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки рейтинга:', error);
+            }
+        }
+
+        // Магазин
+        async function showShopCategory(category, element) {
+            document.querySelectorAll('.shop-category').forEach(c => c.classList.remove('active'));
+            if (element) element.classList.add('active');
+            
+            try {
+                const response = await fetch(`/api/shop/${category}?userId=${userId}`);
+                if (response.ok) {
+                    const items = await response.json();
+                    const container = document.getElementById('shop-content');
+                    
+                    if (items.length === 0) {
+                        container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;grid-column:1/-1;">Пусто</p>';
+                        return;
+                    }
+                    
+                    container.innerHTML = items.map(item => `
+                        <div class="shop-item" onclick="${item.canBuy ? `buyShopItem('${category}', '${item.id}')` : ''}">
+                            <div class="shop-item-icon">${item.icon}</div>
+                            <div class="shop-item-name">${item.name}</div>
+                            <div class="shop-item-price">${item.price}</div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки магазина:', error);
+            }
+        }
+
+        async function buyShopItem(category, itemId) {
+            try {
+                const response = await fetch('/api/buy-shop-item', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, category, itemId })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Покупка успешна!', 'success');
+                    showShopCategory(category, document.querySelector('.shop-category.active'));
+                } else {
+                    showToast(result.error || 'Ошибка', 'error');
+                }
+            } catch (error) {
+                showToast('Ошибка покупки', 'error');
+            }
+        }
+
+        // Авто-сохранение каждые 30 секунд
+        setInterval(() => {
+            if (state.total_clicks > 0) {
+                saveData();
+            }
+        }, 30000);
+
+        // Инициализация при загрузке
+        loadUserData();
+    </script>
+</body>
+</html>
