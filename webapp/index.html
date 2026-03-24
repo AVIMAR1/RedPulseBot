@@ -6002,13 +6002,12 @@ function launchCharge() {
     const padding = 10;
     const fieldWidth = FIELD_COLS * (CELL_SIZE + GAP) + padding * 2;
     const fieldHeight = gameState.fieldRows * (CELL_SIZE + GAP) + padding * 2;
-    const BASE_SPEED = 3.5; // Фиксированная скорость для плавности
+    const BASE_SPEED = 3.5;
 
     let charge = gameState.chargePower || 1;
     let x = (CHARGE_COL + 0.5) * (CELL_SIZE + GAP) + padding;
     let y = padding - 10;
     let dir = { x: 0, y: 1 };
-    let lastFrameTime = performance.now();
 
     const chargeEl = document.createElement('div');
     chargeEl.className = 'charge-particle';
@@ -6018,24 +6017,25 @@ function launchCharge() {
 
     const processedBlocks = new Set();
     let lastTrail = 0;
+    let lastTime = 0; // Инициализируем 0 чтобы первый кадр установил время
 
-    function move(currentTime) {
-        // Дельта-время для постоянной скорости независимо от FPS
-        const deltaTime = Math.min((currentTime - lastFrameTime) / 16.67, 2); // макс 2x скорость
-        lastFrameTime = currentTime;
+    function move(timestamp) {
+        if (!lastTime) lastTime = timestamp; // Первый кадр
+        const deltaTime = Math.min((timestamp - lastTime) / 16.67, 2);
+        lastTime = timestamp;
 
         x += dir.x * BASE_SPEED * deltaTime;
         y += dir.y * BASE_SPEED * deltaTime;
 
         // Trail каждые 100ms
-        if (currentTime - lastTrail > 100) {
+        if (timestamp - lastTrail > 100) {
             const trail = document.createElement('div');
             trail.className = 'charge-trail';
             trail.style.left = `${x - 4}px`;
             trail.style.top = `${y - 4}px`;
             fieldGrid.appendChild(trail);
             setTimeout(() => trail.remove(), 400);
-            lastTrail = currentTime;
+            lastTrail = timestamp;
         }
 
         chargeEl.style.left = `${x - 9}px`;
@@ -6048,7 +6048,7 @@ function launchCharge() {
             return;
         }
 
-        // Block collision - ПРЯМОУГОЛЬНАЯ коллизия вместо круговой
+        // Block collision - ПРЯМОУГОЛЬНАЯ коллизия
         const col = Math.floor((x - padding) / (CELL_SIZE + GAP));
         const row = Math.floor((y - padding) / (CELL_SIZE + GAP));
         const blockKey = `${row}-${col}`;
@@ -6058,12 +6058,11 @@ function launchCharge() {
             if (block && !processedBlocks.has(blockKey)) {
                 const cellX = padding + col * (CELL_SIZE + GAP);
                 const cellY = padding + row * (CELL_SIZE + GAP);
-                
-                // Прямоугольная коллизия с запасом
-                const hitBox = CELL_SIZE * 0.6; // 60% размера блока
+
+                const hitBox = CELL_SIZE * 0.6;
                 const dx = Math.abs(x - (cellX + CELL_SIZE/2));
                 const dy = Math.abs(y - (cellY + CELL_SIZE/2));
-                
+
                 if (dx < hitBox && dy < hitBox) {
                     processedBlocks.add(blockKey);
                     handleBlock(block, row, col, charge, dir, processedBlocks, chargeEl, x, y);
@@ -6260,24 +6259,25 @@ function spawnCharge(x, y, dir, charge, processed, skipFrames) {
 
     let frames = 0;
     let lastTrail = 0;
-    let lastFrameTime = performance.now();
+    let lastTime = 0;
 
-    function move(currentTime) {
-        const deltaTime = Math.min((currentTime - lastFrameTime) / 16.67, 2);
-        lastFrameTime = currentTime;
+    function move(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const deltaTime = Math.min((timestamp - lastTime) / 16.67, 2);
+        lastTime = timestamp;
 
         x += dir.x * BASE_SPEED * deltaTime;
         y += dir.y * BASE_SPEED * deltaTime;
         frames++;
 
-        if (currentTime - lastTrail > 100) {
+        if (timestamp - lastTrail > 100) {
             const trail = document.createElement('div');
             trail.className = 'charge-trail';
             trail.style.left = `${x - 4}px`;
             trail.style.top = `${y - 4}px`;
             fieldGrid.appendChild(trail);
             setTimeout(() => trail.remove(), 400);
-            lastTrail = currentTime;
+            lastTrail = timestamp;
         }
 
         chargeEl.style.left = `${x - 9}px`;
