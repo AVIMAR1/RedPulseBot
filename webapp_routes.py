@@ -239,19 +239,32 @@ async def exchange_to_crystals(request: Request):
 async def get_profile(user_id: int):
     conn = get_db()
     cursor = conn.cursor()
-    
+
     try:
+        # Получаем данные пользователя
         cursor.execute("""
             SELECT first_name, username, level, total_clicks, tasks_completed,
-                   streak_days, click_power, referrals_count, created_at
+                   streak_days, click_power, referrals_count, created_at,
+                   reactor_level, blocks_placed, reactions_triggered
             FROM users WHERE telegram_id = ?
         """, (user_id,))
         user = cursor.fetchone()
-    except Exception:
+        
+        # Получаем место в рейтинге
+        cursor.execute("""
+            SELECT telegram_id FROM users 
+            WHERE is_banned = 0 
+            ORDER BY stars DESC, total_clicks DESC
+        """)
+        all_users = cursor.fetchall()
+        user_rank = next((i + 1 for i, u in enumerate(all_users) if u["telegram_id"] == user_id), 0)
+    except Exception as e:
+        print(f"Error fetching profile: {e}")
         user = None
-    
+        user_rank = 0
+
     conn.close()
-    
+
     if user:
         return {
             "first_name": user["first_name"] or "Игрок",
@@ -262,9 +275,45 @@ async def get_profile(user_id: int):
             "streak_days": user["streak_days"] or 0,
             "click_power": user["click_power"] or 1,
             "referrals_count": user["referrals_count"] or 0,
-            "created_at": user["created_at"] or ""
+            "created_at": user["created_at"] or "",
+            "core_level": user["reactor_level"] or 1,
+            "blocks_placed": user["blocks_placed"] or 0,
+            "reactions_triggered": user["reactions_triggered"] or 0,
+            "rating_rank": user_rank
         }
     return {}
+
+@router.post("/api/save-farm-stats")
+async def save_farm_stats(request: Request):
+    """Сохраняет статистику фермы (реактора) в БД"""
+    data = await request.json()
+    user_id = data.get("userId")
+    
+    reactor_level = max(1, int(data.get("reactor_level", 1)))
+    blocks_placed = int(data.get("blocks_placed", 0))
+    reactions_triggered = int(data.get("reactions_triggered", 0))
+    total_energy_produced = int(data.get("total_energy_produced", 0))
+    
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            UPDATE users SET 
+                reactor_level = ?,
+                blocks_placed = ?,
+                reactions_triggered = ?,
+                total_energy_produced = ?,
+                last_activity = CURRENT_TIMESTAMP
+            WHERE telegram_id = ?
+        """, (reactor_level, blocks_placed, reactions_triggered, total_energy_produced, user_id))
+        conn.commit()
+        conn.close()
+        return {"status": "ok"}
+    except Exception as e:
+        print(f"Error saving farm stats: {e}")
+        conn.close()
+        return {"status": "error", "message": str(e)}
 
 @router.get("/api/tasks/{user_id}")
 async def get_tasks(user_id: int):

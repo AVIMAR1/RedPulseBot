@@ -30,21 +30,36 @@ def escape_html(text):
 
 
 def get_farm_stats(telegram_id):
-    """Получает статистику из фермы (Mini App)"""
+    """Получает статистику из фермы (Mini App) - данные из БД"""
     try:
-        # Пытаемся прочитать данные из localStorage фермы
-        # В реальном боте это должно приходить из базы данных
-        farm_data = {
+        import sqlite3
+        conn = sqlite3.connect('redpulse.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT reactor_level, blocks_placed, reactions_triggered, total_energy_produced
+            FROM users WHERE telegram_id = ?
+        """, (telegram_id,))
+        row = cursor.fetchone()
+        conn.close()
+        
+        if row:
+            return {
+                'reactor_level': row['reactor_level'] or 1,
+                'total_energy': row['total_energy_produced'] or 0,
+                'blocks_placed': row['blocks_placed'] or 0,
+                'reactions_triggered': row['reactions_triggered'] or 0
+            }
+        
+        return {
             'reactor_level': 1,
             'total_energy': 0,
             'blocks_placed': 0,
             'reactions_triggered': 0
         }
-
-        # Читаем из базы данных пользователя
-        # Эти данные должны обновляться при синхронизации с Mini App
-        return farm_data
-    except Exception:
+    except Exception as e:
+        print(f"Error getting farm stats: {e}")
         return {
             'reactor_level': 1,
             'total_energy': 0,
@@ -95,13 +110,18 @@ async def cmd_profile(message: types.Message, session: AsyncSession):
     
     # Статистика фермы
     farm_stats = get_farm_stats(telegram_id)
+    
+    # Уровень ядра и игрока
+    core_level = farm_stats['reactor_level'] or 1
+    player_level = ((core_level - 1) // 5) + 1
 
     profile_text = (
         f"👤 <b>Твой профиль</b>\n\n"
         f"🆔 ID: <code>{safe_telegram_id}</code>\n"
         f"📛 Имя: {safe_first_name or 'Не указано'}\n"
         f"👤 Username: @{safe_username or 'Не указан'}\n\n"
-        f"🏅 <b>Уровень:</b> {prog['level']}\n"
+        f"🏅 <b>Уровень игрока:</b> {player_level}\n"
+        f"⚛️ <b>Уровень ядра:</b> {core_level}\n"
         f"⭐ XP: {prog['xp']} ({prog['xp_in_level']}/{prog['xp_to_next']})\n"
         f"{bar} {prog['pct']}%\n\n"
         f"💰 <b>Валюты:</b>\n"
@@ -109,17 +129,15 @@ async def cmd_profile(message: types.Message, session: AsyncSession):
         f"⭐ RED PULSE STARS: {user.stars:,}\n"
         f"💎 Кристаллы: {user.crystals:,}\n\n"
         f"⚛️ <b>Ферма (Реактор):</b>\n"
-        f"🔥 Уровень реактора: {farm_stats['reactor_level']}\n"
-        f"⚡ Всего энергии: {farm_stats['total_energy']:,}\n"
         f"🧱 Блоков установлено: {farm_stats['blocks_placed']}\n"
         f"💥 Реакций запущено: {farm_stats['reactions_triggered']}\n\n"
         f"📊 <b>Статистика:</b>\n"
         f"👥 Рефералов: {total_referrals}\n"
-        f"🖱️ Всего действий: {user.total_clicks:,}\n"
         f"📋 Заданий выполнено: {user.tasks_completed}\n"
+        f"🖱️ Всего действий: {user.total_clicks:,}\n"
         f"⚡ Сила клика: x{user.click_power}\n\n"
         f"🔥 <b>Streak:</b> {streak_days} дн.\n\n"
-        f"📅 В боте с: {user.created_at.strftime('%d.%m.%Y %H:%M') if user.created_at else 'Неизвестно'}"
+        f"📅 В боте с: {user.created_at.strftime('%d.%m.%Y') if user.created_at else 'Неизвестно'}"
     )
 
     # Кнопка для открытия полного профиля в Mini App

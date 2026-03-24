@@ -1083,6 +1083,9 @@
             font-size: 36px;
             margin: 0 auto 16px;
             box-shadow: var(--shadow-glow);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
         }
 
         .profile-name {
@@ -2306,8 +2309,8 @@
     --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.5);
     --border-radius: 12px;
     --border-radius-lg: 16px;
-    --cell-size: 50px;
-    --gap: 4px;
+    --cell-size: 33px;
+    --gap: 3px;
 }
 
 * {
@@ -3690,43 +3693,38 @@ body {
                         <div class="profile-stat-label">Уровень</div>
                     </div>
                     <div class="profile-stat">
-                        <div class="profile-stat-value" id="profile-clicks">0</div>
-                        <div class="profile-stat-label">Клики</div>
+                        <div class="profile-stat-value" id="profile-core-level">1</div>
+                        <div class="profile-stat-label">Ядро</div>
                     </div>
                     <div class="profile-stat">
-                        <div class="profile-stat-value" id="profile-tasks">0</div>
-                        <div class="profile-stat-label">Задания</div>
+                        <div class="profile-stat-value" id="profile-rating">-</div>
+                        <div class="profile-stat-label">Место</div>
                     </div>
                 </div>
             </div>
             <div class="profile-details">
                 <div class="profile-detail-item">
-                    <span class="profile-detail-label">🔥 Streak</span>
-                    <span class="profile-detail-value" id="profile-streak">0 дней</span>
-                </div>
-                <div class="profile-detail-item">
-                    <span class="profile-detail-label">⚡ Сила клика</span>
-                    <span class="profile-detail-value" id="profile-click-power">1x</span>
-                </div>
-                <div class="profile-detail-item">
                     <span class="profile-detail-label">👥 Рефералов</span>
                     <span class="profile-detail-value" id="profile-referrals">0</span>
+                </div>
+                <div class="profile-detail-item">
+                    <span class="profile-detail-label">📋 Заданий выполнено</span>
+                    <span class="profile-detail-value" id="profile-tasks-done">0</span>
                 </div>
                 <div class="profile-detail-item">
                     <span class="profile-detail-label">📅 В боте с</span>
                     <span class="profile-detail-value" id="profile-created">-</span>
                 </div>
-                <!-- Статистика фермы -->
-                <div class="profile-detail-item" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; margin-top: 8px;">
-                    <span class="profile-detail-label" style="color: var(--primary);">⚛️ Энергия</span>
-                    <span class="profile-detail-value" id="profile-energy">0</span>
-                </div>
                 <div class="profile-detail-item">
-                    <span class="profile-detail-label" style="color: var(--primary);">🧱 Блоков</span>
+                    <span class="profile-detail-label">🔥 Streak</span>
+                    <span class="profile-detail-value" id="profile-streak">0 дней</span>
+                </div>
+                <div class="profile-detail-item" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; margin-top: 8px;">
+                    <span class="profile-detail-label" style="color: var(--primary);">🧱 Блоков установлено</span>
                     <span class="profile-detail-value" id="profile-blocks">0</span>
                 </div>
                 <div class="profile-detail-item">
-                    <span class="profile-detail-label" style="color: var(--primary);">💥 Реакций</span>
+                    <span class="profile-detail-label" style="color: var(--primary);">💥 Реакций запущено</span>
                     <span class="profile-detail-value" id="profile-reactions">0</span>
                 </div>
             </div>
@@ -4663,41 +4661,83 @@ body {
             if (!userId) return;
 
             try {
+                // Получаем данные из Telegram
+                const tgUser = tg.initDataUnsafe?.user;
+                if (tgUser) {
+                    // Аватарка из Telegram
+                    const avatarEl = document.getElementById('profile-avatar');
+                    if (tgUser.photo_url) {
+                        avatarEl.style.backgroundImage = `url(${tgUser.photo_url})`;
+                        avatarEl.style.backgroundSize = 'cover';
+                        avatarEl.style.backgroundPosition = 'center';
+                        avatarEl.textContent = '';
+                    } else {
+                        avatarEl.textContent = '👤';
+                        avatarEl.style.backgroundImage = 'none';
+                    }
+                    
+                    // Ник и username из Telegram
+                    document.getElementById('profile-name').textContent = tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '');
+                    document.getElementById('profile-username').textContent = tgUser.username ? '@' + tgUser.username : '';
+                }
+
+                // Загружаем данные с сервера
                 const response = await fetch(`/api/profile/${userId}`);
                 if (response.ok) {
                     const data = await response.json();
-                    document.getElementById('profile-name').textContent = data.first_name || 'Игрок';
-                    document.getElementById('profile-username').textContent = data.username ? '@' + data.username : '';
-                    document.getElementById('profile-level').textContent = data.level || 1;
-                    document.getElementById('profile-clicks').textContent = (data.total_clicks || 0).toLocaleString();
-                    document.getElementById('profile-tasks').textContent = data.tasks_completed || 0;
-                    document.getElementById('profile-streak').textContent = (data.streak_days || 0) + ' дней';
-                    document.getElementById('profile-click-power').textContent = (data.click_power || 1) + 'x';
-                    document.getElementById('profile-referrals').textContent = data.referrals_count || 0;
-                    document.getElementById('profile-created').textContent = data.created_at ? new Date(data.created_at).toLocaleDateString('ru-RU') : '-';
                     
-                    // Обновляем статистику фермы из localStorage
-                    const farmStateRaw = localStorage.getItem('pulseFarmSave_v2');
-                    if (farmStateRaw) {
-                        try {
-                            const farmState = JSON.parse(farmStateRaw);
-                            // Уровень реактора = уровень фермы
-                            document.getElementById('profile-level').textContent = farmState.level || 1;
-                            // Всего энергии = totalTaps
-                            const energyEl = document.getElementById('profile-energy');
-                            if (energyEl) energyEl.textContent = (farmState.totalTaps || 0).toLocaleString();
-                            // Блоков = количество блоков в сетке
-                            const blocksEl = document.getElementById('profile-blocks');
-                            if (blocksEl) {
-                                const blocksCount = farmState.grid ? farmState.grid.flat().filter(b => b).length : 0;
-                                blocksEl.textContent = blocksCount;
-                            }
-                            // Реакций = reactionsTriggered
-                            const reactionsEl = document.getElementById('profile-reactions');
-                            if (reactionsEl) reactionsEl.textContent = (farmState.reactionsTriggered || 0).toLocaleString();
-                        } catch (e) {
-                            console.error('Ошибка чтения фермы:', e);
+                    // Уровень игрока и ядра
+                    const coreLevel = data.core_level || 1;
+                    const playerLevel = Math.floor((coreLevel - 1) / 5) + 1;
+                    document.getElementById('profile-core-level').textContent = coreLevel;
+                    document.getElementById('profile-level').textContent = playerLevel;
+                    
+                    // Остальные данные
+                    document.getElementById('profile-tasks-done').textContent = data.tasks_completed || 0;
+                    document.getElementById('profile-referrals').textContent = data.referrals_count || 0;
+                    document.getElementById('profile-streak').textContent = (data.streak_days || 0) + ' дней';
+                    document.getElementById('profile-created').textContent = data.created_at ? new Date(data.created_at).toLocaleDateString('ru-RU') : '-';
+                }
+
+                // Загружаем рейтинг
+                try {
+                    const ratingResponse = await fetch('/api/rating');
+                    if (ratingResponse.ok) {
+                        const rating = await ratingResponse.json();
+                        const userRank = rating.findIndex(u => u.telegram_id === userId) + 1;
+                        document.getElementById('profile-rating').textContent = userRank > 0 ? `#${userRank}` : '-';
+                    }
+                } catch (e) {
+                    console.error('Ошибка загрузки рейтинга:', e);
+                    document.getElementById('profile-rating').textContent = '-';
+                }
+
+                // Обновляем статистику фермы из localStorage
+                const farmStateRaw = localStorage.getItem('pulseFarmSave_v2');
+                if (farmStateRaw) {
+                    try {
+                        const farmState = JSON.parse(farmStateRaw);
+                        // Уровень реактора = максимальный уровень блока
+                        let maxBlockLevel = 1;
+                        if (farmState.grid) {
+                            farmState.grid.flat().forEach(block => {
+                                if (block && block.level > maxBlockLevel) maxBlockLevel = block.level;
+                            });
                         }
+                        document.getElementById('profile-core-level').textContent = maxBlockLevel;
+                        
+                        // Уровень игрока = (уровень ядра - 1) / 5 + 1
+                        const playerLevel = Math.floor((maxBlockLevel - 1) / 5) + 1;
+                        document.getElementById('profile-level').textContent = playerLevel;
+                        
+                        // Блоков = количество блоков в сетке
+                        const blocksCount = farmState.grid ? farmState.grid.flat().filter(b => b).length : 0;
+                        document.getElementById('profile-blocks').textContent = blocksCount;
+                        
+                        // Реакций = reactionsTriggered (тапы ядра)
+                        document.getElementById('profile-reactions').textContent = (farmState.totalTaps || 0).toLocaleString();
+                    } catch (e) {
+                        console.error('Ошибка чтения фермы:', e);
                     }
                 }
             } catch (error) {
@@ -5409,8 +5449,8 @@ const CONFIG = {
     ]
 };
 
-const CELL_SIZE = 50;
-const GAP = 4;
+const CELL_SIZE = 33;
+const GAP = 3;
 const FIELD_COLS = 7;
 const FIELD_ROWS = 7;
 const CHARGE_COL = 3;
@@ -5597,6 +5637,44 @@ function saveGame() {
 
     localStorage.setItem('pulseFarmSave_v2', JSON.stringify(gameState));
     localStorage.setItem('redpulse_state', JSON.stringify(state));
+    
+    // Сохраняем статистику фермы в БД
+    saveFarmStats();
+}
+
+async function saveFarmStats() {
+    if (typeof userId === 'undefined' || !userId) return;
+    
+    try {
+        // Считаем уровень реактора (максимальный уровень блока)
+        let maxBlockLevel = 1;
+        let blocksCount = 0;
+        if (gameState.grid) {
+            gameState.grid.flat().forEach(block => {
+                if (block) {
+                    blocksCount++;
+                    if (block.level > maxBlockLevel) maxBlockLevel = block.level;
+                }
+            });
+        }
+        
+        const farmStats = {
+            userId: userId,
+            reactor_level: maxBlockLevel,
+            blocks_placed: blocksCount,
+            reactions_triggered: gameState.totalTaps || 0,
+            total_energy_produced: gameState.totalEarned || 0
+        };
+        
+        // Отправляем на сервер
+        await fetch('/api/save-farm-stats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(farmStats)
+        });
+    } catch (e) {
+        console.error('[Farm Stats] Ошибка сохранения:', e);
+    }
 }
 
 function updateUI() {
