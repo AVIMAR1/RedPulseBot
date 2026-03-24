@@ -1385,14 +1385,13 @@
                     </div>
                     <div class="col-md-6">
                         <div class="data-table">
-                            <div class="table-header"><h5 class="table-title">🏰 Клан</h5></div>
+                            <div class="table-header"><h5 class="table-title">⚛️ Ферма (Реактор)</h5></div>
                             <div style="padding: 1rem;">
-                                {% if clan %}
-                                <div><b>{{ clan.name }}</b> {% if clan.tag %}<code>[{{ clan.tag }}]</code>{% endif %}</div>
-                                <div>Роль: {{ clan.role }}</div>
-                                {% else %}
-                                <div class="text-muted">Не в клане</div>
-                                {% endif %}
+                                <div><b>🔥 Уровень реактора:</b> {{ u.level or 1 }}</div>
+                                <div><b>⚡ Всего энергии:</b> {{ u.total_clicks or 0 }}</div>
+                                <div><b>⚡ Сила клика:</b> x{{ u.click_power or 1 }}</div>
+                                <div><b>🧱 Блоков:</b> {{ (u.blocks_placed or 0) }}</div>
+                                <div><b>💥 Реакций:</b> {{ (u.reactions_triggered or 0) }}</div>
                             </div>
                         </div>
                     </div>

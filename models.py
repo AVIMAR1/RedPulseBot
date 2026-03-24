@@ -53,6 +53,12 @@ class User(Base):
     # Тема кликера: default, red, blue, gold, dark
     theme = Column(String(32), nullable=True)
     
+    # Статистика фермы (реактора)
+    blocks_placed = Column(Integer, default=0)        # количество установленных блоков
+    reactions_triggered = Column(Integer, default=0)   # количество запущенных реакций
+    reactor_level = Column(Integer, default=1)        # уровень реактора
+    total_energy_produced = Column(Integer, default=0) # всего произведено энергии
+
     # Статус бана
     is_banned = Column(Boolean, default=False)
     ban_reason = Column(String, nullable=True)

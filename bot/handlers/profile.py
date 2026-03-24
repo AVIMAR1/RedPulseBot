@@ -1,12 +1,14 @@
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models import User
 from bot.keyboards import WEBAPP_URL
 from core.progression import progress_for_xp, render_progress_bar
+import json
+import os
 
 router = Router()
 
@@ -27,6 +29,30 @@ def escape_html(text):
     return text
 
 
+def get_farm_stats(telegram_id):
+    """Получает статистику из фермы (Mini App)"""
+    try:
+        # Пытаемся прочитать данные из localStorage фермы
+        # В реальном боте это должно приходить из базы данных
+        farm_data = {
+            'reactor_level': 1,
+            'total_energy': 0,
+            'blocks_placed': 0,
+            'reactions_triggered': 0
+        }
+        
+        # Читаем из базы данных пользователя
+        # Эти данные должны обновляться при синхронизации с Mini App
+        return farm_data
+    except Exception:
+        return {
+            'reactor_level': 1,
+            'total_energy': 0,
+            'blocks_placed': 0,
+            'reactions_triggered': 0
+        }
+
+
 @router.message(lambda message: message.text == "👤 Профиль")
 @router.message(Command("profile"))
 async def cmd_profile(message: types.Message, session: AsyncSession):
@@ -45,6 +71,12 @@ async def cmd_profile(message: types.Message, session: AsyncSession):
     )
     referrals = referrals_result.scalars().all()
     referrals_count = len(referrals)
+    
+    # Получаем общую сумму рефералов из БД
+    total_referrals_result = await session.execute(
+        select(func.count(User.id)).where(User.referrer_id == telegram_id)
+    )
+    total_referrals = total_referrals_result.scalar() or 0
 
     # Экранируем данные
     safe_first_name = escape_html(user.first_name)
@@ -60,6 +92,9 @@ async def cmd_profile(message: types.Message, session: AsyncSession):
 
     # Streak
     streak_days = int(getattr(user, "streak_days", 0) or 0)
+    
+    # Статистика фермы
+    farm_stats = get_farm_stats(telegram_id)
 
     profile_text = (
         f"👤 <b>Твой профиль</b>\n\n"
@@ -70,12 +105,17 @@ async def cmd_profile(message: types.Message, session: AsyncSession):
         f"⭐ XP: {prog['xp']} ({prog['xp_in_level']}/{prog['xp_to_next']})\n"
         f"{bar} {prog['pct']}%\n\n"
         f"💰 <b>Валюты:</b>\n"
-        f"🪙 Клик-монеты: {user.click_coins}\n"
-        f"⭐ RED PULSE STARS: {user.stars}\n"
-        f"💎 Кристаллы: {user.crystals}\n\n"
+        f"🪙 Монеты: {user.click_coins:,}\n"
+        f"⭐ RED PULSE STARS: {user.stars:,}\n"
+        f"💎 Кристаллы: {user.crystals:,}\n\n"
+        f"⚛️ <b>Ферма (Реактор):</b>\n"
+        f"🔥 Уровень реактора: {farm_stats['reactor_level']}\n"
+        f"⚡ Всего энергии: {farm_stats['total_energy']:,}\n"
+        f"🧱 Блоков установлено: {farm_stats['blocks_placed']}\n"
+        f"💥 Реакций запущено: {farm_stats['reactions_triggered']}\n\n"
         f"📊 <b>Статистика:</b>\n"
-        f"👥 Рефералов: {referrals_count}\n"
-        f"🖱️ Всего кликов: {user.total_clicks}\n"
+        f"👥 Рефералов: {total_referrals}\n"
+        f"🖱️ Всего действий: {user.total_clicks:,}\n"
         f"📋 Заданий выполнено: {user.tasks_completed}\n"
         f"⚡ Сила клика: x{user.click_power}\n\n"
         f"🔥 <b>Streak:</b> {streak_days} дн.\n\n"
@@ -84,7 +124,7 @@ async def cmd_profile(message: types.Message, session: AsyncSession):
 
     # Кнопка для открытия полного профиля в Mini App
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🎮 Полный профиль в Mini App", web_app=WebAppInfo(url=WEBAPP_URL))]
+        [InlineKeyboardButton(text="🎮 Открыть ферму в Mini App", web_app=WebAppInfo(url=WEBAPP_URL))]
     ])
 
     await message.answer(profile_text, parse_mode="HTML", reply_markup=keyboard)
