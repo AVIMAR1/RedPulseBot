@@ -2414,10 +2414,10 @@ body {
     z-index: 5;
 }
 
-.router-port-glow.top { top: 0; left: 50%; transform: translateX(-50%); width: 60%; height: 6px; border-radius: 0 0 4px 4px; }
-.router-port-glow.bottom { bottom: 0; left: 50%; transform: translateX(-50%); width: 60%; height: 6px; border-radius: 4px 4px 0 0; }
-.router-port-glow.left { left: 0; top: 50%; transform: translateY(-50%); width: 6px; height: 60%; border-radius: 0 4px 4px 0; }
-.router-port-glow.right { right: 0; top: 50%; transform: translateY(-50%); width: 6px; height: 60%; border-radius: 4px 0 0 4px; }
+.router-port-glow.top { top: 0; left: 50%; transform: translateX(-50%); width: 50%; height: 4px; border-radius: 0 0 3px 3px; }
+.router-port-glow.bottom { bottom: 0; left: 50%; transform: translateX(-50%); width: 50%; height: 4px; border-radius: 4px 4px 0 0; }
+.router-port-glow.left { left: 0; top: 50%; transform: translateY(-50%); width: 4px; height: 50%; border-radius: 0 3px 3px 0; }
+.router-port-glow.right { right: 0; top: 50%; transform: translateY(-50%); width: 4px; height: 50%; border-radius: 3px 0 0 3px; }
 
 @keyframes port-flicker {
     0%, 100% { opacity: 0.8; box-shadow: 0 0 15px rgba(52, 152, 219, 1); }
@@ -2425,7 +2425,7 @@ body {
 }
 
 .multiplier-value {
-    font-size: 13px;
+    font-size: 9px;
     font-weight: 800;
     color: #f1c40f;
     text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 10px #f1c40f;
@@ -2842,9 +2842,9 @@ body {
     50% { transform: scale(1.06); box-shadow: 0 4px 40px rgba(255, 0, 102, 0.9); }
 }
 
-.block-icon { font-size: 32px; line-height: 1; z-index: 1; }
-.block-value { font-size: 13px; font-weight: 800; margin-top: 4px; z-index: 1; text-shadow: 0 2px 6px rgba(0,0,0,0.8), 0 0 10px rgba(255,255,255,0.5); }
-.block-level-badge { font-size: 11px !important; font-weight: 800 !important; padding: 2px 5px !important; }
+.block-icon { font-size: 20px; line-height: 1; z-index: 1; }
+.block-value { font-size: 9px; font-weight: 800; margin-top: 2px; z-index: 1; text-shadow: 0 2px 6px rgba(0,0,0,0.8), 0 0 10px rgba(255,255,255,0.5); }
+.block-level-badge { font-size: 7px !important; font-weight: 800 !important; padding: 1px 3px !important; }
 
 /* Splitter Ports */
 .splitter-ports { position: absolute; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
