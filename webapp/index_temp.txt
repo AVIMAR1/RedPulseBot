@@ -1,0 +1,4103 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#e74c3c">
+    <title>Red Pulse | Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #e74c3c;
+            --primary-dark: #c0392b;
+            --primary-light: #ff6b6b;
+            --bg-dark: #0f0f0f;
+            --bg-card: #1a1a1a;
+            --bg-card-hover: #252525;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --gold: #f1c40f;
+            --crystal: #3498db;
+            --gradient-primary: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            --gradient-gold: linear-gradient(135deg, #f1c40f 0%, #d4ac0d 100%);
+            --gradient-crystal: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --shadow-glow: 0 0 20px rgba(231, 76, 60, 0.3);
+            --border-radius: 16px;
+            --border-radius-sm: 12px;
+            --border-radius-lg: 24px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding-bottom: 100px;
+        }
+
+        .app {
+            max-width: 480px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-card);
+            padding: 16px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .logo-centered {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--gradient-primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .user-avatar:active {
+            transform: scale(0.95);
+        }
+
+        /* Balance Card */
+        .balance-card {
+            background: var(--gradient-primary);
+            margin: 16px;
+            padding: 20px;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-glow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .balance-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        }
+
+        .balance-title {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 12px;
+        }
+
+        .balance-main {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .balance-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 16px;
+            border-radius: var(--border-radius-sm);
+            backdrop-filter: blur(10px);
+        }
+
+        .balance-item i {
+            font-size: 20px;
+        }
+
+        .balance-item .amount {
+            font-size: 18px;
+            font-weight: 700;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .balance-item .amount.updating {
+            animation: balancePulse 0.5s ease;
+        }
+
+        .balance-item .amount.increased {
+            color: #2ecc71 !important;
+            text-shadow: 0 0 20px rgba(46, 204, 113, 0.8);
+            transform: scale(1.15);
+        }
+
+        @keyframes balancePulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .coins { color: var(--gold); }
+        .stars { color: #fff; }
+        .crystals { color: var(--crystal); }
+
+        /* Р ВР Р…Р Т‘Р С‘Р С”Р В°РЎвЂљР С•РЎР‚ Р С•Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘РЎРЏ Р В±Р В°Р В»Р В°Р Р…РЎРѓР В° */
+        .balance-refresh-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            transition: opacity 0.3s;
+        }
+
+        .balance-refresh-indicator.refreshing {
+            animation: refreshSpin 1s linear infinite;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        @keyframes refreshSpin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Navigation */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 8px 16px;
+            padding-bottom: max(8px, env(safe-area-inset-bottom));
+            z-index: 1000;
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-around;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 12px;
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+
+        .nav-item i {
+            font-size: 20px;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .nav-item:active {
+            transform: scale(0.95);
+        }
+
+        /* Pages */
+        .page {
+            display: none;
+            padding: 16px;
+            padding-bottom: 100px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Section Title */
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .action-card {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .action-card:active {
+            transform: scale(0.98);
+            background: var(--bg-card-hover);
+        }
+
+        .action-card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .action-card-icon.clicker { background: var(--gradient-primary); }
+        .action-card-icon.casino { background: var(--gradient-gold); }
+        .action-card-icon.shop { background: var(--gradient-crystal); }
+        .action-card-icon.tasks { background: linear-gradient(135deg, #27ae60 0%, #1e8449 100%); }
+        .action-card-icon.profile { background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); }
+        .action-card-icon.rating { background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); }
+
+        .action-card-name {
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* Clicker Page */
+        .clicker-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            padding: 20px 0;
+        }
+
+        #clicker.page {
+            padding-bottom: 120px;
+        }
+
+        #clicker.page .header {
+            position: static;
+            margin-bottom: 12px;
+        }
+
+        #clicker.page:not(.active) {
+            display: none !important;
+        }
+
+        #clicker.page.active {
+            display: block !important;
+        }
+
+        /* Farm Info Modal */
+        .farm-info-modal {
+            position: fixed;
+            bottom: calc(80px + env(safe-area-inset-bottom));
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(20, 20, 20, 0.95);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 16px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 9998;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 90%;
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .farm-info-modal.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .farm-info-icon {
+            font-size: 24px;
+            color: var(--primary);
+        }
+
+        .farm-info-text {
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .farm-info-close {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .clicker-stats {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .stat-box {
+            background: var(--bg-card);
+            padding: 12px 20px;
+            border-radius: var(--border-radius-sm);
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .click-btn {
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            border: 6px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 64px;
+            color: white;
+            box-shadow: 0 20px 60px rgba(231, 76, 60, 0.4), inset 0 -10px 40px rgba(0, 0, 0, 0.3);
+            transition: all 0.1s;
+            user-select: none;
+            -webkit-user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .click-btn::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .click-btn:active {
+            transform: scale(0.95) translateY(5px);
+            box-shadow: 0 10px 30px rgba(231, 76, 60, 0.5), inset 0 -5px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .click-btn:active::before {
+            opacity: 1;
+        }
+
+        .energy-bar-container {
+            width: 100%;
+            max-width: 320px;
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: var(--border-radius);
+        }
+
+        .energy-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .energy-bar {
+            width: 100%;
+            height: 20px;
+            background: var(--bg-dark);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .energy-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .energy-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Boosts Panel */
+        .boosts-panel {
+            width: 100%;
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: var(--border-radius);
+            margin-top: 16px;
+        }
+
+        .boosts-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .boosts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .boost-item {
+            background: var(--bg-dark);
+            padding: 14px;
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            text-align: center;
+        }
+
+        .boost-item:active {
+            transform: scale(0.98);
+            border-color: var(--primary);
+        }
+
+        .boost-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .boost-name {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .boost-price {
+            font-size: 12px;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* Casino Games */
+        .casino-games {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .game-card {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .game-card:active {
+            transform: scale(0.98);
+            background: var(--bg-card-hover);
+        }
+
+        .game-card-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .game-card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .game-card-icon.dice { background: var(--gradient-gold); }
+        .game-card-icon.slots { background: var(--gradient-primary); }
+        .game-card-icon.bj { background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%); }
+        .game-card-icon.coin { background: linear-gradient(135deg, #f1c40f 0%, #d4ac0d 100%); }
+        .game-card-icon.wheel { background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); }
+
+        /* Casino Game Styles */
+        .casino-balance {
+            background: rgba(241, 196, 15, 0.1);
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            border: 1px solid rgba(241, 196, 15, 0.3);
+        }
+
+        .bet-input {
+            margin-bottom: 16px;
+        }
+
+        .bet-input label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .bet-input input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg-dark);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .game-action-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: all 0.3s;
+        }
+
+        .game-action-btn:active { transform: scale(0.98); }
+        .game-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .game-action-btn.secondary { background: linear-gradient(135deg, #27ae60, #1e8449); }
+        .game-action-btn.danger { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+
+        /* Coin Game */
+        .coin-choice {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .coin-btn {
+            background: var(--bg-dark);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            padding: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .coin-btn.selected {
+            border-color: var(--primary);
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .coin-icon { font-size: 32px; }
+        .coin-btn span { font-size: 14px; font-weight: 600; }
+
+        .coin-display {
+            width: 120px;
+            height: 120px;
+            margin: 20px auto;
+            position: relative;
+            perspective: 1000px;
+        }
+
+        .coin-inner {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #f1c40f, #d4ac0d);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            box-shadow: 0 4px 20px rgba(241, 196, 15, 0.5);
+            animation: coin-spin 0.5s ease-in-out;
+        }
+
+        @keyframes coin-spin {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(1800deg); }
+        }
+
+        /* Dice Game */
+        .dice-display {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .die {
+            width: 80px;
+            height: 80px;
+            background: var(--bg-card);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .dice-info {
+            background: rgba(243, 156, 18, 0.1);
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(243, 156, 18, 0.3);
+        }
+
+        .dice-info p { margin: 4px 0; font-size: 13px; }
+        .dice-info .warning { color: #e74c3c; font-weight: 600; }
+
+        .dice-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .dice-buttons .game-action-btn { margin-top: 0; }
+
+        /* Slots Game */
+        .modal-wide { max-width: 500px; }
+
+        .slots-machine {
+            background: var(--bg-dark);
+            padding: 20px;
+            border-radius: 16px;
+            margin: 16px 0;
+            border: 2px solid rgba(231, 76, 60, 0.3);
+        }
+
+        .slots-row {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .slot-reel {
+            width: 80px;
+            height: 100px;
+            background: var(--bg-card);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .slots-paytable {
+            background: var(--bg-dark);
+            padding: 12px;
+            border-radius: 12px;
+            margin: 16px 0;
+        }
+
+        .slots-paytable h4 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .paytable-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 8px;
+            font-size: 13px;
+        }
+
+        .paytable-row:nth-child(odd) { background: rgba(255, 255, 255, 0.05); }
+
+        /* Wheel Game */
+        .wheel-bets { margin-bottom: 16px; }
+        .wheel-bets p { margin-bottom: 12px; font-size: 14px; color: var(--text-secondary); }
+
+        .wheel-options {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .wheel-option {
+            background: var(--bg-dark);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 8px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.3s;
+        }
+
+        .wheel-option.selected {
+            border-color: var(--primary);
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .wheel-option.jackpot {
+            border-color: #f1c40f;
+            background: rgba(241, 196, 15, 0.1);
+        }
+
+        .wheel-option .mult {
+            font-size: 18px;
+            font-weight: 800;
+            color: var(--primary);
+        }
+
+        .wheel-option.jackpot .mult { color: #f1c40f; }
+        .wheel-option .count { font-size: 10px; color: var(--text-secondary); }
+
+        .wheel-display {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+        }
+
+        .wheel-pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            color: var(--primary);
+            z-index: 10;
+        }
+
+        .wheel-circle {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+            overflow: hidden;
+            background: conic-gradient(
+                #e74c3c 0deg 24deg,
+                #3498db 24deg 48deg,
+                #27ae60 48deg 72deg,
+                #e74c3c 72deg 96deg,
+                #f39c12 96deg 120deg,
+                #3498db 120deg 144deg,
+                #e74c3c 144deg 168deg,
+                #27ae60 168deg 192deg,
+                #e74c3c 192deg 216deg,
+                #3498db 216deg 240deg,
+                #f1c40f 240deg 264deg,
+                #e74c3c 264deg 288deg,
+                #27ae60 288deg 312deg,
+                #e74c3c 312deg 336deg,
+                #f39c12 336deg 360deg
+            );
+        }
+
+        .wheel-segment {
+            position: absolute;
+            width: 20px;
+            height: 50%;
+            left: calc(50% - 10px);
+            top: 0;
+            transform-origin: bottom center;
+            transform: rotate(calc(var(--i) * (360deg / 15)));
+            display: flex;
+            justify-content: center;
+            padding-top: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+        }
+
+        .game-card-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .game-card-btn {
+            background: var(--gradient-primary);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: var(--border-radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        /* Shop */
+        .shop-categories {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+            scrollbar-width: none;
+        }
+
+        .shop-categories::-webkit-scrollbar {
+            display: none;
+        }
+
+        .shop-category {
+            background: var(--bg-card);
+            padding: 10px 20px;
+            border-radius: 20px;
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .shop-category.active {
+            background: var(--gradient-primary);
+            border-color: transparent;
+        }
+
+        .shop-items-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .shop-item {
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .shop-item:active {
+            transform: scale(0.98);
+            border-color: var(--primary);
+        }
+
+        .shop-item-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .shop-item-name {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .shop-item-price {
+            font-size: 13px;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        /* Tasks */
+        .tasks-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .task-item {
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: var(--border-radius);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-info {
+            flex: 1;
+        }
+
+        .task-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .task-reward {
+            font-size: 13px;
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .task-btn {
+            background: var(--gradient-primary);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: var(--border-radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .task-btn.completed {
+            background: var(--bg-dark);
+            color: var(--text-secondary);
+        }
+
+        /* Profile */
+        .profile-header {
+            background: var(--bg-card);
+            padding: 24px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient-primary);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin: 0 auto 16px;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .profile-name {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .profile-username {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .profile-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .profile-stat {
+            background: var(--bg-dark);
+            padding: 12px;
+            border-radius: var(--border-radius-sm);
+        }
+
+        .profile-stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .profile-stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .profile-details {
+            background: var(--bg-card);
+            padding: 16px;
+            border-radius: var(--border-radius);
+        }
+
+        .profile-detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .profile-detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .profile-detail-label {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .profile-detail-value {
+            font-weight: 600;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: var(--border-radius-lg);
+            padding: 24px;
+            max-width: 360px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: modalIn 0.3s ease;
+        }
+
+        .modal-overlay::-webkit-scrollbar,
+        .modal::-webkit-scrollbar {
+            width: 0px;
+            height: 0px;
+        }
+
+        .modal-overlay::-webkit-scrollbar-track,
+        .modal::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .modal-overlay::-webkit-scrollbar-thumb,
+        .modal::-webkit-scrollbar-thumb {
+            background: transparent;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: var(--border-radius-sm);
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .modal-btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .modal-btn-secondary {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+        }
+
+        .modal-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--bg-card);
+            padding: 14px 24px;
+            border-radius: 50px;
+            box-shadow: var(--shadow-card);
+            z-index: 3000;
+            transition: transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success {
+            border-color: var(--success);
+        }
+
+        .toast.error {
+            border-color: var(--primary);
+        }
+
+        .toast-icon {
+            font-size: 18px;
+        }
+
+        .toast.success .toast-icon { color: var(--success); }
+        .toast.error .toast-icon { color: var(--primary); }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--bg-card);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Bet buttons */
+        .bet-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 16px 0;
+        }
+
+        .bet-btn {
+            background: var(--bg-dark);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 12px;
+            border-radius: var(--border-radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .bet-btn:active {
+            transform: scale(0.95);
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .bet-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* Game result */
+        .game-result {
+            text-align: center;
+            padding: 20px;
+            background: var(--bg-dark);
+            border-radius: var(--border-radius);
+            margin-top: 16px;
+        }
+
+        .game-result-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .game-result-text {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .game-result-amount {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .game-result-amount.win { color: var(--success); }
+        .game-result-amount.lose { color: var(--primary); }
+
+        /* Hidden */
+        .hidden { display: none !important; }
+
+        /* PulseFarm Game Styles */
+        .pf-app {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #0a0a0a;
+            color: #ffffff;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 12px;
+            padding-bottom: 80px;
+            z-index: 999;
+            display: none !important;
+        }
+
+        #clicker.page.active .pf-app {
+            display: block !important;
+        }
+
+        .pf-app * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        .pf-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 14px 18px;
+            background: linear-gradient(145deg, #121212, #0a0a0a);
+            border-radius: 16px;
+            border: 1px solid rgba(231, 76, 60, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .pf-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .pf-logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 0 30px rgba(231, 76, 60, 0.4);
+        }
+
+        .pf-version {
+            font-size: 11px;
+            color: #888888;
+            background: rgba(231, 76, 60, 0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+        }
+
+        .pf-balance {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .pf-balance-item {
+            background: linear-gradient(145deg, #121212, #0a0a0a);
+            padding: 10px 14px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .pf-balance-item i { font-size: 18px; }
+        .pf-balance-item .amount { font-weight: 700; font-size: 14px; }
+        .pf-coins { color: #f1c40f; }
+        .pf-crystals { color: #3498db; }
+        .pf-stars { color: #ff0000; }
+
+        .pf-xp-container {
+            background: linear-gradient(145deg, #121212, #0a0a0a);
+            padding: 12px 16px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(231, 76, 60, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .pf-xp-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .pf-xp-level {
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pf-xp-level-badge {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        .pf-xp-next { font-size: 11px; color: #888888; }
+
+        .pf-xp-bar {
+            width: 100%;
+            height: 10px;
+            background: #0a0a0a;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .pf-xp-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            border-radius: 5px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .pf-xp-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: pf-xp-shimmer 2s infinite;
+        }
+
+        @keyframes pf-xp-shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .pf-core-section {
+            background: linear-gradient(145deg, #121212, #0a0a0a);
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(231, 76, 60, 0.2);
+            border-bottom: none;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .pf-core-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .pf-core-info { flex: 1; }
+
+        .pf-core-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pf-stats-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .pf-stat-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .pf-stat-label {
+            font-size: 10px;
+            color: #888888;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .pf-stat-value { font-size: 16px; font-weight: 700; }
+
+        .pf-temp-bar {
+            width: 100%;
+            height: 6px;
+            background: #0a0a0a;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .pf-temp-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #27ae60 0%, #f39c12 50%, #e74c3c 100%);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .pf-temp-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+            animation: pf-heat-shimmer 2s infinite;
+        }
+
+        @keyframes pf-heat-shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .pf-core-btn-wrapper { position: relative; }
+
+        .pf-core-btn {
+            width: 74px;
+            height: 74px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            border: 3px solid rgba(255, 255, 255, 0.15);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            color: white;
+            box-shadow: 0 0 40px rgba(231, 76, 60, 0.5), inset 0 4px 10px rgba(255,255,255,0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            animation: pf-core-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pf-core-pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(231, 76, 60, 0.5), inset 0 4px 10px rgba(255,255,255,0.2); }
+            50% { transform: scale(1.05); box-shadow: 0 0 60px rgba(231, 76, 60, 0.7), inset 0 4px 10px rgba(255,255,255,0.3); }
+        }
+
+        @keyframes pf-core-overheat {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(231, 76, 60, 0.5); }
+            25% { transform: scale(1.1) rotate(-5deg); box-shadow: 0 0 80px rgba(255, 0, 0, 0.9); }
+            50% { transform: scale(1.1) rotate(5deg); box-shadow: 0 0 80px rgba(255, 0, 0, 0.9); }
+            75% { transform: scale(1.1) rotate(-5deg); box-shadow: 0 0 80px rgba(255, 0, 0, 0.9); }
+        }
+
+        .pf-core-btn:active { transform: scale(0.92); }
+        .pf-core-btn.disabled { opacity: 0.4; cursor: not-allowed; animation: none; }
+
+        .pf-cooldown-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .pf-cooldown-overlay.hidden { display: none; }
+
+        .pf-field-wrapper {
+            background: linear-gradient(145deg, #121212, #0a0a0a);
+            padding: 16px;
+            border-radius: 0 0 16px 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(231, 76, 60, 0.2);
+            border-top: none;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .pf-field-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .pf-field-title {
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pf-field-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 32px);
+            grid-template-rows: repeat(10, 32px);
+            gap: 3px;
+            margin: 0 auto;
+            width: fit-content;
+            position: relative;
+            background: #050505;
+            padding: 8px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .charge-start {
+            position: absolute;
+            top: -42px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            z-index: 50;
+            transform: translateX(-50%);
+        }
+
+        .charge-start-arrow {
+            font-size: 26px;
+            color: #e74c3c;
+            animation: pf-bounce 1s ease-in-out infinite;
+            filter: drop-shadow(0 0 10px rgba(231, 76, 60, 0.8));
+        }
+
+        @keyframes pf-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+
+        .pf-cell {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(145deg, #1a1a1a, #0f0f0f);
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            pointer-events: auto;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .pf-cell:active { transform: scale(0.92); }
+        .pf-cell:hover { border-color: #e74c3c; background: linear-gradient(145deg, rgba(231, 76, 60, 0.12), rgba(231, 76, 60, 0.03)); box-shadow: 0 0 20px rgba(231, 76, 60, 0.3); }
+        .pf-cell.drag-over { border-color: #27ae60; background: linear-gradient(145deg, rgba(39, 174, 96, 0.25), rgba(39, 174, 96, 0.08)); box-shadow: 0 0 20px rgba(39, 174, 96, 0.4); }
+        .pf-cell.cannot-drop { border-color: #e74c3c; background: linear-gradient(145deg, rgba(231, 76, 60, 0.25), rgba(231, 76, 60, 0.08)); }
+        .pf-cell.empty { background: linear-gradient(145deg, #0a0a0a, #050505); border-color: rgba(255, 255, 255, 0.04); }
+
+        .pf-cell.selected {
+            border-color: #f1c40f;
+            box-shadow: 0 0 25px rgba(241, 196, 15, 0.5);
+            background: linear-gradient(145deg, rgba(241, 196, 15, 0.12), rgba(241, 196, 15, 0.03));
+            animation: pf-cell-selected-pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pf-cell-selected-pulse {
+            0%, 100% { box-shadow: 0 0 25px rgba(241, 196, 15, 0.5); }
+            50% { box-shadow: 0 0 35px rgba(241, 196, 15, 0.7); }
+        }
+
+        .pf-block-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pf-block {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            position: relative;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), inset 0 2px 10px rgba(255,255,255,0.15);
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .pf-block.common { background: linear-gradient(135deg, #27ae60, #1e8449); border: 3px solid #2ecc71; box-shadow: 0 4px 15px rgba(39, 174, 96, 0.5), inset 0 2px 10px rgba(255,255,255,0.2); }
+        .pf-block.rare { background: linear-gradient(135deg, #34495e, #2c3e50); border: 3px solid #566573; box-shadow: 0 4px 15px rgba(52, 73, 94, 0.6), inset 0 2px 10px rgba(255,255,255,0.15); }
+        .pf-block.epic { background: linear-gradient(135deg, #8B0000, #660000); border: 3px solid #c0392b; box-shadow: 0 4px 15px rgba(139, 0, 0, 0.6), inset 0 2px 10px rgba(255,255,255,0.15); }
+        .pf-block.legendary { background: linear-gradient(135deg, #f1c40f, #d4ac0d); border: 3px solid #f9e79f; box-shadow: 0 4px 25px rgba(241, 196, 15, 0.7), inset 0 2px 10px rgba(255,255,255,0.2); animation: pf-legendary-glow 2.5s ease-in-out infinite; }
+        .pf-block.mythic { background: linear-gradient(135deg, #9b59b6, #8e44ad); border: 3px solid #bb8fce; box-shadow: 0 4px 25px rgba(155, 89, 182, 0.7), inset 0 2px 10px rgba(255,255,255,0.2); animation: pf-mythic-pulse 2s ease-in-out infinite; }
+        .pf-block.splitter { background: linear-gradient(135deg, #c0392b, #922b21); border: 3px solid #e74c3c; box-shadow: 0 4px 20px rgba(192, 57, 43, 0.7), inset 0 2px 10px rgba(255,255,255,0.2); }
+
+        @keyframes pf-legendary-glow {
+            0%, 100% { box-shadow: 0 4px 25px rgba(241, 196, 15, 0.6), inset 0 2px 10px rgba(255,255,255,0.2); }
+            50% { box-shadow: 0 4px 40px rgba(241, 196, 15, 0.9), inset 0 2px 10px rgba(255,255,255,0.3); }
+        }
+
+        @keyframes pf-mythic-pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 4px 25px rgba(255, 0, 102, 0.6); }
+            50% { transform: scale(1.06); box-shadow: 0 4px 40px rgba(255, 0, 102, 0.9); }
+        }
+
+        .pf-block-icon { font-size: 18px; line-height: 1; z-index: 1; }
+        .pf-block-value { font-size: 9px; font-weight: 700; margin-top: 2px; z-index: 1; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+
+        .pf-bank-display {
+            background: linear-gradient(145deg, #121212, #0a0a0a);
+            padding: 14px 16px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(39, 174, 96, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .pf-bank-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #27ae60;
+        }
+
+        .pf-bank-values {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .pf-bank-value {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .pf-bank-value-label { font-size: 10px; color: #888888; margin-bottom: 4px; text-transform: uppercase; }
+        .pf-bank-value-amount { font-size: 15px; font-weight: 700; }
+
+        .pf-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .pf-action-btn {
+            background: linear-gradient(145deg, #121212, #0a0a0a);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: white;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .pf-action-btn:active { transform: scale(0.95); }
+        .pf-action-btn:hover { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); }
+        .pf-action-btn.pf-withdraw { background: linear-gradient(135deg, #27ae60, #1e8449); border: none; }
+        .pf-action-btn.pf-sell { background: linear-gradient(135deg, #f39c12, #d68910); border: none; }
+        .pf-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .pf-shop-section {
+            background: linear-gradient(145deg, #121212, #0a0a0a);
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(52, 152, 219, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .pf-shop-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .pf-shop-title { font-size: 14px; font-weight: 600; }
+
+        .pf-shop-items {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .pf-shop-item {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+
+        .pf-shop-item:hover { border-color: #e74c3c; background: rgba(231, 76, 60, 0.1); }
+
+        .pf-shop-item-preview {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .pf-shop-item-name { font-size: 10px; font-weight: 600; text-align: center; color: #888888; }
+        .pf-shop-item-price { font-size: 12px; font-weight: 700; color: #f1c40f; }
+
+        .pf-shop-item-buy {
+            width: 100%;
+            padding: 6px;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .pf-shop-item-buy:active { transform: scale(0.95); }
+        .pf-shop-item-buy:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .pf-shop-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .pf-shop-btn {
+            background: linear-gradient(145deg, #121212, #0a0a0a);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: white;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .pf-shop-btn:active { transform: scale(0.95); }
+        .pf-shop-btn:hover { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5); }
+        .pf-shop-btn.pf-reroll { background: linear-gradient(135deg, #3498db, #2980b9); border: none; box-shadow: 0 4px 20px rgba(52, 152, 219, 0.4); }
+        .pf-shop-btn.pf-expand { background: linear-gradient(135deg, #27ae60, #1e8449); border: none; box-shadow: 0 4px 20px rgba(39, 174, 96, 0.4); grid-column: span 2; }
+        .pf-shop-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .pf-toast {
+            position: fixed;
+            bottom: calc(80px + env(safe-area-inset-bottom));
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: linear-gradient(145deg, #121212, #0a0a0a);
+            padding: 14px 24px;
+            border-radius: 50px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            z-index: 3000;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 13px;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+        }
+
+        .pf-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .pf-toast.success { border-color: #27ae60; }
+        .pf-toast.warning { border-color: #f39c12; }
+        .pf-toast.error { border-color: #e74c3c; }
+        .pf-toast.info { border-color: #3498db; }
+        .pf-toast-icon { font-size: 18px; }
+        .pf-toast.success .pf-toast-icon { color: #27ae60; }
+        .pf-toast.warning .pf-toast-icon { color: #f39c12; }
+        .pf-toast.error .pf-toast-icon { color: #e74c3c; }
+        .pf-toast.info .pf-toast-icon { color: #3498db; }
+
+        .pf-warning-overlay {
+            position: fixed;
+            top: 65px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: linear-gradient(135deg, #c0392b, #e74c3c);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 2999;
+            box-shadow: 0 8px 32px rgba(231, 76, 60, 0.5);
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .pf-warning-overlay.show {
+            display: flex;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            animation: pf-warning-pulse 0.5s ease-in-out infinite;
+        }
+
+        @keyframes pf-warning-pulse {
+            0%, 100% { box-shadow: 0 8px 32px rgba(231, 76, 60, 0.5); }
+            50% { box-shadow: 0 8px 50px rgba(231, 76, 60, 0.8); }
+        }
+
+        .pf-warning-overlay.critical {
+            background: linear-gradient(135deg, #8B0000, #c0392b);
+            animation: pf-warning-pulse 0.3s ease-in-out infinite;
+        }
+
+        .pf-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .pf-modal-overlay.active { display: flex; }
+
+        .pf-modal {
+            background: linear-gradient(145deg, #121212, #0a0a0a);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 360px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .pf-modal-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; text-align: center; }
+        .pf-modal-body { font-size: 14px; color: #888888; line-height: 1.6; margin-bottom: 20px; }
+        .pf-modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
+
+        .pf-modal-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .pf-modal-btn.pf-primary { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; }
+        .pf-modal-btn.pf-secondary { background: rgba(255, 255, 255, 0.08); color: white; }
+
+        .pf-help-btn {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            border: none;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(231, 76, 60, 0.5);
+            z-index: 1000;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pf-help-btn:active { transform: scale(0.9); }
+        .pf-help-btn:hover { box-shadow: 0 6px 30px rgba(231, 76, 60, 0.7); }
+
+        .pf-charge-particle {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: radial-gradient(circle, #fff, #e74c3c, #c0392b);
+            border-radius: 50%;
+            box-shadow: 0 0 25px rgba(231, 76, 60, 1), 0 0 50px rgba(231, 76, 60, 0.5);
+            pointer-events: none;
+            z-index: 100;
+            animation: pf-charge-pulse 0.3s ease-in-out infinite;
+        }
+
+        @keyframes pf-charge-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.8; }
+        }
+
+        .pf-charge-trail {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: rgba(231, 76, 60, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 50;
+            animation: pf-trail-fade 0.4s ease-out forwards;
+        }
+
+        @keyframes pf-trail-fade {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.5); }
+        }
+
+        .pf-explosion {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            pointer-events: none;
+            z-index: 150;
+            animation: pf-explode 0.4s ease-out forwards;
+        }
+
+        @keyframes pf-explode {
+            0% { transform: scale(0.3); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+
+        .pf-explosion-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pf-particle-fly 0.4s ease-out forwards;
+        }
+
+        @keyframes pf-particle-fly {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+
+        .pf-floating-earn {
+            position: absolute;
+            font-size: 14px;
+            font-weight: 700;
+            color: #f1c40f;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8), 0 0 10px rgba(241, 196, 15, 0.5);
+            pointer-events: none;
+            z-index: 200;
+            animation: pf-float-earn 1.2s ease-out forwards;
+            white-space: nowrap;
+        }
+
+        @keyframes pf-float-earn {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-40px) scale(1.2); }
+        }
+
+        .pf-block-level-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 8px;
+            font-weight: 700;
+            background: rgba(0,0,0,0.5);
+            padding: 1px 4px;
+            border-radius: 4px;
+            z-index: 10;
+        }
+
+        .pf-router-port-glow {
+            position: absolute;
+            background: linear-gradient(180deg, #3498db, #2980b9);
+            box-shadow: 0 0 15px rgba(52, 152, 219, 1), 0 0 25px rgba(52, 152, 219, 0.5);
+            animation: pf-port-flicker 1.2s ease-in-out infinite;
+            z-index: 5;
+        }
+
+        .pf-router-port-glow.pf-top { top: 0; left: 50%; transform: translateX(-50%); width: 60%; height: 6px; border-radius: 0 0 4px 4px; }
+        .pf-router-port-glow.pf-bottom { bottom: 0; left: 50%; transform: translateX(-50%); width: 60%; height: 6px; border-radius: 4px 4px 0 0; }
+        .pf-router-port-glow.pf-left { left: 0; top: 50%; transform: translateY(-50%); width: 6px; height: 60%; border-radius: 0 4px 4px 0; }
+        .pf-router-port-glow.pf-right { right: 0; top: 50%; transform: translateY(-50%); width: 6px; height: 60%; border-radius: 4px 0 0 4px; }
+
+        @keyframes pf-port-flicker {
+            0%, 100% { opacity: 0.8; box-shadow: 0 0 15px rgba(52, 152, 219, 1); }
+            50% { opacity: 1; box-shadow: 0 0 25px rgba(52, 152, 219, 1), 0 0 35px rgba(52, 152, 219, 0.7); }
+        }
+
+        .pf-splitter-glow { position: absolute; }
+        .pf-splitter-glow.pf-top { top: 0; left: 50%; transform: translateX(-50%); width: 70%; height: 8px; background: linear-gradient(180deg, #3498db, #2980b9); box-shadow: 0 0 20px rgba(52, 152, 219, 1), 0 0 30px rgba(52, 152, 219, 0.5); border-radius: 0 0 6px 6px; animation: pf-splitter-pulse 1.5s ease-in-out infinite; }
+        .pf-splitter-glow.pf-bottom { bottom: 0; left: 50%; transform: translateX(-50%); width: 70%; height: 8px; background: linear-gradient(0deg, #3498db, #2980b9); box-shadow: 0 0 20px rgba(52, 152, 219, 1), 0 0 30px rgba(52, 152, 219, 0.5); border-radius: 6px 6px 0 0; animation: pf-splitter-pulse 1.5s ease-in-out infinite 0.3s; }
+        .pf-splitter-glow.pf-left { left: 0; top: 50%; transform: translateY(-50%); width: 8px; height: 70%; background: linear-gradient(90deg, #3498db, #2980b9); box-shadow: 0 0 20px rgba(52, 152, 219, 1), 0 0 30px rgba(52, 152, 219, 0.5); border-radius: 0 6px 6px 0; animation: pf-splitter-pulse 1.5s ease-in-out infinite 0.6s; }
+        .pf-splitter-glow.pf-right { right: 0; top: 50%; transform: translateY(-50%); width: 8px; height: 70%; background: linear-gradient(270deg, #3498db, #2980b9); box-shadow: 0 0 20px rgba(52, 152, 219, 1), 0 0 30px rgba(52, 152, 219, 0.5); border-radius: 6px 0 0 6px; animation: pf-splitter-pulse 1.5s ease-in-out infinite 0.9s; }
+
+        @keyframes pf-splitter-pulse {
+            0%, 100% { opacity: 0.7; box-shadow: 0 0 20px rgba(52, 152, 219, 1), 0 0 30px rgba(52, 152, 219, 0.5); }
+            50% { opacity: 1; box-shadow: 0 0 30px rgba(52, 152, 219, 1), 0 0 50px rgba(52, 152, 219, 0.8); }
+        }
+
+        .pf-breeding-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            font-weight: 700;
+            color: #f1c40f;
+            text-shadow: 0 0 20px rgba(241, 196, 15, 0.8);
+            z-index: 200;
+            pointer-events: none;
+            animation: pf-breed-text-float 0.8s ease-out forwards;
+        }
+
+        @keyframes pf-breed-text-float {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            50% { opacity: 1; transform: translate(-50%, -70%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -100%) scale(1); }
+        }
+
+        .pf-breeding-glow {
+            animation: pf-breed-glow 0.6s ease-in-out;
+        }
+
+        @keyframes pf-breed-glow {
+            0%, 100% { box-shadow: 0 0 0 rgba(255, 255, 255, 0); }
+            30% { box-shadow: 0 0 40px rgba(255, 255, 255, 0.8), 0 0 60px rgba(241, 196, 15, 0.5); }
+            60% { box-shadow: 0 0 20px rgba(255, 255, 255, 0.4), 0 0 30px rgba(241, 196, 15, 0.3); }
+        }
+
+        .pf-field-damaged { animation: pf-field-red-flash 0.5s ease-in-out; }
+        .pf-field-broken {
+            animation: pf-field-smoke 2s ease-in-out infinite, pf-field-red-flash 1s ease-in-out infinite;
+        }
+
+        .pf-field-broken::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle, rgba(100, 100, 100, 0.3) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        @keyframes pf-field-red-flash {
+            0%, 100% { box-shadow: 0 0 0 rgba(231, 76, 60, 0); }
+            25% { box-shadow: 0 0 60px rgba(231, 76, 60, 0.8); }
+            50% { box-shadow: 0 0 100px rgba(231, 76, 60, 0.5); }
+            75% { box-shadow: 0 0 60px rgba(231, 76, 60, 0.8); }
+        }
+
+        @keyframes pf-field-smoke {
+            0% { filter: brightness(1) sepia(0) hue-rotate(0deg); }
+            25% { filter: brightness(0.7) sepia(0.3) hue-rotate(-10deg); }
+            50% { filter: brightness(0.5) sepia(0.5) hue-rotate(-20deg); }
+            75% { filter: brightness(0.7) sepia(0.3) hue-rotate(-10deg); }
+            100% { filter: brightness(1) sepia(0) hue-rotate(0deg); }
+        }
+
+        .block-level-1-2 { background: linear-gradient(135deg, #1a3a5c, #0d2137) !important; border-color: #2d5a87 !important; }
+        .block-level-3-5 { background: linear-gradient(135deg, #1e5c3a, #0d3721) !important; border-color: #2d875a !important; }
+        .block-level-6-8 { background: linear-gradient(135deg, #5c3a1e, #37210d) !important; border-color: #875a2d !important; }
+        .block-level-9-11 { background: linear-gradient(135deg, #5c1e1e, #370d0d) !important; border-color: #872d2d !important; }
+        .block-level-12-14 { background: linear-gradient(135deg, #1a3a5c, #0d2137) !important; border-color: #2d5a87 !important; animation: pf-block-flicker 1.5s ease-in-out infinite; }
+        .block-level-15-17 { background: linear-gradient(135deg, #1e5c3a, #0d3721) !important; border-color: #2d875a !important; animation: pf-block-flicker 1.5s ease-in-out infinite; }
+        .block-level-18-20 { background: linear-gradient(135deg, #5c3a1e, #37210d) !important; border-color: #875a2d !important; animation: pf-block-flicker 1.5s ease-in-out infinite; }
+        .block-level-21-23 { background: linear-gradient(135deg, #5c1e1e, #370d0d) !important; border-color: #872d2d !important; animation: pf-block-flicker 1s ease-in-out infinite; }
+
+        @keyframes pf-block-flicker {
+            0%, 100% { opacity: 1; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
+            50% { opacity: 0.85; box-shadow: 0 0 40px rgba(255,255,255,0.5); }
+        }
+    </style>
+
+    <!-- Р СџР С•Р Т‘Р С”Р В»РЎР‹РЎвЂЎР В°Р ВµР С Р С•РЎР‚Р С‘Р С–Р С‘Р Р…Р В°Р В»РЎРЉР Р…РЎвЂ№Р Вµ РЎРѓРЎвЂљР С‘Р В»Р С‘ PulseFarm -->
+    <link rel="stylesheet" href="pf_styles.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-centered">
+                    <div class="logo-icon">РІС™РЋ</div>
+                    <span>RedPulse</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Balance Card -->
+        <div class="balance-card">
+            <div class="balance-title">Р СћР Р†Р С•Р в„– Р В±Р В°Р В»Р В°Р Р…РЎРѓ</div>
+            <div class="balance-main">
+                <div class="balance-item">
+                    <i class="fas fa-coins coins"></i>
+                    <span class="amount" id="balance-coins">0</span>
+                </div>
+                <div class="balance-item">
+                    <i class="fas fa-star stars"></i>
+                    <span class="amount" id="balance-stars">0</span>
+                </div>
+                <div class="balance-item">
+                    <i class="fas fa-gem crystals"></i>
+                    <span class="amount" id="balance-crystals">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Home Page -->
+        <div id="home" class="page active">
+            <div class="section-title">
+                <i class="fas fa-compass"></i>
+                Р В Р В°Р В·Р Т‘Р ВµР В»РЎвЂ№
+            </div>
+            <div class="cards-grid">
+                <div class="action-card" onclick="showPage('clicker')">
+                    <div class="action-card-icon clicker">
+                        <i class="fas fa-hand-pointer"></i>
+                    </div>
+                    <div class="action-card-name">Р В¤Р ВµРЎР‚Р СР В°</div>
+                </div>
+                <div class="action-card" onclick="showPage('casino')">
+                    <div class="action-card-icon casino">
+                        <i class="fas fa-dice"></i>
+                    </div>
+                    <div class="action-card-name">Р С™Р В°Р В·Р С‘Р Р…Р С•</div>
+                </div>
+                <div class="action-card" onclick="showPage('shop')">
+                    <div class="action-card-icon shop">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="action-card-name">Р СљР В°Р С–Р В°Р В·Р С‘Р Р…</div>
+                </div>
+                <div class="action-card" onclick="showPage('tasks')">
+                    <div class="action-card-icon tasks">
+                        <i class="fas fa-list-check"></i>
+                    </div>
+                    <div class="action-card-name">Р вЂ”Р В°Р Т‘Р В°Р Р…Р С‘РЎРЏ</div>
+                </div>
+                <div class="action-card" onclick="showPage('profile')">
+                    <div class="action-card-icon profile">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="action-card-name">Р СџРЎР‚Р С•РЎвЂћР С‘Р В»РЎРЉ</div>
+                </div>
+                <div class="action-card" onclick="showPage('rating')">
+                    <div class="action-card-icon rating">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="action-card-name">Р В Р ВµР в„–РЎвЂљР С‘Р Р…Р С–</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clicker Page - Pulse Farm Game (ORIGINAL) -->
+        <div id="clicker" class="page">
+            <!-- Header -->
+            <header class="header">
+                <div class="logo">
+                    <div class="logo-icon">РІС™РЋ</div>
+                    <span>RedPulse</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="help-btn-small" onclick="showHelp()" title="Р РЋР С—РЎР‚Р В°Р Р†Р С”Р В°">?</button>
+                    <div class="version">v0.1.0</div>
+                </div>
+            </header>
+
+            <!-- XP Bar -->
+            <div class="xp-container">
+                <div class="xp-header">
+                    <div class="xp-level">
+                        <span>Р Р€РЎР‚Р С•Р Р†Р ВµР Р…РЎРЉ <span class="xp-level-badge" id="levelBadge">1</span></span>
+                    </div>
+                    <div class="xp-next">Р вЂќР С• РЎС“РЎР‚Р С•Р Р†Р Р…РЎРЏ <span id="xpNext">100</span> XP</div>
+                </div>
+                <div class="xp-bar">
+                    <div class="xp-fill" id="xpFill" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Balance -->
+            <div class="balance">
+                <div class="balance-item">
+                    <i class="fas fa-coins coins"></i>
+                    <span class="amount" id="coins">0</span>
+                </div>
+                <div class="balance-item">
+                    <i class="fas fa-gem crystals"></i>
+                    <span class="amount" id="crystals">0</span>
+                </div>
+                <div class="balance-item">
+                    <i class="fas fa-star stars"></i>
+                    <span class="amount" id="stars">0.00</span>
+                </div>
+            </div>
+
+            <!-- Core Section -->
+            <div class="core-section">
+                <div class="core-content">
+                    <div class="core-info">
+                        <div class="core-title">
+                            <i class="fas fa-bolt" style="color: var(--primary);"></i>
+                            Р Р‡Р Т‘РЎР‚Р С•
+                        </div>
+                        <div class="stats-row">
+                            <div class="stat-item">
+                                <div class="stat-label">Р СћР ВµР СР С—Р ВµРЎР‚Р В°РЎвЂљРЎС“РЎР‚Р В°</div>
+                                <div class="stat-value" id="tempText">0/100</div>
+                                <div class="temp-bar">
+                                    <div class="temp-fill" id="tempFill" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label" id="coreStatusLabel">Р РЋРЎвЂљР В°РЎвЂљРЎС“РЎРѓ</div>
+                                <div class="stat-value" style="color: var(--success);" id="coreStatus">OK</div>
+                                <div style="font-size: 9px; color: var(--text-secondary); margin-top: 6px;" id="coreStatusSub">РЎР‚Р В°Р В±Р С•РЎвЂљР В°Р ВµРЎвЂљ</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="core-btn-wrapper">
+                        <button class="core-btn" id="coreBtn" onclick="tapCore()">
+                            <i class="fas fa-bolt"></i>
+                            <div class="cooldown-overlay hidden" id="cooldownOverlay"></div>
+                        </button>
+                        <div style="text-align: center; margin-top: 8px; font-size: 13px; color: var(--text-secondary);" id="corePower">x1.00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Field -->
+            <div class="field-wrapper">
+                <div class="field-header">
+                    <div class="field-title">
+                        <i class="fas fa-th" style="color: var(--primary);"></i>
+                        Р СџР С•Р В»Р Вµ
+                    </div>
+                </div>
+                <div class="field-grid" id="fieldGrid"></div>
+            </div>
+
+            <!-- Bank -->
+            <div class="bank-display">
+                <div class="bank-title">
+                    <i class="fas fa-university"></i>
+                    Р вЂР В°Р Р…Р С”
+                </div>
+                <div class="bank-values">
+                    <div class="bank-value">
+                        <div class="bank-value-label">Р СљР С•Р Р…Р ВµРЎвЂљРЎвЂ№</div>
+                        <div class="bank-value-amount coins" id="bankCoins">0</div>
+                    </div>
+                    <div class="bank-value">
+                        <div class="bank-value-label">Р С’Р В»Р СР В°Р В·РЎвЂ№</div>
+                        <div class="bank-value-amount crystals" id="bankCrystals">0</div>
+                    </div>
+                    <div class="bank-value">
+                        <div class="bank-value-label">Р вЂ”Р Р†РЎвЂР В·Р Т‘РЎвЂ№</div>
+                        <div class="bank-value-amount stars" id="bankStars">0.0000</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions">
+                <button class="action-btn withdraw" id="withdrawBtn" onclick="withdraw()">
+                    <i class="fas fa-hand-holding-energy"></i>
+                    Р вЂ™РЎвЂ№Р Р†Р ВµРЎРѓРЎвЂљР С‘
+                </button>
+                <button class="action-btn sell" id="sellBtn" onclick="sellSelected()">
+                    <i class="fas fa-tag"></i>
+                    Р СџРЎР‚Р С•Р Т‘Р В°РЎвЂљРЎРЉ
+                </button>
+            </div>
+
+            <!-- Shop -->
+            <div class="shop-section">
+                <div class="shop-header">
+                    <div class="shop-title">Р СљР В°Р С–Р В°Р В·Р С‘Р Р… <span id="shopLevelDisplay" style="color: var(--primary); font-size: 12px;">(РЎС“РЎР‚. 1)</span></div>
+                </div>
+                <div class="shop-items" id="shopItemsContainer"></div>
+                <div class="shop-buttons">
+                    <button class="shop-btn reroll" id="rerollBtn" onclick="rerollShop()">
+                        <i class="fas fa-random"></i>
+                        Р С›Р В±Р Р…Р С•Р Р†Р С‘РЎвЂљРЎРЉ (<span id="rerollCost">100</span>СЂСџР„в„ў)
+                    </button>
+                    <button class="shop-btn expand" onclick="expandField()">
+                        <i class="fas fa-expand"></i>
+                        +1 РЎРѓРЎвЂљРЎР‚Р С•Р С”Р В° (<span id="expandCost">2000</span>СЂСџР„в„ў)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Toast -->
+            <div class="toast" id="toast">
+                <span id="toastIcon">РІСљвЂњ</span>
+                <span id="toastMessage">Р РЋР С•Р С•Р В±РЎвЂ°Р ВµР Р…Р С‘Р Вµ</span>
+            </div>
+
+            <!-- Warning Overlay -->
+            <div class="warning-overlay" id="warningOverlay">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span id="warningText">Р СџР ВµРЎР‚Р ВµР С–РЎР‚Р ВµР Р†! Р С›РЎРѓРЎвЂљР С•РЎР‚Р С•Р В¶Р Р…Р С•!</span>
+            </div>
+
+            <!-- Help Modal -->
+            <div class="modal-overlay" id="helpModal">
+                <div class="modal">
+                    <div class="modal-title">СЂСџР‹В® Р С™Р В°Р С” Р С‘Р С–РЎР‚Р В°РЎвЂљРЎРЉ</div>
+                    <div class="modal-body" id="helpBody"></div>
+                    <div class="modal-buttons">
+                        <button class="modal-btn primary" onclick="closeHelp()">Р СџР С•Р Р…РЎРЏРЎвЂљР Р…Р С•</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Casino Page -->
+        <div id="casino" class="page">
+            <div class="section-title">
+                <i class="fas fa-dice"></i>
+                Р С™Р В°Р В·Р С‘Р Р…Р С• RedPulse
+            </div>
+            <div class="casino-games">
+                <div class="game-card" onclick="openCoinGame()">
+                    <div class="game-card-header">
+                        <div class="game-card-icon coin">СЂСџР„в„ў</div>
+                        <div>
+                            <div class="game-card-title">Р СљР С•Р Р…Р ВµРЎвЂљР С”Р В°</div>
+                            <div class="game-card-desc">Р С›РЎР‚РЎвЂР В» Р С‘Р В»Р С‘ Р В Р ВµРЎв‚¬Р С”Р В° - x2</div>
+                        </div>
+                    </div>
+                    <button class="game-card-btn">Р ВР С–РЎР‚Р В°РЎвЂљРЎРЉ</button>
+                </div>
+            </div>
+
+            <!-- Coin Game Modal -->
+            <div id="coin-modal" class="modal-overlay">
+                <div class="modal">
+                    <div class="modal-title">СЂСџР„в„ў Р СљР С•Р Р…Р ВµРЎвЂљР С”Р В°</div>
+                    <div class="modal-body">
+                        <div class="casino-balance">Р вЂР В°Р В»Р В°Р Р…РЎРѓ: <span id="coinBalance">0</span> СЂСџР„в„ў</div>
+                        <div class="bet-input">
+                            <label>Р РЋРЎвЂљР В°Р Р†Р С”Р В°:</label>
+                            <input type="number" id="coinBet" value="100" min="10">
+                        </div>
+                        <div class="coin-choice">
+                            <button class="coin-btn" id="coinHeads" onclick="selectCoinSide('heads')">
+                                <span class="coin-icon">СЂСџВ¦вЂ¦</span>
+                                <span>Р С›РЎР‚РЎвЂР В»</span>
+                            </button>
+                            <button class="coin-btn" id="coinTails" onclick="selectCoinSide('tails')">
+                                <span class="coin-icon">СЂСџР„в„ў</span>
+                                <span>Р В Р ВµРЎв‚¬Р С”Р В°</span>
+                            </button>
+                        </div>
+                        <div class="coin-display" id="coinDisplay">
+                            <div class="coin-inner">?</div>
+                        </div>
+                        <div id="coinResult"></div>
+                        <button class="game-action-btn" onclick="flipCoin()" id="coinFlipBtn">Р СџР С•Р Т‘Р В±РЎР‚Р С•РЎРѓР С‘РЎвЂљРЎРЉ!</button>
+                    </div>
+                    <div class="modal-buttons">
+                        <button class="modal-btn modal-btn-secondary" onclick="closeCoinModal()">Р вЂ”Р В°Р С”РЎР‚РЎвЂ№РЎвЂљРЎРЉ</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shop Page -->
+        <div id="shop" class="page">
+            <div class="section-title">
+                <i class="fas fa-shopping-cart"></i>
+                Р СљР В°Р С–Р В°Р В·Р С‘Р Р…
+            </div>
+            <div class="shop-categories">
+                <div class="shop-category active" onclick="showShopCategory('cases', this)">Р С™Р ВµР в„–РЎРѓРЎвЂ№</div>
+                <div class="shop-category" onclick="showShopCategory('boosts', this)">Р вЂРЎС“РЎРѓРЎвЂљРЎвЂ№</div>
+                <div class="shop-category" onclick="showShopCategory('skins', this)">Р РЋР С”Р С‘Р Р…РЎвЂ№</div>
+                <div class="shop-category" onclick="showShopCategory('avatars', this)">Р С’Р Р†Р В°РЎвЂљР В°РЎР‚РЎвЂ№</div>
+            </div>
+            <div id="shop-content" class="shop-items-grid"></div>
+        </div>
+
+        <!-- Tasks Page -->
+        <div id="tasks" class="page">
+            <div class="section-title">
+                <i class="fas fa-list-check"></i>
+                Р вЂ”Р В°Р Т‘Р В°Р Р…Р С‘РЎРЏ
+            </div>
+            <div id="tasks-list" class="tasks-list"></div>
+        </div>
+
+        <!-- Profile Page -->
+        <div id="profile" class="page">
+            <div class="profile-header">
+                <div class="profile-avatar" id="profile-avatar">СЂСџвЂВ¤</div>
+                <div class="profile-name" id="profile-name">Р вЂ”Р В°Р С–РЎР‚РЎС“Р В·Р С”Р В°...</div>
+                <div class="profile-username" id="profile-username">@username</div>
+                <div class="profile-stats-grid">
+                    <div class="profile-stat">
+                        <div class="profile-stat-value" id="profile-level">1</div>
+                        <div class="profile-stat-label">Р Р€РЎР‚Р С•Р Р†Р ВµР Р…РЎРЉ</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="profile-stat-value" id="profile-clicks">0</div>
+                        <div class="profile-stat-label">Р С™Р В»Р С‘Р С”Р С‘</div>
+                    </div>
+                    <div class="profile-stat">
+                        <div class="profile-stat-value" id="profile-tasks">0</div>
+                        <div class="profile-stat-label">Р вЂ”Р В°Р Т‘Р В°Р Р…Р С‘РЎРЏ</div>
+                    </div>
+                </div>
+            </div>
+            <div class="profile-details">
+                <div class="profile-detail-item">
+                    <span class="profile-detail-label">СЂСџвЂќТђ Streak</span>
+                    <span class="profile-detail-value" id="profile-streak">0 Р Т‘Р Р…Р ВµР в„–</span>
+                </div>
+                <div class="profile-detail-item">
+                    <span class="profile-detail-label">РІС™РЋ Р РЋР С‘Р В»Р В° Р С”Р В»Р С‘Р С”Р В°</span>
+                    <span class="profile-detail-value" id="profile-click-power">1x</span>
+                </div>
+                <div class="profile-detail-item">
+                    <span class="profile-detail-label">СЂСџвЂТђ Р В Р ВµРЎвЂћР ВµРЎР‚Р В°Р В»Р С•Р Р†</span>
+                    <span class="profile-detail-value" id="profile-referrals">0</span>
+                </div>
+                <div class="profile-detail-item">
+                    <span class="profile-detail-label">СЂСџвЂњвЂ¦ Р вЂ™ Р В±Р С•РЎвЂљР Вµ РЎРѓ</span>
+                    <span class="profile-detail-value" id="profile-created">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rating Page -->
+        <div id="rating" class="page">
+            <div class="section-title">
+                <i class="fas fa-trophy"></i>
+                Р В Р ВµР в„–РЎвЂљР С‘Р Р…Р С– Р С‘Р С–РЎР‚Р С•Р С”Р С•Р Р†
+            </div>
+            <div id="rating-list" class="tasks-list"></div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="nav-bar">
+            <div class="nav-content">
+                <div class="nav-item active" data-page="home" onclick="showPage('home')">
+                    <i class="fas fa-home"></i>
+                    <span>Р вЂњР В»Р В°Р Р†Р Р…Р В°РЎРЏ</span>
+                </div>
+                <div class="nav-item" data-page="clicker" onclick="showPage('clicker')">
+                    <i class="fas fa-hand-pointer"></i>
+                    <span>Р В¤Р ВµРЎР‚Р СР В°</span>
+                </div>
+                <div class="nav-item" data-page="casino" onclick="showPage('casino')">
+                    <i class="fas fa-dice"></i>
+                    <span>Р С™Р В°Р В·Р С‘Р Р…Р С•</span>
+                </div>
+                <div class="nav-item" data-page="shop" onclick="showPage('shop')">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Р СљР В°Р С–Р В°Р В·Р С‘Р Р…</span>
+                </div>
+                <div class="nav-item" data-page="profile" onclick="showPage('profile')">
+                    <i class="fas fa-user"></i>
+                    <span>Р СџРЎР‚Р С•РЎвЂћР С‘Р В»РЎРЉ</span>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <span class="toast-icon">РІСљвЂњ</span>
+        <span class="toast-message">Р РЋР С•Р С•Р В±РЎвЂ°Р ВµР Р…Р С‘Р Вµ</span>
+    </div>
+
+    <script>
+        // Р ВР Р…Р С‘РЎвЂ Р С‘Р В°Р В»Р С‘Р В·Р В°РЎвЂ Р С‘РЎРЏ Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // Р СџР С•Р В»РЎС“РЎвЂЎР В°Р ВµР С userId Р С‘Р В· Telegram Р С‘Р В»Р С‘ Р С‘РЎРѓР С—Р С•Р В»РЎРЉР В·РЎС“Р ВµР С РЎвЂљР ВµРЎРѓРЎвЂљР С•Р Р†РЎвЂ№Р в„– (Р Т‘Р В»РЎРЏ Р В»Р С•Р С”Р В°Р В»РЎРЉР Р…Р С•Р в„– РЎР‚Р В°Р В·РЎР‚Р В°Р В±Р С•РЎвЂљР С”Р С‘)
+        const userId = tg.initDataUnsafe?.user?.id || 123456789; // TEST MODE Р Т‘Р В»РЎРЏ Р В»Р С•Р С”Р В°Р В»Р С”Р С‘
+        const user = tg.initDataUnsafe?.user || {
+            id: userId,
+            first_name: 'Р СћР ВµРЎРѓРЎвЂљР С•Р Р†РЎвЂ№Р в„– Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЉ',
+            username: 'test_user',
+            language_code: 'ru'
+        };
+        
+        // Р В¤Р В»Р В°Р С– Р В»Р С•Р С”Р В°Р В»РЎРЉР Р…Р С•Р С–Р С• РЎР‚Р ВµР В¶Р С‘Р СР В°
+        const isLocalMode = !tg.initDataUnsafe?.user;
+
+        // Р РЋР С•РЎРѓРЎвЂљР С•РЎРЏР Р…Р С‘Р Вµ Р С—РЎР‚Р С‘Р В»Р С•Р В¶Р ВµР Р…Р С‘РЎРЏ
+        let state = {
+            click_coins: 0,
+            stars: 0,
+            crystals: 0,
+            total_clicks: 0,
+            level: 1,
+            xp: 0,
+            xpToNext: 100,
+            click_power: 1,
+            energy: 1000,
+            max_energy: 1000,
+            auto_clicker: false,
+            streak_days: 0,
+            referrals_count: 0,
+            tasks_completed: 0,
+            theme: 'default'
+        };
+
+        // Р В¦Р ВµР Р…РЎвЂљРЎР‚Р В°Р В»РЎРЉР Р…Р В°РЎРЏ РЎвЂћРЎС“Р Р…Р С”РЎвЂ Р С‘РЎРЏ Р С•Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘РЎРЏ Р В±Р В°Р В»Р В°Р Р…РЎРѓР В° (Р С–Р В»Р В°Р Р†Р Р…Р В°РЎРЏ РЎРѓРЎвЂљРЎР‚Р В°Р Р…Р С‘РЎвЂ Р В°)
+        function updateMainBalance() {
+            if (typeof isSyncing !== 'undefined' && isSyncing) return;
+            window.isSyncing = true;
+
+            try {
+                // Р РЋР С‘Р Р…РЎвЂ¦РЎР‚Р С•Р Р…Р С‘Р В·Р В°РЎвЂ Р С‘РЎРЏ РЎРѓ РЎвЂћР ВµРЎР‚Р СР С•Р в„–/Р С”Р В°Р В·Р С‘Р Р…Р С• (Р Р†РЎРѓР ВµР С–Р Т‘Р В° Р В±Р ВµРЎР‚РЎвЂР С Р В°Р С”РЎвЂљРЎС“Р В°Р В»РЎРЉР Р…РЎвЂ№Р Вµ Р Т‘Р В°Р Р…Р Р…РЎвЂ№Р Вµ Р С‘Р В· localStorage)
+                const farmStateRaw = localStorage.getItem('redpulse_state');
+                if (farmStateRaw) {
+                    try {
+                        const farmState = JSON.parse(farmStateRaw);
+
+                        // Р вЂ™РЎРѓР ВµР С–Р Т‘Р В° Р С•Р В±Р Р…Р С•Р Р†Р В»РЎРЏР ВµР С Р С‘Р В· localStorage (Р В°Р С”РЎвЂљРЎС“Р В°Р В»РЎРЉР Р…РЎвЂ№Р Вµ Р Т‘Р В°Р Р…Р Р…РЎвЂ№Р Вµ)
+                        state.click_coins = farmState.click_coins || 0;
+                        state.crystals = farmState.crystals || 0;
+                        state.stars = farmState.stars || 0;
+                        state.total_clicks = farmState.total_clicks || state.total_clicks;
+                        state.level = farmState.level || state.level;
+                        state.xp = farmState.xp || state.xp;
+                        state.xpToNext = farmState.xpToNext || state.xpToNext;
+                        state.click_power = farmState.click_power || state.click_power;
+                    } catch (e) {
+                        console.error('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° РЎвЂЎРЎвЂљР ВµР Р…Р С‘РЎРЏ РЎРѓР С•РЎРѓРЎвЂљР С•РЎРЏР Р…Р С‘РЎРЏ РЎвЂћР ВµРЎР‚Р СРЎвЂ№:', e);
+                    }
+                }
+
+                // Р РЋР С•РЎвЂ¦РЎР‚Р В°Р Р…Р ВµР Р…Р С‘Р Вµ Р Р† localStorage
+                localStorage.setItem('redpulse_state', JSON.stringify(state));
+
+                // Р С›Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘Р Вµ UI
+                if (typeof updateUI === 'function') {
+                    updateUI();
+                }
+
+                // Р РЋР С•РЎвЂ¦РЎР‚Р В°Р Р…Р ВµР Р…Р С‘Р Вµ РЎвЂЎР ВµРЎР‚Р ВµР В· saveData (Р Т‘Р В»РЎРЏ API)
+                if (typeof saveData === 'function') {
+                    saveData();
+                }
+
+                // Р С›Р В±Р Р…Р С•Р Р†Р В»РЎРЏР ВµР С Р В±Р В°Р В»Р В°Р Р…РЎРѓ Р Р† Р С–Р В»Р В°Р Р†Р Р…Р С•Р С Р СР ВµР Р…РЎР‹ Р Р…Р В°Р С—РЎР‚РЎРЏР СРЎС“РЎР‹
+                const balanceCoins = document.getElementById('balance-coins');
+                const balanceCrystals = document.getElementById('balance-crystals');
+                const balanceStars = document.getElementById('balance-stars');
+                if (balanceCoins) balanceCoins.textContent = state.click_coins.toLocaleString();
+                if (balanceCrystals) balanceCrystals.textContent = state.crystals.toLocaleString();
+                if (balanceStars) balanceStars.textContent = state.stars.toLocaleString();
+            } catch (e) {
+                console.error('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° updateMainBalance:', e);
+            }
+
+            window.isSyncing = false;
+        }
+
+        // Р РЋР С‘Р Р…РЎвЂ¦РЎР‚Р С•Р Р…Р С‘Р В·Р В°РЎвЂ Р С‘РЎРЏ РЎРѓ РЎвЂћР ВµРЎР‚Р СР С•Р в„–
+        function syncWithFarm() {
+            try {
+                // Р В¤Р ВµРЎР‚Р СР В° Р С‘РЎРѓР С—Р С•Р В»РЎРЉР В·РЎС“Р ВµРЎвЂљ state Р С”Р В°Р С” Р С•РЎРѓР Р…Р С•Р Р†Р Р…Р С•Р в„– Р С‘РЎРѓРЎвЂљР С•РЎвЂЎР Р…Р С‘Р С” Р С‘РЎРѓРЎвЂљР С‘Р Р…РЎвЂ№
+                // Р РЋР С‘Р Р…РЎвЂ¦РЎР‚Р С•Р Р…Р С‘Р В·Р С‘РЎР‚РЎС“Р ВµР С gameState РЎРѓ state (Р ВµРЎРѓР В»Р С‘ РЎвЂћР ВµРЎР‚Р СР В° Р В°Р С”РЎвЂљР С‘Р Р†Р Р…Р В°)
+                if (typeof gameState !== 'undefined') {
+                    gameState.coins = state.click_coins || 0;
+                    gameState.crystals = state.crystals || 0;
+                    gameState.stars = state.stars || 0;
+                }
+                // Р С›Р В±Р Р…Р С•Р Р†Р В»РЎРЏР ВµР С Р В±Р В°Р В»Р В°Р Р…РЎРѓ Р С”Р В°Р В·Р С‘Р Р…Р С•
+                updateCasinoBalance();
+            } catch (e) {
+                console.error('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° syncWithFarm:', e);
+            }
+        }
+
+        let currentGame = null;
+        let currentBet = 0;
+        let bjGame = null;
+
+        // ==========================================
+        // Casino Games Code (Р С•Р В±РЎР‰РЎРЏР Р†Р В»РЎРЏР ВµР С Р В Р С’Р СњР В¬Р РЃР вЂў loadUserData)
+        // ==========================================
+        let casinoState = {
+            selectedCoinSide: null,
+            isFlipping: false,
+            diceState: 'idle',
+            diceRoll1: 0,
+            diceRoll2: 0,
+            slotsSpinning: false,
+            wheelSelected: null,
+            wheelSpinning: false
+        };
+
+        function getCasinoBalance() {
+            return state.click_coins || 0;
+        }
+
+        function updateCasinoBalance() {
+            const balance = getCasinoBalance();
+            const coinBalance = document.getElementById('coinBalance');
+            const diceBalance = document.getElementById('diceBalance');
+            const slotsBalance = document.getElementById('slotsBalance');
+            const wheelBalance = document.getElementById('wheelBalance');
+
+            if (coinBalance) coinBalance.textContent = balance;
+            if (diceBalance) diceBalance.textContent = balance;
+            if (slotsBalance) slotsBalance.textContent = balance;
+            if (wheelBalance) wheelBalance.textContent = balance;
+        }
+
+        // Р СџР С•Р С”Р В°Р В·Р В°РЎвЂљРЎРЉ РЎРѓРЎвЂљРЎР‚Р В°Р Р…Р С‘РЎвЂ РЎС“
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+            document.getElementById(pageId).classList.add('active');
+            const navItem = document.querySelector(`.nav-item[data-page="${pageId}"]`);
+            if (navItem) navItem.classList.add('active');
+
+            // Р РЋР С”РЎР‚РЎвЂ№РЎвЂљРЎРЉ/Р С—Р С•Р С”Р В°Р В·Р В°РЎвЂљРЎРЉ header Р С‘ balance Р Т‘Р В»РЎРЏ РЎвЂћР ВµРЎР‚Р СРЎвЂ№
+            const header = document.querySelector('.header');
+            const balanceCard = document.querySelector('.balance-card');
+
+            if (pageId === 'clicker') {
+                header.style.display = 'none';
+                balanceCard.style.display = 'none';
+
+                // Р ВР Р…Р С‘РЎвЂ Р С‘Р В°Р В»Р С‘Р В·Р С‘РЎР‚Р С•Р Р†Р В°РЎвЂљРЎРЉ Р С‘Р С–РЎР‚РЎС“ Р ВµРЎРѓР В»Р С‘ Р ВµРЎвЂ°РЎвЂ Р Р…Р Вµ РЎРѓР Т‘Р ВµР В»Р В°Р Р…Р С•
+                if (typeof initGame === 'function') {
+                    initGame();
+                }
+
+                // Р РЋР В±РЎР‚Р С•РЎРѓ Р С”РЎС“Р В»Р Т‘Р В°РЎС“Р Р…Р В° РЎРЏР Т‘РЎР‚Р В° Р С—РЎР‚Р С‘ Р Р†РЎвЂ¦Р С•Р Т‘Р Вµ
+                if (typeof gameState !== 'undefined') {
+                    gameState.lastTapTime = 0;
+                    gameState.currentCooldown = 0;
+                }
+            } else {
+                header.style.display = 'block';
+                balanceCard.style.display = 'block';
+                
+                // Р СџРЎР‚Р С‘Р Р…РЎС“Р Т‘Р С‘РЎвЂљР ВµР В»РЎРЉР Р…Р С•Р Вµ РЎРѓР С•РЎвЂ¦РЎР‚Р В°Р Р…Р ВµР Р…Р С‘Р Вµ РЎвЂћР ВµРЎР‚Р СРЎвЂ№ Р С—Р ВµРЎР‚Р ВµР Т‘ РЎРѓР С‘Р Р…РЎвЂ¦РЎР‚Р С•Р Р…Р С‘Р В·Р В°РЎвЂ Р С‘Р ВµР в„–
+                if (typeof saveGame === 'function') {
+                    saveGame();
+                }
+                // Р РЋР С‘Р Р…РЎвЂ¦РЎР‚Р С•Р Р…Р С‘Р В·Р С‘РЎР‚Р С•Р Р†Р В°РЎвЂљРЎРЉ Р В±Р В°Р В»Р В°Р Р…РЎРѓ Р С—Р С•РЎРѓР В»Р Вµ Р Р†РЎвЂ№РЎвЂ¦Р С•Р Т‘Р В° РЎРѓ РЎвЂћР ВµРЎР‚Р СРЎвЂ№/Р С”Р В°Р В·Р С‘Р Р…Р С•
+                syncWithFarm();
+                updateUI();
+
+                // Р С’Р Р…Р С‘Р СР В°РЎвЂ Р С‘РЎРЏ Р С•Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘РЎРЏ Р В±Р В°Р В»Р В°Р Р…РЎРѓР В° Р С—РЎР‚Р С‘ Р С—Р ВµРЎР‚Р ВµР С”Р В»РЎР‹РЎвЂЎР ВµР Р…Р С‘Р С‘ РЎРѓ РЎвЂћР ВµРЎР‚Р СРЎвЂ№
+                updateMainBalanceWithAnimation();
+
+                // Р С›Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘Р Вµ Р В±Р В°Р В»Р В°Р Р…РЎРѓР В° Р Р† Р С”Р В°Р В·Р С‘Р Р…Р С• (Р ВµРЎРѓР В»Р С‘ Р С•РЎвЂљР С”РЎР‚РЎвЂ№РЎвЂљР С•)
+                updateCasinoBalance();
+            }
+
+            if (pageId === 'profile') loadProfile();
+            if (pageId === 'tasks') loadTasks();
+            if (pageId === 'rating') loadRating();
+            if (pageId === 'shop') showShopCategory('cases', document.querySelector('.shop-category'));
+        }
+
+        // Farm info modal
+        function showFarmInfo() {
+            const hasSeenInfo = localStorage.getItem('farmInfoSeen');
+            if (!hasSeenInfo) {
+                const modal = document.getElementById('farmInfoModal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    setTimeout(() => modal.classList.add('show'), 10);
+                }
+                localStorage.setItem('farmInfoSeen', 'true');
+            }
+        }
+
+        function closeFarmInfo() {
+            const modal = document.getElementById('farmInfoModal');
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => modal.style.display = 'none', 300);
+            }
+        }
+
+        // Р СџР С•Р С”Р В°Р В·Р В°РЎвЂљРЎРЉ РЎС“Р Р†Р ВµР Т‘Р С•Р СР В»Р ВµР Р…Р С‘Р Вµ
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const icon = toast.querySelector('.toast-icon');
+            const msg = toast.querySelector('.toast-message');
+            
+            icon.textContent = type === 'success' ? 'РІСљвЂњ' : 'РІСљвЂў';
+            msg.textContent = message;
+            toast.className = `toast ${type} show`;
+            
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        // Р вЂ”Р В°Р С–РЎР‚РЎС“Р В·Р С”Р В° Р Т‘Р В°Р Р…Р Р…РЎвЂ№РЎвЂ¦ Р С—Р С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЏ
+        async function loadUserData() {
+            if (!userId) return;
+
+            // Р РЋР Р…Р В°РЎвЂЎР В°Р В»Р В° Р С—РЎР‚Р С•Р В±РЎС“Р ВµР С Р В·Р В°Р С–РЎР‚РЎС“Р В·Р С‘РЎвЂљРЎРЉ Р С‘Р В· РЎРѓР С•РЎвЂ¦РЎР‚Р В°Р Р…Р ВµР Р…Р С‘РЎРЏ РЎвЂћР ВµРЎР‚Р СРЎвЂ№
+            try {
+                const farmSave = localStorage.getItem('pulseFarmSave_v2');
+                if (farmSave) {
+                    const farmData = JSON.parse(farmSave);
+                    state.click_coins = farmData.coins || 0;
+                    state.crystals = farmData.crystals || 0;
+                    state.stars = farmData.stars || 0;
+                    state.total_clicks = farmData.totalTaps || 0;
+                    state.level = farmData.level || 1;
+                    state.click_power = Math.floor(farmData.chargePower) || 1;
+                    updateUI();
+                    return;
+                }
+            } catch(e) {
+                console.error('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° Р В·Р В°Р С–РЎР‚РЎС“Р В·Р С”Р С‘ РЎвЂћР ВµРЎР‚Р СРЎвЂ№:', e);
+            }
+            
+            // Р СџРЎР‚Р С•Р В±РЎС“Р ВµР С Р В·Р В°Р С–РЎР‚РЎС“Р В·Р С‘РЎвЂљРЎРЉ Р С‘Р В· redpulse_state
+            try {
+                const savedState = localStorage.getItem('redpulse_state');
+                if (savedState) {
+                    const parsed = JSON.parse(savedState);
+                    state.click_coins = parsed.click_coins || 0;
+                    state.crystals = parsed.crystals || 0;
+                    state.stars = parsed.stars || 0;
+                    state.total_clicks = parsed.total_clicks || 0;
+                    state.level = parsed.level || 1;
+                    state.click_power = parsed.click_power || 1;
+                    updateUI();
+                    return;
+                }
+            } catch(e) {
+                console.warn('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° Р В·Р В°Р С–РЎР‚РЎС“Р В·Р С”Р С‘ redpulse_state:', e);
+            }
+
+            updateUI();
+        }
+
+        // Р С›Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘Р Вµ Р С‘Р Р…РЎвЂљР ВµРЎР‚РЎвЂћР ВµР в„–РЎРѓР В°
+        let prevBalance = { coins: 0, stars: 0, crystals: 0 };
+        
+        function updateUI() {
+            const el = (id) => document.getElementById(id);
+
+            const balanceCoins = el('balance-coins');
+            const balanceStars = el('balance-stars');
+            const balanceCrystals = el('balance-crystals');
+            const clickerClicks = el('clicker-clicks');
+            const clickerLevel = el('clicker-level');
+            const clickerPower = el('clicker-power');
+            const energyFill = el('energy-fill');
+            const energyText = el('energy-text');
+
+            // Р В¤РЎС“Р Р…Р С”РЎвЂ Р С‘РЎРЏ Р Т‘Р В»РЎРЏ Р С•Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘РЎРЏ Р В±Р В°Р В»Р В°Р Р…РЎРѓР В° РЎРѓ Р В°Р Р…Р С‘Р СР В°РЎвЂ Р С‘Р ВµР в„–
+            function updateBalanceElement(element, newValue, type) {
+                if (!element) return;
+                
+                const oldValue = prevBalance[type];
+                const formattedValue = newValue.toLocaleString();
+                
+                if (element.textContent !== formattedValue) {
+                    // Р вЂќР С•Р В±Р В°Р Р†Р В»РЎРЏР ВµР С Р С”Р В»Р В°РЎРѓРЎРѓ Р В°Р Р…Р С‘Р СР В°РЎвЂ Р С‘Р С‘
+                    element.classList.add('updating');
+                    
+                    // Р вЂўРЎРѓР В»Р С‘ Р В±Р В°Р В»Р В°Р Р…РЎРѓ РЎС“Р Р†Р ВµР В»Р С‘РЎвЂЎР С‘Р В»РЎРѓРЎРЏ - Р Т‘Р С•Р В±Р В°Р Р†Р В»РЎРЏР ВµР С Р В·Р ВµР В»РЎвЂР Р…РЎвЂ№Р в„– РЎРЊРЎвЂћРЎвЂћР ВµР С”РЎвЂљ
+                    if (newValue > oldValue && oldValue > 0) {
+                        element.classList.add('increased');
+                    }
+                    
+                    element.textContent = formattedValue;
+                    
+                    // Р Р€Р Т‘Р В°Р В»РЎРЏР ВµР С Р С”Р В»Р В°РЎРѓРЎРѓРЎвЂ№ Р В°Р Р…Р С‘Р СР В°РЎвЂ Р С‘Р С‘ Р С—Р С•РЎРѓР В»Р Вµ Р В·Р В°Р Р†Р ВµРЎР‚РЎв‚¬Р ВµР Р…Р С‘РЎРЏ
+                    setTimeout(() => {
+                        element.classList.remove('updating');
+                        element.classList.remove('increased');
+                    }, 600);
+                }
+                
+                prevBalance[type] = newValue;
+            }
+
+            // Р С›Р В±Р Р…Р С•Р Р†Р В»РЎРЏР ВµР С Р В±Р В°Р В»Р В°Р Р…РЎРѓ РЎРѓ Р В°Р Р…Р С‘Р СР В°РЎвЂ Р С‘Р ВµР в„–
+            updateBalanceElement(balanceCoins, state.click_coins, 'coins');
+            updateBalanceElement(balanceStars, state.stars, 'stars');
+            updateBalanceElement(balanceCrystals, state.crystals, 'crystals');
+            
+            if (clickerClicks) clickerClicks.textContent = state.total_clicks.toLocaleString();
+            if (clickerLevel) clickerLevel.textContent = state.level;
+            if (clickerPower) clickerPower.textContent = state.click_power + 'x';
+
+            if (energyFill && energyText) {
+                const energyPercent = (state.energy / state.max_energy) * 100;
+                energyFill.style.width = energyPercent + '%';
+                energyText.textContent = `${Math.floor(state.energy)}/${state.max_energy}`;
+            }
+
+            updateBoostPrices();
+        }
+
+        // Р С›Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘Р Вµ РЎвЂ Р ВµР Р… Р В±РЎС“РЎРѓРЎвЂљР С•Р Р†
+        function updateBoostPrices() {
+            const energyLevel = Math.floor((state.max_energy - 1000) / 500) + 1;
+            const energyPrice = Math.floor(800 * Math.pow(1.55, energyLevel - 1));
+            const powerPrice = Math.floor(500 * Math.pow(1.5, state.click_power - 1));
+            const autoPrice = state.auto_clicker ? 'РІР‚вЂќ' : '2000 СЂСџР„в„ў';
+
+            const boostEnergyPrice = document.getElementById('boost-energy-price');
+            const boostPowerPrice = document.getElementById('boost-power-price');
+            const boostAutoPrice = document.getElementById('boost-auto-price');
+
+            if (boostEnergyPrice) boostEnergyPrice.textContent = energyPrice + ' СЂСџР„в„ў';
+            if (boostPowerPrice) boostPowerPrice.textContent = powerPrice + ' СЂСџР„в„ў';
+            if (boostAutoPrice) boostAutoPrice.textContent = autoPrice;
+        }
+
+        // === Р РЋР СћР С’Р В Р В«Р в„ў Р С™Р вЂєР ВР С™Р вЂўР В  - Р С™Р С›Р вЂќ Р С›Р СћР С™Р вЂєР В®Р В§Р РѓР Сњ ===
+        /*
+        // Р С™Р В»Р С‘Р С”
+        document.getElementById('clickBtn').addEventListener('click', () => {
+            if (state.energy < state.click_power) {
+                showToast('Р СњР ВµР Т‘Р С•РЎРѓРЎвЂљР В°РЎвЂљР С•РЎвЂЎР Р…Р С• РЎРЊР Р…Р ВµРЎР‚Р С–Р С‘Р С‘!', 'error');
+                return;
+            }
+            
+            state.energy -= state.click_power;
+            state.click_coins += state.click_power;
+            state.total_clicks++;
+            
+            // Р вЂ™Р С‘Р В±РЎР‚Р В°РЎвЂ Р С‘РЎРЏ
+            if (tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('light');
+            }
+            
+            updateUI();
+            
+            // Р РЃР В°Р Р…РЎРѓ Р Р…Р В° Р С”РЎР‚Р С‘РЎРѓРЎвЂљР В°Р В»Р В» 1%
+            if (Math.random() < 0.01) {
+                state.crystals++;
+                showToast('РІСљРЃ Р СњР В°Р в„–Р Т‘Р ВµР Р… Р С”РЎР‚Р С‘РЎРѓРЎвЂљР В°Р В»Р В»! +1 СЂСџвЂ™Р‹', 'success');
+            }
+
+            // Р РЋР С•РЎвЂ¦РЎР‚Р В°Р Р…Р ВµР Р…Р С‘Р Вµ Р С”Р В°Р В¶Р Т‘РЎвЂ№Р Вµ 25 Р С”Р В»Р С‘Р С”Р С•Р Р†
+            if (state.total_clicks % 25 === 0) {
+                updateBalance();
+            }
+        });
+
+        // Р СџР С•Р С”РЎС“Р С—Р С”Р В° Р В±РЎС“РЎРѓРЎвЂљР В°
+        async function buyBoost(type) {
+            const prices = {
+                energy: Math.floor(800 * Math.pow(1.55, Math.floor((state.max_energy - 1000) / 500))),
+                power: Math.floor(500 * Math.pow(1.5, state.click_power - 1)),
+                auto: 2000
+            };
+            
+            const price = prices[type];
+            if (state.click_coins < price) {
+                showToast('Р СњР ВµР Т‘Р С•РЎРѓРЎвЂљР В°РЎвЂљР С•РЎвЂЎР Р…Р С• Р СР С•Р Р…Р ВµРЎвЂљ!', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/buy-boost', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, type })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        state.click_coins -= price;
+                        if (type === 'energy') state.max_energy += 500;
+                        if (type === 'power') state.click_power++;
+                        if (type === 'auto') state.auto_clicker = true;
+                        updateUI();
+                        if (typeof saveGame === 'function') saveGame();
+                        setTimeout(() => updateMainBalance(), 100);
+                        showToast('Р вЂРЎС“РЎРѓРЎвЂљ Р С”РЎС“Р С—Р В»Р ВµР Р…!', 'success');
+                    }
+                }
+            } catch (error) {
+                showToast('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° Р С—Р С•Р С”РЎС“Р С—Р С”Р С‘', 'error');
+            }
+        }
+
+        // Р С›Р В±Р СР ВµР Р… Р Р…Р В° Р С”РЎР‚Р С‘РЎРѓРЎвЂљР В°Р В»Р В»РЎвЂ№
+        async function exchangeToCrystals() {
+            if (state.click_coins < 100) {
+                showToast('Р СњРЎС“Р В¶Р Р…Р С• 100 Р СР С•Р Р…Р ВµРЎвЂљ!', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/exchange-to-crystals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, amount: 100 })
+                });
+                
+                if (response.ok) {
+                    state.click_coins -= 100;
+                    state.crystals++;
+                    updateUI();
+                    if (typeof saveGame === 'function') saveGame();
+                    setTimeout(() => updateMainBalance(), 100);
+                    showToast('Р С›Р В±Р СР ВµР Р… РЎС“РЎРѓР С—Р ВµРЎв‚¬Р Р…! +1 СЂСџвЂ™Р‹', 'success');
+                }
+            } catch (error) {
+                showToast('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° Р С•Р В±Р СР ВµР Р…Р В°', 'error');
+            }
+        }
+
+        // Р РЋР С•РЎвЂ¦РЎР‚Р В°Р Р…Р ВµР Р…Р С‘Р Вµ Р Т‘Р В°Р Р…Р Р…РЎвЂ№РЎвЂ¦ (Р Т‘Р В»РЎРЏ РЎвЂћР ВµРЎР‚Р СРЎвЂ№ Р С‘ Р С”Р В°Р В·Р С‘Р Р…Р С•)
+        function saveGame() {
+            // Р РЋР С•РЎвЂ¦РЎР‚Р В°Р Р…РЎРЏР ВµР С Р Р† localStorage
+            localStorage.setItem('redpulse_state', JSON.stringify(state));
+        }
+
+        // Р РЋР С•РЎвЂ¦РЎР‚Р В°Р Р…Р ВµР Р…Р С‘Р Вµ Р Т‘Р В°Р Р…Р Р…РЎвЂ№РЎвЂ¦
+        async function saveData() {
+            if (!userId) return;
+
+            // Р РЋР С‘Р Р…РЎвЂ¦РЎР‚Р С•Р Р…Р С‘Р В·Р В°РЎвЂ Р С‘РЎРЏ РЎРѓ РЎвЂћР ВµРЎР‚Р СР С•Р в„– Р С—Р ВµРЎР‚Р ВµР Т‘ РЎРѓР С•РЎвЂ¦РЎР‚Р В°Р Р…Р ВµР Р…Р С‘Р ВµР С
+            syncWithFarm();
+
+            try {
+                await fetch('/api/save-clicks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId,
+                        click_coins: state.click_coins,
+                        stars: state.stars,
+                        crystals: state.crystals,
+                        total_clicks: state.total_clicks,
+                        click_power: state.click_power,
+                        auto_clicker: state.auto_clicker,
+                        max_energy: state.max_energy
+                    })
+                });
+                // Р РЋР С•РЎвЂ¦РЎР‚Р В°Р Р…РЎРЏР ВµР С РЎвЂљР В°Р С”Р В¶Р Вµ Р Р† localStorage
+                localStorage.setItem('redpulse_state', JSON.stringify(state));
+            } catch (error) {
+                console.error('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° РЎРѓР С•РЎвЂ¦РЎР‚Р В°Р Р…Р ВµР Р…Р С‘РЎРЏ:', error);
+            }
+        }
+
+        // ==========================================
+        // Casino Games Functions
+        // ==========================================
+        // --- COIN GAME ---
+        function openCoinGame() {
+            casinoState.selectedCoinSide = null;
+            casinoState.isFlipping = false;
+            const headsBtn = document.getElementById('coinHeads');
+            const tailsBtn = document.getElementById('coinTails');
+            if (headsBtn) headsBtn.classList.remove('selected');
+            if (tailsBtn) tailsBtn.classList.remove('selected');
+            const coinDisplay = document.getElementById('coinDisplay');
+            if (coinDisplay) coinDisplay.querySelector('.coin-inner').textContent = '?';
+            const coinResult = document.getElementById('coinResult');
+            if (coinResult) coinResult.innerHTML = '';
+            const coinFlipBtn = document.getElementById('coinFlipBtn');
+            if (coinFlipBtn) coinFlipBtn.disabled = false;
+            updateCasinoBalance();
+            updateUI();
+            const coinModal = document.getElementById('coin-modal');
+            if (coinModal) coinModal.classList.add('active');
+        }
+
+        function closeCoinModal() {
+            document.getElementById('coin-modal').classList.remove('active');
+        }
+
+        // Р вЂ”Р В°Р С”РЎР‚РЎвЂ№РЎвЂљРЎРЉ Р С‘Р С–РЎР‚РЎС“
+        function closeGameModal() {
+        // Р ВР С–РЎР‚Р В° Р Р† Р С”Р С•РЎРѓРЎвЂљР С‘
+        function showDiceGame() {
+            const content = document.getElementById('game-content');
+            content.innerHTML = `
+                <p style="text-align:center;margin-bottom:16px;color:var(--text-secondary);">
+                    Р вЂ™РЎвЂ№Р С—Р В°Р Т‘Р ВµРЎвЂљ 4, 5 Р С‘Р В»Р С‘ 6 РІР‚вЂќ Р Р†РЎвЂ№Р С‘Р С–РЎР‚РЎвЂ№РЎв‚¬ x2
+                </p>
+                <div class="bet-buttons">
+                    <button class="bet-btn" onclick="setBet(10)">10</button>
+                    <button class="bet-btn" onclick="setBet(50)">50</button>
+                    <button class="bet-btn" onclick="setBet(100)">100</button>
+                    <button class="bet-btn" onclick="setBet(500)">500</button>
+                    <button class="bet-btn" onclick="setBet(1000)">1K</button>
+                    <button class="bet-btn" onclick="setMaxBet()">MAX</button>
+                </div>
+                <button class="game-card-btn" onclick="playDice()" style="margin-top:16px;">
+                    Р вЂРЎР‚Р С•РЎРѓР С‘РЎвЂљРЎРЉ Р С”РЎС“Р В±Р С‘Р С”
+                </button>
+                <div id="dice-result"></div>
+            `;
+        }
+
+        function setBet(amount) {
+            currentBet = amount;
+            document.querySelectorAll('.bet-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function setMaxBet() {
+            currentBet = Math.min(5000, Math.floor(state.click_coins * 0.5));
+            document.querySelectorAll('.bet-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        async function playDice() {
+            if (!currentBet || currentBet > state.click_coins) {
+                showToast('Р СњР ВµР Т‘Р С•РЎРѓРЎвЂљР В°РЎвЂљР С•РЎвЂЎР Р…Р С• РЎРѓРЎР‚Р ВµР Т‘РЎРѓРЎвЂљР Р†!', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/casino-dice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, bet: currentBet })
+                });
+                
+                const result = await response.json();
+                const resultDiv = document.getElementById('dice-result');
+                
+                if (result.win) {
+                    state.click_coins += result.winAmount;
+                    resultDiv.innerHTML = `
+                        <div class="game-result">
+                            <div class="game-result-icon">СЂСџР‹Р† ${result.roll}</div>
+                            <div class="game-result-text">Р вЂ™РЎвЂ№Р С‘Р С–РЎР‚РЎвЂ№РЎв‚¬!</div>
+                            <div class="game-result-amount win">+${result.winAmount} СЂСџР„в„ў</div>
+                        </div>
+                    `;
+                    showToast(`Р вЂ™РЎвЂ№Р С‘Р С–РЎР‚РЎвЂ№РЎв‚¬: +${result.winAmount} СЂСџР„в„ў`, 'success');
+                } else {
+                    state.click_coins -= currentBet;
+                    resultDiv.innerHTML = `
+                        <div class="game-result">
+                            <div class="game-result-icon">СЂСџР‹Р† ${result.roll}</div>
+                            <div class="game-result-text">Р СџРЎР‚Р С•Р С‘Р С–РЎР‚РЎвЂ№РЎв‚¬</div>
+                            <div class="game-result-amount lose">-${currentBet} СЂСџР„в„ў</div>
+                        </div>
+                    `;
+                    showToast('Р СњР Вµ Р С—Р С•Р Р†Р ВµР В·Р В»Р С•!', 'error');
+                }
+                
+                updateUI();
+                if (typeof saveGame === 'function') saveGame();
+                setTimeout(() => updateMainBalance(), 100);
+            } catch (error) {
+                showToast('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° Р С‘Р С–РЎР‚РЎвЂ№', 'error');
+            }
+        }
+
+        // Р РЋР В»Р С•РЎвЂљРЎвЂ№
+        function showSlotsGame() {
+            const content = document.getElementById('game-content');
+            content.innerHTML = `
+                <p style="text-align:center;margin-bottom:16px;color:var(--text-secondary);">
+                    СЂСџвЂ™Р‹СЂСџвЂ™Р‹СЂСџвЂ™Р‹ x10 | РІВ­С’РІВ­С’РІВ­С’ x5 | СЂСџРЊвЂ™СЂСџРЊвЂ™СЂСџРЊвЂ™ x3 | СЂСџРЊвЂ™СЂСџРЊвЂ™? x2
+                </p>
+                <div class="bet-buttons">
+                    <button class="bet-btn" onclick="setBet(10)">10</button>
+                    <button class="bet-btn" onclick="setBet(50)">50</button>
+                    <button class="bet-btn" onclick="setBet(100)">100</button>
+                    <button class="bet-btn" onclick="setBet(500)">500</button>
+                    <button class="bet-btn" onclick="setBet(1000)">1K</button>
+                    <button class="bet-btn" onclick="setMaxBet()">MAX</button>
+                </div>
+                <button class="game-card-btn" onclick="playSlots()" style="margin-top:16px;">
+                    Р С™РЎР‚РЎС“РЎвЂљР С‘РЎвЂљРЎРЉ
+                </button>
+                <div id="slots-result"></div>
+            `;
+        }
+
+        async function playSlots() {
+            if (!currentBet || currentBet > state.click_coins) {
+                showToast('Р СњР ВµР Т‘Р С•РЎРѓРЎвЂљР В°РЎвЂљР С•РЎвЂЎР Р…Р С• РЎРѓРЎР‚Р ВµР Т‘РЎРѓРЎвЂљР Р†!', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/casino-slots', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, bet: currentBet })
+                });
+                
+                const result = await response.json();
+                const resultDiv = document.getElementById('slots-result');
+                
+                if (result.win) {
+                    state.click_coins += result.winAmount;
+                    resultDiv.innerHTML = `
+                        <div class="game-result">
+                            <div class="game-result-icon">${result.reels.join(' ')}</div>
+                            <div class="game-result-text">Р вЂ™РЎвЂ№Р С‘Р С–РЎР‚РЎвЂ№РЎв‚¬ x${result.multiplier}!</div>
+                            <div class="game-result-amount win">+${result.winAmount} СЂСџР„в„ў</div>
+                        </div>
+                    `;
+                    showToast(`Р вЂ™РЎвЂ№Р С‘Р С–РЎР‚РЎвЂ№РЎв‚¬: +${result.winAmount} СЂСџР„в„ў`, 'success');
+                } else {
+                    state.click_coins -= currentBet;
+                    resultDiv.innerHTML = `
+                        <div class="game-result">
+                            <div class="game-result-icon">${result.reels.join(' ')}</div>
+                            <div class="game-result-text">Р СџРЎР‚Р С•Р С‘Р С–РЎР‚РЎвЂ№РЎв‚¬</div>
+                            <div class="game-result-amount lose">-${currentBet} СЂСџР„в„ў</div>
+                        </div>
+                    `;
+                    showToast('Р СџР С•Р С—РЎР‚Р С•Р В±РЎС“Р в„– Р ВµРЎвЂ°РЎвЂ!', 'error');
+                }
+                
+                updateUI();
+                if (typeof saveGame === 'function') saveGame();
+                setTimeout(() => updateMainBalance(), 100);
+            } catch (error) {
+                showToast('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° Р С‘Р С–РЎР‚РЎвЂ№', 'error');
+            }
+        }
+
+        // Р вЂР В»РЎРЊР С”Р Т‘Р В¶Р ВµР С”
+        function showBJGame() {
+            const content = document.getElementById('game-content');
+            content.innerHTML = `
+                <p style="text-align:center;margin-bottom:16px;color:var(--text-secondary);">
+                    Р С›Р В±Р С•Р В±РЎвЂ№Р С–РЎР‚Р В°Р в„– Р Т‘Р С‘Р В»Р ВµРЎР‚Р В° РІР‚вЂќ Р Р…Р В°Р В±Р ВµРЎР‚Р С‘ Р В±Р В»Р С‘Р В¶Р Вµ Р С” 21
+                </p>
+                <div class="bet-buttons">
+                    <button class="bet-btn" onclick="setBet(10)">10</button>
+                    <button class="bet-btn" onclick="setBet(50)">50</button>
+                    <button class="bet-btn" onclick="setBet(100)">100</button>
+                    <button class="bet-btn" onclick="setBet(500)">500</button>
+                    <button class="bet-btn" onclick="setBet(1000)">1K</button>
+                    <button class="bet-btn" onclick="setMaxBet()">MAX</button>
+                </div>
+                <button class="game-card-btn" onclick="startBJ()" style="margin-top:16px;">
+                    Р СњР В°РЎвЂЎР В°РЎвЂљРЎРЉ Р С‘Р С–РЎР‚РЎС“
+                </button>
+                <div id="bj-result"></div>
+            `;
+        }
+
+        async function startBJ() {
+            if (!currentBet || currentBet > state.click_coins) {
+                showToast('Р СњР ВµР Т‘Р С•РЎРѓРЎвЂљР В°РЎвЂљР С•РЎвЂЎР Р…Р С• РЎРѓРЎР‚Р ВµР Т‘РЎРѓРЎвЂљР Р†!', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/casino-bj-start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, bet: currentBet })
+                });
+                
+                const result = await response.json();
+                bjGame = result;
+                renderBJ();
+            } catch (error) {
+                showToast('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° Р С‘Р С–РЎР‚РЎвЂ№', 'error');
+            }
+        }
+
+        function renderBJ() {
+            if (!bjGame) return;
+            
+            const resultDiv = document.getElementById('bj-result');
+            resultDiv.innerHTML = `
+                <div style="background:var(--bg-dark);padding:16px;border-radius:12px;margin-bottom:12px;">
+                    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">Р вЂќР С‘Р В»Р ВµРЎР‚</div>
+                    <div style="font-size:24px;">${bjGame.dealer[0]} ?</div>
+                </div>
+                <div style="background:var(--bg-dark);padding:16px;border-radius:12px;margin-bottom:12px;">
+                    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">Р СћР Р†Р С•РЎРЏ РЎР‚РЎС“Р С”Р В°</div>
+                    <div style="font-size:24px;">${bjGame.player.join(' ')} = <b>${bjGame.playerValue}</b></div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    <button class="game-card-btn" onclick="bjHit()">Р вЂўРЎвЂ°РЎвЂ</button>
+                    <button class="game-card-btn" style="background:var(--bg-dark)" onclick="bjStand()">Р ТђР Р†Р В°РЎвЂљР С‘РЎвЂљ</button>
+                </div>
+            `;
+        }
+
+        async function bjHit() {
+            try {
+                const response = await fetch('/api/casino-bj-hit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+
+                const result = await response.json();
+                bjGame = result;
+
+                if (result.busted) {
+                    state.click_coins -= currentBet;
+                    renderBJEnd('Р СџРЎР‚Р С•Р С‘Р С–РЎР‚РЎвЂ№РЎв‚¬', `Р СџР ВµРЎР‚Р ВµР В±Р С•РЎР‚! ${result.playerValue}`, 'lose');
+                } else {
+                    renderBJ();
+                }
+                updateUI();
+                if (typeof saveGame === 'function') saveGame();
+                localStorage.setItem('redpulse_state', JSON.stringify(state));
+            } catch (error) {
+                showToast('Р С›РЎв‚¬Р С‘Р В±Р С”Р В°', 'error');
+            }
+        }
+
+        async function bjStand() {
+            try {
+                const response = await fetch('/api/casino-bj-stand', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+
+                const result = await response.json();
+
+                if (result.win) {
+                    state.click_coins += result.winAmount;
+                    renderBJEnd('Р СџР С•Р В±Р ВµР Т‘Р В°!', `+${result.winAmount} СЂСџР„в„ў`, 'win');
+                } else if (result.push) {
+                    renderBJEnd('Р СњР С‘РЎвЂЎРЎРЉРЎРЏ', 'Р РЋРЎвЂљР В°Р Р†Р С”Р В° Р Р†Р С•Р В·Р Р†РЎР‚Р В°РЎвЂ°Р ВµР Р…Р В°', 'success');
+                } else {
+                    state.click_coins -= currentBet;
+                    renderBJEnd('Р СџРЎР‚Р С•Р С‘Р С–РЎР‚РЎвЂ№РЎв‚¬', `-${currentBet} СЂСџР„в„ў`, 'lose');
+                }
+                updateUI();
+                if (typeof saveGame === 'function') saveGame();
+                localStorage.setItem('redpulse_state', JSON.stringify(state));
+            } catch (error) {
+                showToast('Р С›РЎв‚¬Р С‘Р В±Р С”Р В°', 'error');
+            }
+        }
+
+        function renderBJEnd(title, text, type) {
+            const resultDiv = document.getElementById('bj-result');
+            resultDiv.innerHTML = `
+                <div class="game-result">
+                    <div class="game-result-text">${title}</div>
+                    <div class="game-result-amount ${type}">${text}</div>
+                </div>
+                <button class="game-card-btn" onclick="showGame('bj')" style="margin-top:12px;">
+                    Р вЂўРЎвЂ°РЎвЂ Р С—Р В°РЎР‚РЎвЂљР С‘РЎРЏ
+                </button>
+            `;
+        }
+
+        // Р вЂ”Р В°Р С–РЎР‚РЎС“Р В·Р С”Р В° Р С—РЎР‚Р С•РЎвЂћР С‘Р В»РЎРЏ
+        async function loadProfile() {
+            if (!userId) return;
+            
+            try {
+                const response = await fetch(`/api/profile/${userId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('profile-name').textContent = data.first_name || 'Р ВР С–РЎР‚Р С•Р С”';
+                    document.getElementById('profile-username').textContent = data.username ? '@' + data.username : '';
+                    document.getElementById('profile-level').textContent = data.level || 1;
+                    document.getElementById('profile-clicks').textContent = (data.total_clicks || 0).toLocaleString();
+                    document.getElementById('profile-tasks').textContent = data.tasks_completed || 0;
+                    document.getElementById('profile-streak').textContent = (data.streak_days || 0) + ' Р Т‘Р Р…Р ВµР в„–';
+                    document.getElementById('profile-click-power').textContent = (data.click_power || 1) + 'x';
+                    document.getElementById('profile-referrals').textContent = data.referrals_count || 0;
+                    document.getElementById('profile-created').textContent = data.created_at ? new Date(data.created_at).toLocaleDateString('ru-RU') : '-';
+                }
+            } catch (error) {
+                console.error('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° Р В·Р В°Р С–РЎР‚РЎС“Р В·Р С”Р С‘ Р С—РЎР‚Р С•РЎвЂћР С‘Р В»РЎРЏ:', error);
+            }
+        }
+
+        // Р вЂ”Р В°Р С–РЎР‚РЎС“Р В·Р С”Р В° Р В·Р В°Р Т‘Р В°Р Р…Р С‘Р в„–
+        async function loadTasks() {
+            try {
+                const response = await fetch(`/api/tasks/${userId}`);
+                if (response.ok) {
+                    const tasks = await response.json();
+                    const container = document.getElementById('tasks-list');
+                    
+                    if (tasks.length === 0) {
+                        container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">Р СњР ВµРЎвЂљ Р Т‘Р С•РЎРѓРЎвЂљРЎС“Р С—Р Р…РЎвЂ№РЎвЂ¦ Р В·Р В°Р Т‘Р В°Р Р…Р С‘Р в„–</p>';
+                        return;
+                    }
+                    
+                    container.innerHTML = tasks.map(task => `
+                        <div class="task-item">
+                            <div class="task-info">
+                                <div class="task-title">${task.title}</div>
+                                <div class="task-reward">+${task.reward_coins} СЂСџР„в„ў ${task.reward_stars ? '+ ' + task.reward_stars + ' РІВ­С’' : ''}</div>
+                            </div>
+                            <button class="task-btn ${task.completed ? 'completed' : ''}" 
+                                    onclick="${task.completed ? '' : `completeTask(${task.id})`}">
+                                ${task.completed ? 'РІСљвЂњ' : 'Р вЂ™РЎвЂ№Р С—Р С•Р В»Р Р…Р С‘РЎвЂљРЎРЉ'}
+                            </button>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° Р В·Р В°Р С–РЎР‚РЎС“Р В·Р С”Р С‘ Р В·Р В°Р Т‘Р В°Р Р…Р С‘Р в„–:', error);
+            }
+        }
+
+        // Р вЂ™РЎвЂ№Р С—Р С•Р В»Р Р…Р ВµР Р…Р С‘Р Вµ Р В·Р В°Р Т‘Р В°Р Р…Р С‘РЎРЏ
+        async function completeTask(taskId) {
+            try {
+                const response = await fetch('/api/complete-task', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, taskId })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    if (result.reward_coins) state.click_coins += result.reward_coins;
+                    if (result.reward_stars) state.stars += result.reward_stars;
+                    updateUI();
+                    if (typeof saveGame === 'function') saveGame();
+                    setTimeout(() => updateMainBalance(), 100);
+                    showToast('Р вЂ”Р В°Р Т‘Р В°Р Р…Р С‘Р Вµ Р Р†РЎвЂ№Р С—Р С•Р В»Р Р…Р ВµР Р…Р С•!', 'success');
+                    loadTasks();
+                } else {
+                    showToast(result.error || 'Р С›РЎв‚¬Р С‘Р В±Р С”Р В°', 'error');
+                }
+            } catch (error) {
+                showToast('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° Р Р†РЎвЂ№Р С—Р С•Р В»Р Р…Р ВµР Р…Р С‘РЎРЏ', 'error');
+            }
+        }
+
+        // Р вЂ”Р В°Р С–РЎР‚РЎС“Р В·Р С”Р В° РЎР‚Р ВµР в„–РЎвЂљР С‘Р Р…Р С–Р В°
+        async function loadRating() {
+            try {
+                const response = await fetch('/api/rating');
+                if (response.ok) {
+                    const rating = await response.json();
+                    const container = document.getElementById('rating-list');
+                    
+                    container.innerHTML = rating.map((player, index) => {
+                        const medal = index === 0 ? 'СЂСџТђвЂЎ' : index === 1 ? 'СЂСџТђв‚¬' : index === 2 ? 'СЂСџТђвЂ°' : `${index + 1}.`;
+                        const isCurrentUser = player.telegram_id === userId;
+                        
+                        return `
+                            <div class="task-item" style="${isCurrentUser ? 'border-color:var(--primary)' : ''}">
+                                <div style="display:flex;align-items:center;gap:12px;flex:1;">
+                                    <div style="font-size:20px;font-weight:700;width:30px;">${medal}</div>
+                                    <div>
+                                        <div style="font-weight:600;">${player.first_name || 'Р ВР С–РЎР‚Р С•Р С”'}</div>
+                                        <div style="font-size:12px;color:var(--text-secondary);">@${player.username || 'unknown'}</div>
+                                    </div>
+                                </div>
+                                <div style="font-weight:700;color:var(--gold);">${player.stars} РІВ­С’</div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° Р В·Р В°Р С–РЎР‚РЎС“Р В·Р С”Р С‘ РЎР‚Р ВµР в„–РЎвЂљР С‘Р Р…Р С–Р В°:', error);
+            }
+        }
+
+        // Р СљР В°Р С–Р В°Р В·Р С‘Р Р…
+        async function showShopCategory(category, element) {
+            document.querySelectorAll('.shop-category').forEach(c => c.classList.remove('active'));
+            if (element) element.classList.add('active');
+            
+            try {
+                const response = await fetch(`/api/shop/${category}?userId=${userId}`);
+                if (response.ok) {
+                    const items = await response.json();
+                    const container = document.getElementById('shop-content');
+                    
+                    if (items.length === 0) {
+                        container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;grid-column:1/-1;">Р СџРЎС“РЎРѓРЎвЂљР С•</p>';
+                        return;
+                    }
+                    
+                    container.innerHTML = items.map(item => `
+                        <div class="shop-item" onclick="${item.canBuy ? `buyShopItem('${category}', '${item.id}')` : ''}">
+                            <div class="shop-item-icon">${item.icon}</div>
+                            <div class="shop-item-name">${item.name}</div>
+                            <div class="shop-item-price">${item.price}</div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° Р В·Р В°Р С–РЎР‚РЎС“Р В·Р С”Р С‘ Р СР В°Р С–Р В°Р В·Р С‘Р Р…Р В°:', error);
+            }
+        }
+
+        async function buyShopItem(category, itemId) {
+            try {
+                const response = await fetch('/api/buy-shop-item', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, category, itemId })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Р СџР С•Р С”РЎС“Р С—Р С”Р В° РЎС“РЎРѓР С—Р ВµРЎв‚¬Р Р…Р В°!', 'success');
+                    showShopCategory(category, document.querySelector('.shop-category.active'));
+                } else {
+                    showToast(result.error || 'Р С›РЎв‚¬Р С‘Р В±Р С”Р В°', 'error');
+                }
+            } catch (error) {
+                showToast('Р С›РЎв‚¬Р С‘Р В±Р С”Р В° Р С—Р С•Р С”РЎС“Р С—Р С”Р С‘', 'error');
+            }
+        }
+        */
+
+        // Р С’Р Р†РЎвЂљР С•-Р С•Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘Р Вµ Р В±Р В°Р В»Р В°Р Р…РЎРѓР В° Р С”Р В°Р В¶Р Т‘РЎвЂ№Р Вµ 5 РЎРѓР ВµР С”РЎС“Р Р…Р Т‘ (Р Т‘Р В»РЎРЏ Р С–Р В»Р В°Р Р†Р Р…Р С•Р в„– РЎРѓРЎвЂљРЎР‚Р В°Р Р…Р С‘РЎвЂ РЎвЂ№)
+        setInterval(() => {
+            updateMainBalance();
+        }, 5000);
+
+        // Р С›Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘Р Вµ Р В±Р В°Р В»Р В°Р Р…РЎРѓР В° Р Р† Р С–Р В»Р В°Р Р†Р Р…Р С•Р С Р СР ВµР Р…РЎР‹ РЎРѓ Р В°Р Р…Р С‘Р СР В°РЎвЂ Р С‘Р ВµР в„– (Р С—РЎР‚Р С‘ Р С—Р ВµРЎР‚Р ВµР С”Р В»РЎР‹РЎвЂЎР ВµР Р…Р С‘Р С‘ РЎРѓ РЎвЂћР ВµРЎР‚Р СРЎвЂ№)
+        function updateMainBalanceWithAnimation() {
+            const balanceCoins = document.getElementById('balance-coins');
+            const balanceCrystals = document.getElementById('balance-crystals');
+            const balanceStars = document.getElementById('balance-stars');
+
+            // Р В§Р С‘РЎвЂљР В°Р ВµР С РЎвЂљР ВµР С”РЎС“РЎвЂ°Р С‘Р Вµ Р В·Р Р…Р В°РЎвЂЎР ВµР Р…Р С‘РЎРЏ Р С‘Р В· DOM (Р Т‘Р С• Р С•Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘РЎРЏ)
+            const oldCoins = parseFloat((balanceCoins?.textContent || '0').replace(/,/g, '')) || 0;
+            const oldCrystals = parseFloat((balanceCrystals?.textContent || '0').replace(/,/g, '')) || 0;
+            const oldStars = parseFloat((balanceStars?.textContent || '0').replace(/,/g, '')) || 0;
+
+            // Р СџР С•Р В»РЎС“РЎвЂЎР В°Р ВµР С РЎРѓР Р†Р ВµР В¶Р С‘Р Вµ Р Т‘Р В°Р Р…Р Р…РЎвЂ№Р Вµ Р С‘Р В· localStorage
+            try {
+                const mainStateRaw = localStorage.getItem('redpulse_state');
+                if (mainStateRaw) {
+                    const mainState = JSON.parse(mainStateRaw);
+                    const newCoins = mainState.click_coins || 0;
+                    const newCrystals = mainState.crystals || 0;
+                    const newStars = mainState.stars || 0;
+
+                    // Р С›Р В±Р Р…Р С•Р Р†Р В»РЎРЏР ВµР С state
+                    state.click_coins = newCoins;
+                    state.crystals = newCrystals;
+                    state.stars = newStars;
+
+                    // Р С’Р Р…Р С‘Р СР В°РЎвЂ Р С‘РЎРЏ РЎвЂљР С•Р В»РЎРЉР С”Р С• Р ВµРЎРѓР В»Р С‘ Р В·Р Р…Р В°РЎвЂЎР ВµР Р…Р С‘РЎРЏ Р С•РЎвЂљР В»Р С‘РЎвЂЎР В°РЎР‹РЎвЂљРЎРѓРЎРЏ
+                    if (newCoins !== oldCoins) animateBalanceElement(balanceCoins, newCoins, oldCoins);
+                    if (newCrystals !== oldCrystals) animateBalanceElement(balanceCrystals, newCrystals, oldCrystals);
+                    if (newStars !== oldStars) animateBalanceElement(balanceStars, newStars, oldStars);
+                }
+            } catch (e) {
+                // Р СћР С‘РЎвЂ¦Р В°РЎРЏ Р С•РЎв‚¬Р С‘Р В±Р С”Р В°
+            }
+        }
+
+        function animateBalanceElement(element, newValue, oldValue) {
+            if (!element) return;
+            const formattedValue = newValue.toLocaleString();
+
+            element.classList.remove('updating', 'increased');
+            void element.offsetWidth; // trigger reflow
+            element.classList.add('updating');
+            if (newValue > oldValue && oldValue > 0) {
+                element.classList.add('increased');
+            }
+            element.textContent = formattedValue;
+            setTimeout(() => {
+                element.classList.remove('updating', 'increased');
+            }, 500);
+        }
+
+        // Р С’Р Р†РЎвЂљР С•-РЎРѓР С•РЎвЂ¦РЎР‚Р В°Р Р…Р ВµР Р…Р С‘Р Вµ Р С”Р В°Р В¶Р Т‘РЎвЂ№Р Вµ 30 РЎРѓР ВµР С”РЎС“Р Р…Р Т‘
+        setInterval(() => {
+            if (state.total_clicks > 0) {
+                updateMainBalance();
+            }
+        }, 30000);
+
+        // Р ВР Р…Р С‘РЎвЂ Р С‘Р В°Р В»Р С‘Р В·Р В°РЎвЂ Р С‘РЎРЏ Р С—РЎР‚Р С‘ Р В·Р В°Р С–РЎР‚РЎС“Р В·Р С”Р Вµ
+        loadUserData();
+        updateUI();
+
+        // Р С›Р В±РЎР‚Р В°Р В±Р С•РЎвЂљРЎвЂЎР С‘Р С” Р С‘Р В·Р СР ВµР Р…Р ВµР Р…Р С‘Р в„– localStorage (Р Т‘Р В»РЎРЏ РЎРѓР С‘Р Р…РЎвЂ¦РЎР‚Р С•Р Р…Р С‘Р В·Р В°РЎвЂ Р С‘Р С‘ РЎРѓ РЎвЂћР ВµРЎР‚Р СР С•Р в„–)
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'redpulse_state') {
+                // Р СћР С‘РЎвЂ¦Р С•Р Вµ Р С•Р В±Р Р…Р С•Р Р†Р В»Р ВµР Р…Р С‘Р Вµ Р В±Р ВµР В· Р В°Р Р…Р С‘Р СР В°РЎвЂ Р С‘Р С‘
+                updateMainBalance();
+                updateCasinoBalance();
+            }
+        });
+
+        // ==========================================
+        // Casino Games Functions
+        // ==========================================
+        // --- COIN GAME ---
+        function openCoinGame() {
+            casinoState.selectedCoinSide = null;
+            casinoState.isFlipping = false;
+            const headsBtn = document.getElementById('coinHeads');
+            const tailsBtn = document.getElementById('coinTails');
+            if (headsBtn) headsBtn.classList.remove('selected');
+            if (tailsBtn) tailsBtn.classList.remove('selected');
+            const coinDisplay = document.getElementById('coinDisplay');
+            if (coinDisplay) coinDisplay.querySelector('.coin-inner').textContent = '?';
+            const coinResult = document.getElementById('coinResult');
+            if (coinResult) coinResult.innerHTML = '';
+            const coinFlipBtn = document.getElementById('coinFlipBtn');
+            if (coinFlipBtn) coinFlipBtn.disabled = false;
+            updateCasinoBalance();
+            updateUI();
+            const coinModal = document.getElementById('coin-modal');
+            if (coinModal) coinModal.classList.add('active');
+        }
+
+        function closeCoinModal() {
+            document.getElementById('coin-modal').classList.remove('active');
+        }
+
+        function selectCoinSide(side) {
+            if (casinoState.isFlipping) return;
+            casinoState.selectedCoinSide = side;
+            document.getElementById('coinHeads').classList.toggle('selected', side === 'heads');
+            document.getElementById('coinTails').classList.toggle('selected', side === 'tails');
+        }
+
+        function flipCoin() {
+            if (casinoState.isFlipping || !casinoState.selectedCoinSide) return;
+
+            const bet = parseInt(document.getElementById('coinBet').value) || 0;
+            if (bet <= 0 || bet > getCasinoBalance()) {
+                document.getElementById('coinResult').innerHTML = '<p style="color:#e74c3c;">Р СњР ВµР Т‘Р С•РЎРѓРЎвЂљР В°РЎвЂљР С•РЎвЂЎР Р…Р С• Р СР С•Р Р…Р ВµРЎвЂљ!</p>';
+                return;
+            }
+
+            casinoState.isFlipping = true;
+            document.getElementById('coinFlipBtn').disabled = true;
+            document.getElementById('coinResult').innerHTML = '';
+
+            const coinInner = document.getElementById('coinDisplay').querySelector('.coin-inner');
+            coinInner.style.animation = 'none';
+            coinInner.offsetHeight; // trigger reflow
+            coinInner.style.animation = 'coin-spin 0.5s ease-in-out';
+
+            setTimeout(() => {
+                const result = Math.random() < 0.5 ? 'heads' : 'tails';
+                coinInner.textContent = result === 'heads' ? 'СЂСџВ¦вЂ¦' : 'СЂСџР„в„ў';
+
+                const win = result === casinoState.selectedCoinSide;
+                if (win) {
+                    state.click_coins += bet;
+                    document.getElementById('coinResult').innerHTML = `<p style="color:#27ae60;">РІСљвЂ¦ Р СџР С•Р В±Р ВµР Т‘Р В°! +${bet} СЂСџР„в„ў</p>`;
+                } else {
+                    state.click_coins -= bet;
+                    document.getElementById('coinResult').innerHTML = `<p style="color:#e74c3c;">РІСњРЉ Р СџРЎР‚Р С•Р С‘Р С–РЎР‚РЎвЂ№РЎв‚¬! -${bet} СЂСџР„в„ў</p>`;
+                }
+
+                casinoState.isFlipping = false;
+                document.getElementById('coinFlipBtn').disabled = false;
+
+                // Р С›Р В±Р Р…Р С•Р Р†Р В»РЎРЏР ВµР С Р В±Р В°Р В»Р В°Р Р…РЎРѓ Р С”Р В°Р В·Р С‘Р Р…Р С• РЎРѓРЎР‚Р В°Р В·РЎС“
+                updateCasinoBalance();
+
+                // Р РЋР С•РЎвЂ¦РЎР‚Р В°Р Р…РЎРЏР ВµР С Р Р† localStorage Р С‘ Р С•Р В±Р Р…Р С•Р Р†Р В»РЎРЏР ВµР С Р С–Р В»Р В°Р Р†Р Р…РЎвЂ№Р в„– Р В±Р В°Р В»Р В°Р Р…РЎРѓ
+                localStorage.setItem('redpulse_state', JSON.stringify(state));
+                saveGame();
+                updateMainBalance();
+            }, 500);
+        }
+
+        // --- DICE GAME ---
+        function openDiceGame() {
+            casinoState.diceState = 'idle';
+            casinoState.diceRoll1 = 0;
+            casinoState.diceRoll2 = 0;
+            document.getElementById('diceDisplay').innerHTML = '<div class="die">СЂСџР‹Р†</div><div class="die">СЂСџР‹Р†</div>';
+            document.getElementById('diceResult').innerHTML = '';
+            document.getElementById('diceRollBtn').disabled = false;
+            document.getElementById('diceTakeBtn').disabled = true;
+            document.getElementById('diceRiskBtn').disabled = true;
+            updateCasinoBalance();
+            updateUI();
+            document.getElementById('dice-modal').classList.add('active');
+        }
+
+        function closeDiceModal() {
+            document.getElementById('dice-modal').classList.remove('active');
+        }
+
+        function rollDice() {
+            if (casinoState.diceState !== 'idle') return;
+            
+            const bet = parseInt(document.getElementById('diceBet').value) || 0;
+            if (bet <= 0 || bet > getCasinoBalance()) {
+                document.getElementById('diceResult').innerHTML = '<p style="color:#e74c3c;">Р СњР ВµР Т‘Р С•РЎРѓРЎвЂљР В°РЎвЂљР С•РЎвЂЎР Р…Р С• Р СР С•Р Р…Р ВµРЎвЂљ!</p>';
+                return;
+            }
+
+            casinoState.diceRoll1 = Math.floor(Math.random() * 6) + 1;
+            casinoState.diceRoll2 = Math.floor(Math.random() * 6) + 1;
+            
+            const dice = ['РІС™Р‚', 'РІС™Рѓ', 'РІС™вЂљ', 'РІС™С“', 'РІС™вЂћ', 'РІС™вЂ¦'];
+            document.getElementById('diceDisplay').innerHTML = `
+                <div class="die">${dice[casinoState.diceRoll1 - 1]}</div>
+                <div class="die">${dice[casinoState.diceRoll2 - 1]}</div>
+            `;
+
+            if (casinoState.diceRoll1 === 1 || casinoState.diceRoll2 === 1) {
+                state.click_coins -= bet;
+                document.getElementById('diceResult').innerHTML = `<p style="color:#e74c3c;">СЂСџвЂ™Р‚ Р вЂ™РЎвЂ№Р С—Р В°Р В»Р В° 1! Р вЂ™РЎРѓРЎвЂ РЎРѓР С–Р С•РЎР‚Р ВµР В»Р С•! -${bet} СЂСџР„в„ў</p>`;
+                casinoState.diceState = 'idle';
+                document.getElementById('diceRollBtn').disabled = false;
+                document.getElementById('diceTakeBtn').disabled = true;
+                document.getElementById('diceRiskBtn').disabled = true;
+            } else {
+                document.getElementById('diceResult').innerHTML = `<p style="color:#f39c12;">СЂСџР‹Р‡ Р Р€РЎРѓР С—Р ВµРЎвЂ¦! Р вЂ”Р В°Р В±Р ВµРЎР‚Р С‘ x2 Р С‘Р В»Р С‘ РЎР‚Р С‘РЎРѓР С”Р Р…Р С‘ РЎР‚Р В°Р Т‘Р С‘ x4!</p>`;
+                casinoState.diceState = 'rolled';
+                document.getElementById('diceRollBtn').disabled = true;
+                document.getElementById('diceTakeBtn').disabled = false;
+                document.getElementById('diceRiskBtn').disabled = false;
+            }
+            updateCasinoBalance();
+            if (typeof saveGame === 'function') saveGame();
+            localStorage.setItem('redpulse_state', JSON.stringify(state));
+        }
+
+        function takeDiceWin() {
+            if (casinoState.diceState !== 'rolled') return;
+            const bet = parseInt(document.getElementById('diceBet').value) || 0;
+            const win = bet * 2;
+            state.click_coins += win;
+            document.getElementById('diceResult').innerHTML = `<p style="color:#27ae60;">РІСљвЂ¦ Р вЂ”Р В°Р В±РЎР‚Р В°Р Р…Р С•: +${win} СЂСџР„в„ў</p>`;
+            casinoState.diceState = 'idle';
+            document.getElementById('diceRollBtn').disabled = false;
+            document.getElementById('diceTakeBtn').disabled = true;
+            document.getElementById('diceRiskBtn').disabled = true;
+            updateCasinoBalance();
+            if (typeof saveGame === 'function') saveGame();
+            localStorage.setItem('redpulse_state', JSON.stringify(state));
+        }
+
+        function riskDice() {
+            if (casinoState.diceState !== 'rolled') return;
+            const bet = parseInt(document.getElementById('diceBet').value) || 0;
+
+            const newRoll = Math.floor(Math.random() * 6) + 1;
+            const dice = ['РІС™Р‚', 'РІС™Рѓ', 'РІС™вЂљ', 'РІС™С“', 'РІС™вЂћ', 'РІС™вЂ¦'];
+            document.getElementById('diceDisplay').innerHTML = `
+                <div class="die">${dice[casinoState.diceRoll1 - 1]}</div>
+                <div class="die">${dice[newRoll - 1]}</div>
+            `;
+
+            if (newRoll === 1) {
+                state.click_coins -= bet;
+                document.getElementById('diceResult').innerHTML = `<p style="color:#e74c3c;">СЂСџвЂ™Р‚ Р вЂ™РЎвЂ№Р С—Р В°Р В»Р В° 1! Р вЂ™РЎРѓРЎвЂ РЎРѓР С–Р С•РЎР‚Р ВµР В»Р С•! -${bet} СЂСџР„в„ў</p>`;
+            } else {
+                const win = bet * 4;
+                state.click_coins += win;
+                document.getElementById('diceResult').innerHTML = `<p style="color:#27ae60;">СЂСџР‹вЂ° Р вЂќР вЂ“Р вЂўР С™Р СџР С›Р Сћ! +${win} СЂСџР„в„ў</p>`;
+            }
+
+            casinoState.diceState = 'idle';
+            document.getElementById('diceRollBtn').disabled = false;
+            document.getElementById('diceTakeBtn').disabled = true;
+            document.getElementById('diceRiskBtn').disabled = true;
+            updateCasinoBalance();
+            if (typeof saveGame === 'function') saveGame();
+            localStorage.setItem('redpulse_state', JSON.stringify(state));
+        }
+
+        // --- SLOTS GAME ---
+        const slotsSymbols = ['РІС™РЋ', 'СЂСџвЂ™Р‹', 'СЂСџвЂќР‚', 'СЂСџР„в„ў', 'Р“вЂ”', 'СЂСџР‹В°'];
+        const slotsWeights = [5, 10, 15, 25, 30, 15]; // Higher = more common
+
+        function openSlotsGame() {
+            casinoState.slotsSpinning = false;
+            document.getElementById('slotsResult').innerHTML = '';
+            document.getElementById('slotsSpinBtn').disabled = false;
+            updateCasinoBalance();
+            updateUI();
+            document.getElementById('slots-modal').classList.add('active');
+        }
+
+        function closeSlotsModal() {
+            document.getElementById('slots-modal').classList.remove('active');
+        }
+
+        function getRandomSlotSymbol() {
+            const total = slotsWeights.reduce((a, b) => a + b, 0);
+            let random = Math.random() * total;
+            for (let i = 0; i < slotsSymbols.length; i++) {
+                if (random < slotsWeights[i]) return slotsSymbols[i];
+                random -= slotsWeights[i];
+            }
+            return slotsSymbols[slotsSymbols.length - 1];
+        }
+
+        function spinSlots() {
+            if (casinoState.slotsSpinning) return;
+
+            const bet = parseInt(document.getElementById('slotsBet').value) || 0;
+            if (bet <= 0 || bet > getCasinoBalance()) {
+                document.getElementById('slotsResult').innerHTML = '<p style="color:#e74c3c;">Р СњР ВµР Т‘Р С•РЎРѓРЎвЂљР В°РЎвЂљР С•РЎвЂЎР Р…Р С• Р СР С•Р Р…Р ВµРЎвЂљ!</p>';
+                return;
+            }
+
+            casinoState.slotsSpinning = true;
+            document.getElementById('slotsSpinBtn').disabled = true;
+            document.getElementById('slotsResult').innerHTML = '';
+            state.click_coins -= bet;
+            updateCasinoBalance();
+            updateUI();
+            localStorage.setItem('redpulse_state', JSON.stringify(state));
+
+            let spins = 0;
+            const spinInterval = setInterval(() => {
+                document.getElementById('reel1').textContent = getRandomSlotSymbol();
+                document.getElementById('reel2').textContent = getRandomSlotSymbol();
+                document.getElementById('reel3').textContent = getRandomSlotSymbol();
+                spins++;
+                if (spins >= 10) {
+                    clearInterval(spinInterval);
+                    finishSlotsSpin(bet);
+                }
+            }, 100);
+        }
+
+        function finishSlotsSpin(bet) {
+            const r1 = document.getElementById('reel1').textContent;
+            const r2 = document.getElementById('reel2').textContent;
+            const r3 = document.getElementById('reel3').textContent;
+
+            let multiplier = 0;
+            if (r1 === r2 && r2 === r3) {
+                if (r1 === 'РІС™РЋ') multiplier = 50;
+                else if (r1 === 'СЂСџвЂ™Р‹') multiplier = 20;
+                else if (r1 === 'СЂСџвЂќР‚') multiplier = 15;
+                else if (r1 === 'СЂСџР„в„ў') multiplier = 10;
+                else if (r1 === 'Р“вЂ”') multiplier = 8;
+                else multiplier = 5;
+            } else if (r1 === r2 || r2 === r3 || r1 === r3) {
+                multiplier = 2;
+            }
+
+            if (multiplier > 0) {
+                const win = bet * multiplier;
+                state.click_coins += win;
+                document.getElementById('slotsResult').innerHTML = `<p style="color:#27ae60;">СЂСџР‹В° Р СџР С•Р В±Р ВµР Т‘Р В°! x${multiplier} = +${win} СЂСџР„в„ў</p>`;
+            } else {
+                document.getElementById('slotsResult').innerHTML = `<p style="color:#e74c3c;">РІСњРЉ Р СџР С•Р С—РЎР‚Р С•Р В±РЎС“Р в„– Р ВµРЎвЂ°РЎвЂ РЎР‚Р В°Р В·!</p>`;
+            }
+
+            casinoState.slotsSpinning = false;
+            document.getElementById('slotsSpinBtn').disabled = false;
+            updateCasinoBalance();
+            if (typeof saveGame === 'function') saveGame();
+            localStorage.setItem('redpulse_state', JSON.stringify(state));
+        }
+
+        // --- WHEEL GAME ---
+        function openWheelGame() {
+            casinoState.wheelSelected = null;
+            casinoState.wheelSpinning = false;
+            document.querySelectorAll('.wheel-option').forEach(el => el.classList.remove('selected'));
+            document.getElementById('wheelResult').innerHTML = '';
+            document.getElementById('wheelSpinBtn').disabled = true;
+            document.getElementById('wheelCircle').style.transform = 'rotate(0deg)';
+            updateCasinoBalance();
+            updateUI();
+            document.getElementById('wheel-modal').classList.add('active');
+        }
+
+        function closeWheelModal() {
+            document.getElementById('wheel-modal').classList.remove('active');
+        }
+
+        function selectWheelNumber(num) {
+            if (casinoState.wheelSpinning) return;
+            casinoState.wheelSelected = num;
+            document.querySelectorAll('.wheel-option').forEach(el => {
+                el.classList.toggle('selected', el.querySelector('.mult').textContent === `x${num}`);
+            });
+            document.getElementById('wheelSpinBtn').disabled = false;
+        }
+
+        function spinWheel() {
+            if (casinoState.wheelSpinning || !casinoState.wheelSelected) return;
+
+            const bet = parseInt(document.getElementById('wheelBet').value) || 0;
+            if (bet <= 0 || bet > getCasinoBalance()) {
+                document.getElementById('wheelResult').innerHTML = '<p style="color:#e74c3c;">Р СњР ВµР Т‘Р С•РЎРѓРЎвЂљР В°РЎвЂљР С•РЎвЂЎР Р…Р С• Р СР С•Р Р…Р ВµРЎвЂљ!</p>';
+                return;
+            }
+
+            casinoState.wheelSpinning = true;
+            document.getElementById('wheelSpinBtn').disabled = true;
+            document.getElementById('wheelResult').innerHTML = '';
+            state.click_coins -= bet;
+            updateCasinoBalance();
+            localStorage.setItem('redpulse_state', JSON.stringify(state));
+
+            // Wheel segments in order (15 total)
+            const segments = [2, 3, 5, 2, 10, 3, 2, 5, 2, 3, 20, 2, 5, 2, 10];
+            const segmentAngle = 360 / 15;
+
+            // Random rotation (3-5 full spins + random segment)
+            const extraSpins = 360 * (3 + Math.floor(Math.random() * 2));
+            const randomSegment = Math.floor(Math.random() * segments.length);
+            const totalRotation = extraSpins + (randomSegment * segmentAngle);
+
+            document.getElementById('wheelCircle').style.transform = `rotate(${totalRotation}deg)`;
+
+            setTimeout(() => {
+                const result = segments[randomSegment];
+                if (result === casinoState.wheelSelected) {
+                    const win = bet * result;
+                    state.click_coins += win;
+                    document.getElementById('wheelResult').innerHTML = `<p style="color:#27ae60;">СЂСџР‹вЂ° Р Р€Р С–Р В°Р Т‘Р В°Р В»! x${result} = +${win} СЂСџР„в„ў</p>`;
+                } else {
+                    document.getElementById('wheelResult').innerHTML = `<p style="color:#e74c3c;">РІСњРЉ Р вЂ™РЎвЂ№Р С—Р В°Р В»Р С• x${result}. Р СџР С•Р С—РЎР‚Р С•Р В±РЎС“Р в„– Р ВµРЎвЂ°РЎвЂ!</p>`;
+                }
+
+                casinoState.wheelSpinning = false;
+                document.getElementById('wheelSpinBtn').disabled = false;
+                updateCasinoBalance();
+                if (typeof saveGame === 'function') saveGame();
+                localStorage.setItem('redpulse_state', JSON.stringify(state));
+            }, 3000);
+        }
+
+        // Р СџР С•Р С”Р В°Р В·Р В°РЎвЂљРЎРЉ Р С‘Р С–РЎР‚РЎС“ (РЎРѓРЎвЂљР В°РЎР‚Р В°РЎРЏ РЎвЂћРЎС“Р Р…Р С”РЎвЂ Р С‘РЎРЏ Р С”Р В°Р В·Р С‘Р Р…Р С•)
+        function showGame(gameType) {
+            currentGame = gameType;
+            const modal = document.getElementById('game-modal');
+            const title = document.getElementById('game-modal-title');
+            const content = document.getElementById('game-content');
+
+            const titles = {
+                dice: 'СЂСџР‹Р† Р С™Р С•РЎРѓРЎвЂљР С‘',
+                slots: 'СЂСџР‹В° Р РЋР В»Р С•РЎвЂљРЎвЂ№',
+                bj: 'СЂСџС“РЏ 21 Р С•РЎвЂЎР С”Р С•'
+            };
+
+            title.textContent = titles[gameType];
+            modal.classList.add('active');
+
+            if (gameType === 'dice') showDiceGame();
+            if (gameType === 'slots') showSlotsGame();
+            if (gameType === 'bj') showBJGame();
+        }
+
+        // Р вЂ”Р В°Р С”РЎР‚РЎвЂ№РЎвЂљРЎРЉ Р С‘Р С–РЎР‚РЎС“
+        function closeGameModal() {
+            document.getElementById('game-modal').classList.remove('active');
+            currentGame = null;
+        }
+
+        // Р ВР С–РЎР‚Р В° Р Р† Р С”Р С•РЎРѓРЎвЂљР С‘
+        function showDiceGame() {
+            const content = document.getElementById('game-content');
+            content.innerHTML = `
+                <p style="text-align:center;margin-bottom:16px;color:var(--text-secondary);">
+                    Р вЂ™РЎвЂ№Р С—Р В°Р Т‘Р ВµРЎвЂљ 4, 5 Р С‘Р В»Р С‘ 6 РІР‚вЂќ Р Р†РЎвЂ№Р С‘Р С–РЎР‚РЎвЂ№РЎв‚¬ x2
+                </p>
+                <div class="bet-buttons">
+                    <button class="bet-btn" onclick="setBet(10)">10</button>
+                    <button class="bet-btn" onclick="setBet(50)">50</button>
+                    <button class="bet-btn" onclick="setBet(100)">100</button>
+                    <button class="bet-btn" onclick="setBet(500)">500</button>
+                    <button class="bet-btn" onclick="setBet(1000)">1K</button>
+                    <button class="bet-btn" onclick="setMaxBet()">MAX</button>
+                </div>
+                <button class="game-card-btn" onclick="playDice()" style="margin-top:16px;">
+                    Р вЂРЎР‚Р С•РЎРѓР С‘РЎвЂљРЎРЉ Р С”РЎС“Р В±Р С‘Р С”
+                </button>
+                <div id="dice-result"></div>
+            `;
+        }
+    </script>
+
+    <!-- ==========================================
+         PulseFarm Game Code (ORIGINAL)
+         ========================================== -->
+    <script src="pf_script.js"></script>
+</body>
+</html>
