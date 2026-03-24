@@ -565,6 +565,7 @@ async def set_bot_commands():
         BotCommand(command="tasks", description="📋 Задания"),
         BotCommand(command="support", description="🆘 Поддержка"),
         BotCommand(command="announcements", description="📢 Анонсы"),
+        BotCommand(command="refresh", description="🔄 Обновить меню"),
     ]
     await bot.set_my_commands(commands)
 

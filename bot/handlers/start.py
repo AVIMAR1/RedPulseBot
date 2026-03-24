@@ -270,3 +270,21 @@ async def open_mini_app(message: types.Message):
     """Обработка нажатия кнопки Mini App"""
     # Telegram сам откроет WebApp, этот хендлер для совместимости
     pass
+
+@router.message(Command("refresh"))
+async def cmd_refresh(message: types.Message):
+    """Принудительное обновление меню бота"""
+    await message.answer(
+        "🔄 <b>Меню обновлено!</b>\n\n"
+        "Если кнопки не работают:\n"
+        "1️⃣ Закройте и откройте бота заново\n"
+        "2️⃣ Нажмите на три точки → Обновить\n"
+        "3️⃣ Введите команду заново\n\n"
+        "🎮 <b>Кнопки меню:</b>\n"
+        "• /start - Главное меню\n"
+        "• /profile - Профиль\n"
+        "• /game - Открыть игру\n"
+        "• /tasks - Задания\n"
+        "• /support - Поддержка",
+        parse_mode="HTML"
+    )
