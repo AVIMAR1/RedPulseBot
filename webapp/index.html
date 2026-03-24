@@ -6132,7 +6132,9 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
 
         case BLOCK_TYPES.MULTIPLIER:
             const newCharge = charge * block.value;
-            showFloatingEarn(row, col, `×${block.value.toFixed(2)}!`, 'multiplier');
+            // Показываем множитель с 2 знаками, округление вверх для избежания 1.14 вместо 1.15
+            const multDisplay = Math.round(block.value * 100) / 100;
+            showFloatingEarn(row, col, `×${multDisplay.toFixed(2)}!`, 'multiplier');
             // Выпускаем снаряд из ЦЕНТРА блока
             setTimeout(() => spawnCharge(cellX + CELL_SIZE/2, cellY + CELL_SIZE/2, dir, newCharge, processed, 8), 50);
             break;
