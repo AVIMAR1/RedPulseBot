@@ -5618,9 +5618,11 @@ function loadGame() {
             if (data.xp === undefined) gameState.xp = 0;
             if (data.xpToNext === undefined) gameState.xpToNext = CONFIG.XP.BASE_PER_LEVEL;
             if (data.level === undefined) gameState.level = 1;
+            // Пересчитываем chargePower по новой формуле (было 0.15, стало 0.5)
+            gameState.chargePower = CONFIG.BASE_CHARGE_POWER + (gameState.level - 1) * CONFIG.CHARGE_PER_LEVEL;
             // Принудительно устанавливаем размер поля 7x7
             gameState.fieldRows = 7;
-            console.log('[LOAD] XP:', gameState.xp, '/', gameState.xpToNext, 'Level:', gameState.level, 'Field:', gameState.fieldRows, 'x', FIELD_COLS);
+            console.log('[LOAD] XP:', gameState.xp, '/', gameState.xpToNext, 'Level:', gameState.level, 'Charge:', gameState.chargePower, 'Field:', gameState.fieldRows, 'x', FIELD_COLS);
             if (!gameState.shopItems || gameState.shopItems.length === 0) generateShopItems();
             gameState.isCharging = false;
             if (!gameState.grid || gameState.grid.length === 0 || !gameState.grid[0]) {
