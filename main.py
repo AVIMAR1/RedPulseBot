@@ -8,7 +8,7 @@ from aiogram.exceptions import TelegramForbiddenError
 
 from database import engine, Base, AsyncSessionLocal
 from admin import start_admin, init_bot
-from bot.handlers import start, profile, tasks, support, announcements
+from bot.handlers import start, profile, tasks, support, announcements, webapp
 from bot.keyboards import WEBAPP_URL
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -816,6 +816,7 @@ async def main():
     dp.include_router(tasks.router)        # /tasks
     dp.include_router(support.router)      # /support
     dp.include_router(announcements.router) # /announcements
+    dp.include_router(webapp.router)       # /game через Mini App
 
     # Добавляем middleware
     dp.message.middleware(DBSessionMiddleware(AsyncSessionLocal))

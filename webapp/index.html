@@ -2514,13 +2514,13 @@ body {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    animation: xp-shimmer 2s infinite;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    animation: xp-shimmer 2s infinite linear;
 }
 
 @keyframes xp-shimmer {
     0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+    100% { transform: translateX(400%); }
 }
 
 /* Core Section */
@@ -2639,15 +2639,16 @@ body {
     justify-content: center;
     font-size: 30px;
     color: white;
-    box-shadow: 0 0 40px rgba(231, 76, 60, 0.5), inset 0 4px 10px rgba(255,255,255,0.2);
+    box-shadow: 0 0 30px rgba(231, 76, 60, 0.4), inset 0 4px 10px rgba(255,255,255,0.15);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     animation: core-pulse 2s ease-in-out infinite;
+    will-change: transform, box-shadow;
 }
 
 @keyframes core-pulse {
-    0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(231, 76, 60, 0.5), inset 0 4px 10px rgba(255,255,255,0.2); }
-    50% { transform: scale(1.05); box-shadow: 0 0 60px rgba(231, 76, 60, 0.7), inset 0 4px 10px rgba(255,255,255,0.3); }
+    0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(231, 76, 60, 0.4), inset 0 4px 10px rgba(255,255,255,0.15); }
+    50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(231, 76, 60, 0.6), inset 0 4px 10px rgba(255,255,255,0.25); }
 }
 
 @keyframes core-overheat {
@@ -3560,6 +3561,10 @@ body {
                 <button class="action-btn sell" id="sellBtn" onclick="sellSelected()">
                     <i class="fas fa-tag"></i>
                     Продать
+                </button>
+                <button class="action-btn" id="repairBtn" onclick="repairCore()" style="display: none; background: linear-gradient(135deg, #27ae60, #1e8449);">
+                    <i class="fas fa-tools"></i>
+                    Починить
                 </button>
             </div>
 
@@ -5427,7 +5432,7 @@ const CONFIG = {
     TEMP_MAX_BASE: 100,
     TAP_COOLDOWN: 10000,
     BASE_CHARGE_POWER: 1,
-    CHARGE_PER_LEVEL: 0.15,
+    CHARGE_PER_LEVEL: 0.5,  // +0.5 к силе заряда за уровень (было 0.15)
     DROP_RATES: { COIN: 50, ROUTER: 25, MULTIPLIER: 10, DIAMOND: 10, STAR: 5 },
     MULTIPLIER_VALUES: [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
     MULTIPLIER_CHANCES: [35, 25, 18, 10, 6, 3, 2, 1],
@@ -5529,7 +5534,7 @@ function createBlock(type, level, value = 1) {
 }
 
 function generateShopItems() {
-    const shopLevel = Math.floor((gameState.level - 1) / 5) + 1;
+    const shopLevel = Math.floor((gameState.level - 1) / 10) + 1; // Каждые 10 уровней ядра
     gameState.shopLevel = shopLevel;
     gameState.shopItems = [];
     for (let i = 0; i < 3; i++) {
@@ -5735,6 +5740,12 @@ function updateUI() {
     const coreStatusLabel = document.getElementById('coreStatusLabel');
     const fieldWrapper = document.querySelector('.field-wrapper');
     const isBroken = gameState.coreBrokenUntil > Date.now();
+    
+    // Показываем/скрываем кнопку починки
+    const repairBtn = document.getElementById('repairBtn');
+    if (repairBtn) {
+        repairBtn.style.display = isBroken ? 'flex' : 'none';
+    }
 
     if (isBroken) {
         fieldWrapper?.classList.add('field-broken');
@@ -5991,12 +6002,13 @@ function launchCharge() {
     const padding = 10;
     const fieldWidth = FIELD_COLS * (CELL_SIZE + GAP) + padding * 2;
     const fieldHeight = gameState.fieldRows * (CELL_SIZE + GAP) + padding * 2;
-    const speed = 2;
+    const BASE_SPEED = 3.5; // Фиксированная скорость для плавности
 
     let charge = gameState.chargePower || 1;
     let x = (CHARGE_COL + 0.5) * (CELL_SIZE + GAP) + padding;
     let y = padding - 10;
     let dir = { x: 0, y: 1 };
+    let lastFrameTime = performance.now();
 
     const chargeEl = document.createElement('div');
     chargeEl.className = 'charge-particle';
@@ -6007,34 +6019,36 @@ function launchCharge() {
     const processedBlocks = new Set();
     let lastTrail = 0;
 
-    function move(timestamp) {
-        if (!lastTrail) lastTrail = timestamp;
+    function move(currentTime) {
+        // Дельта-время для постоянной скорости независимо от FPS
+        const deltaTime = Math.min((currentTime - lastFrameTime) / 16.67, 2); // макс 2x скорость
+        lastFrameTime = currentTime;
 
-        x += dir.x * speed;
-        y += dir.y * speed;
+        x += dir.x * BASE_SPEED * deltaTime;
+        y += dir.y * BASE_SPEED * deltaTime;
 
-        if (timestamp - lastTrail > 100) {
+        // Trail каждые 100ms
+        if (currentTime - lastTrail > 100) {
             const trail = document.createElement('div');
             trail.className = 'charge-trail';
             trail.style.left = `${x - 4}px`;
             trail.style.top = `${y - 4}px`;
             fieldGrid.appendChild(trail);
             setTimeout(() => trail.remove(), 400);
-            lastTrail = timestamp;
+            lastTrail = currentTime;
         }
 
         chargeEl.style.left = `${x - 9}px`;
         chargeEl.style.top = `${y - 9}px`;
 
-        // Bounds check - include TOP boundary to prevent projectiles flying out
+        // Bounds check
         if (x < padding - 10 || x > fieldWidth - padding + 10 || y < padding - 10 || y > fieldHeight - padding + 10) {
-            // Убрали уведомления об уходе снаряда
             createExplosion(x, y, fieldGrid);
             setTimeout(() => { gameState.isCharging = false; updateUI(); saveGame(); }, 300);
             return;
         }
 
-        // Block collision
+        // Block collision - ПРЯМОУГОЛЬНАЯ коллизия вместо круговой
         const col = Math.floor((x - padding) / (CELL_SIZE + GAP));
         const row = Math.floor((y - padding) / (CELL_SIZE + GAP));
         const blockKey = `${row}-${col}`;
@@ -6044,9 +6058,13 @@ function launchCharge() {
             if (block && !processedBlocks.has(blockKey)) {
                 const cellX = padding + col * (CELL_SIZE + GAP);
                 const cellY = padding + row * (CELL_SIZE + GAP);
-                const dist = Math.sqrt(Math.pow(x - (cellX + CELL_SIZE/2), 2) + Math.pow(y - (cellY + CELL_SIZE/2), 2));
-
-                if (dist < CELL_SIZE / 2 - 2) {
+                
+                // Прямоугольная коллизия с запасом
+                const hitBox = CELL_SIZE * 0.6; // 60% размера блока
+                const dx = Math.abs(x - (cellX + CELL_SIZE/2));
+                const dy = Math.abs(y - (cellY + CELL_SIZE/2));
+                
+                if (dx < hitBox && dy < hitBox) {
                     processedBlocks.add(blockKey);
                     handleBlock(block, row, col, charge, dir, processedBlocks, chargeEl, x, y);
                     return;
@@ -6071,28 +6089,28 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
     switch (block.type) {
         case BLOCK_TYPES.COIN:
             const coins = charge * CONFIG.CONVERSION.COIN * block.level;
-            // Начисляем в банк фермы (не на основной баланс)
-            gameState.bankCoins = (gameState.bankCoins || 0) + coins;
+            // Начисляем НА БАЛАНС (не в банк)
+            gameState.coins = (gameState.coins || 0) + coins;
             gameState.totalEarned += coins;
-            showFloatingEarn(row, col, `+${coins.toFixed(2)} 🪙`, 'coin');
+            showFloatingEarn(row, col, `+${Math.floor(coins * 100) / 100} 🪙`, 'coin');
             spawnCharge(x, y, dir, charge, processed, 5);
             updateBalance();
             break;
 
         case BLOCK_TYPES.DIAMOND:
             const diamonds = (charge * block.level) / CONFIG.CONVERSION.DIAMOND;
-            // Начисляем в банк фермы (не на основной баланс)
-            gameState.bankCrystals = (gameState.bankCrystals || 0) + diamonds;
-            showFloatingEarn(row, col, `+${(Math.floor(diamonds * 10000) / 10000).toFixed(4)} 💎`, 'diamond');
+            // Начисляем НА БАЛАНС (не в банк)
+            gameState.crystals = (gameState.crystals || 0) + diamonds;
+            showFloatingEarn(row, col, `+${Math.floor(diamonds * 10000) / 10000} 💎`, 'diamond');
             spawnCharge(x, y, dir, charge, processed, 5);
             updateBalance();
             break;
 
         case BLOCK_TYPES.STAR:
             const stars = (charge * block.level) / CONFIG.CONVERSION.STAR;
-            // Начисляем в банк фермы (не на основной баланс)
-            gameState.bankStars = (gameState.bankStars || 0) + stars;
-            showFloatingEarn(row, col, `+${stars.toFixed(6)} ⭐`, 'star');
+            // Начисляем НА БАЛАНС (не в банк)
+            gameState.stars = (gameState.stars || 0) + stars;
+            showFloatingEarn(row, col, `+${Math.floor(stars * 1000000) / 1000000} ⭐`, 'star');
             spawnCharge(x, y, dir, charge, processed, 5);
             updateBalance();
             break;
@@ -6100,6 +6118,7 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
         case BLOCK_TYPES.MULTIPLIER:
             const newCharge = charge * block.value;
             showFloatingEarn(row, col, `×${block.value}!`, 'multiplier');
+            // Выпускаем снаряд из ЦЕНТРА блока
             setTimeout(() => spawnCharge(cellX + CELL_SIZE/2, cellY + CELL_SIZE/2, dir, newCharge, processed, 8), 50);
             break;
 
@@ -6111,8 +6130,32 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
             }
 
             const ports = block.routerConfig.ports;
-            if (!ports.includes(hitPort)) {
-                setTimeout(finishCharging, 100);
+            // Проверяем вход в порт с допуском
+            const portEntryMap = {
+                'top': { y: cellY + 5, xMin: cellX + CELL_SIZE*0.3, xMax: cellX + CELL_SIZE*0.7 },
+                'bottom': { y: cellY + CELL_SIZE - 5, xMin: cellX + CELL_SIZE*0.3, xMax: cellX + CELL_SIZE*0.7 },
+                'left': { x: cellX + 5, yMin: cellY + CELL_SIZE*0.3, yMax: cellY + CELL_SIZE*0.7 },
+                'right': { x: cellX + CELL_SIZE - 5, yMin: cellY + CELL_SIZE*0.3, yMax: cellY + CELL_SIZE*0.7 }
+            };
+            
+            const entryZone = portEntryMap[hitPort];
+            let actuallyHit = false;
+            
+            if (hitPort === 'top' || hitPort === 'bottom') {
+                const hitY = hitPort === 'top' ? cellY + 5 : cellY + CELL_SIZE - 5;
+                if (Math.abs(y - hitY) < 15 && x >= entryZone.xMin && x <= entryZone.xMax) {
+                    actuallyHit = true;
+                }
+            } else {
+                const hitX = hitPort === 'left' ? cellX + 5 : cellX + CELL_SIZE - 5;
+                if (Math.abs(x - hitX) < 15 && y >= entryZone.yMin && y <= entryZone.yMax) {
+                    actuallyHit = true;
+                }
+            }
+            
+            if (!actuallyHit || !ports.includes(hitPort)) {
+                // Пролетел мимо порта - пропускаем
+                spawnCharge(x, y, dir, charge, processed, 3);
                 return;
             }
 
@@ -6135,10 +6178,11 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
             const newProcessed = new Set(processed);
             newProcessed.add(`${row}-${col}`);
 
+            // Выпускаем снаряды из ЦЕНТРА блока
             outputPorts.forEach((port, i) => {
                 const outDir = portToDir[port];
-                const outX = cellX + CELL_SIZE/2 + outDir.x * (CELL_SIZE/2 + 3);
-                const outY = cellY + CELL_SIZE/2 + outDir.y * (CELL_SIZE/2 + 3);
+                const outX = cellX + CELL_SIZE/2;
+                const outY = cellY + CELL_SIZE/2;
                 setTimeout(() => spawnCharge(outX, outY, outDir, boostedCharge, newProcessed, 12), i * 80);
             });
             break;
@@ -6206,7 +6250,7 @@ function spawnCharge(x, y, dir, charge, processed, skipFrames) {
     const padding = 10;
     const fieldWidth = FIELD_COLS * (CELL_SIZE + GAP) + padding * 2;
     const fieldHeight = gameState.fieldRows * (CELL_SIZE + GAP) + padding * 2;
-    const speed = 3; // Увеличили скорость для более плавного движения
+    const BASE_SPEED = 3.5;
 
     const chargeEl = document.createElement('div');
     chargeEl.className = 'charge-particle';
@@ -6216,56 +6260,43 @@ function spawnCharge(x, y, dir, charge, processed, skipFrames) {
 
     let frames = 0;
     let lastTrail = 0;
-    let lastTime = performance.now();
+    let lastFrameTime = performance.now();
 
-    function move() {
-        const now = performance.now();
-        const delta = now - lastTime;
-        
-        // Движение на основе delta time для независимости от FPS
-        const moveDistance = speed * (delta / 16.67); // Нормализация к 60 FPS
-        x += dir.x * moveDistance;
-        y += dir.y * moveDistance;
+    function move(currentTime) {
+        const deltaTime = Math.min((currentTime - lastFrameTime) / 16.67, 2);
+        lastFrameTime = currentTime;
+
+        x += dir.x * BASE_SPEED * deltaTime;
+        y += dir.y * BASE_SPEED * deltaTime;
         frames++;
-        lastTime = now;
 
-        if (frames < skipFrames) {
-            chargeEl.style.left = `${x - 9}px`;
-            chargeEl.style.top = `${y - 9}px`;
-            if (now - lastTrail > 100) {
-                const trail = document.createElement('div');
-                trail.className = 'charge-trail';
-                trail.style.left = `${x - 4}px`;
-                trail.style.top = `${y - 4}px`;
-                fieldGrid.appendChild(trail);
-                setTimeout(() => trail.remove(), 400);
-                lastTrail = now;
-            }
-            requestAnimationFrame(move);
-            return;
-        }
-
-        if (now - lastTrail > 100) {
+        if (currentTime - lastTrail > 100) {
             const trail = document.createElement('div');
             trail.className = 'charge-trail';
             trail.style.left = `${x - 4}px`;
             trail.style.top = `${y - 4}px`;
             fieldGrid.appendChild(trail);
             setTimeout(() => trail.remove(), 400);
-            lastTrail = now;
+            lastTrail = currentTime;
         }
 
         chargeEl.style.left = `${x - 9}px`;
         chargeEl.style.top = `${y - 9}px`;
 
-        // Bounds check - include TOP boundary to prevent projectiles flying out
+        // Пропуск первых кадров для выхода из блока
+        if (frames < skipFrames) {
+            requestAnimationFrame(move);
+            return;
+        }
+
+        // Bounds check
         if (x < padding - 10 || x > fieldWidth - padding + 10 || y < padding - 10 || y > fieldHeight - padding + 10) {
-            // Убрали уведомления об уходе снаряда
             chargeEl.remove();
             setTimeout(finishCharging, 300);
             return;
         }
 
+        // Block collision - ПРЯМОУГОЛЬНАЯ коллизия
         const col = Math.floor((x - padding) / (CELL_SIZE + GAP));
         const row = Math.floor((y - padding) / (CELL_SIZE + GAP));
         const blockKey = `${row}-${col}`;
@@ -6275,9 +6306,12 @@ function spawnCharge(x, y, dir, charge, processed, skipFrames) {
             if (block && !processed.has(blockKey)) {
                 const cellX = padding + col * (CELL_SIZE + GAP);
                 const cellY = padding + row * (CELL_SIZE + GAP);
-                const dist = Math.sqrt(Math.pow(x - (cellX + CELL_SIZE/2), 2) + Math.pow(y - (cellY + CELL_SIZE/2), 2));
-
-                if (dist < CELL_SIZE / 2 - 2) {
+                
+                const hitBox = CELL_SIZE * 0.6;
+                const dx = Math.abs(x - (cellX + CELL_SIZE/2));
+                const dy = Math.abs(y - (cellY + CELL_SIZE/2));
+                
+                if (dx < hitBox && dy < hitBox) {
                     processed.add(blockKey);
                     handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y);
                     return;
@@ -6500,6 +6534,24 @@ function withdraw() {
     }
 }
 
+function repairCore() {
+    if (gameState.coreBrokenUntil > Date.now()) {
+        // Починка без просмотра рекламы (пока рекламы нет)
+        gameState.coreBrokenUntil = 0;
+        gameState.damageTaken = 0;
+        gameState.temp = 0;
+        showToast('✅ Ядро починено!', 'success');
+        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        
+        // Скрываем кнопку
+        const repairBtn = document.getElementById('repairBtn');
+        if (repairBtn) repairBtn.style.display = 'none';
+        
+        updateUI();
+        saveGame();
+    }
+}
+
 let selectedForMove = null;
 
 function onCellClick(e, row, col) {
@@ -6716,6 +6768,14 @@ function initGame() {
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
+    // Сброс анимации кнопки ядра чтобы не "ломалась"
+    const coreBtn = document.getElementById('coreBtn');
+    if (coreBtn) {
+        coreBtn.style.animation = 'none';
+        coreBtn.offsetHeight; // trigger reflow
+        coreBtn.style.animation = 'core-pulse 2s ease-in-out infinite';
+    }
+    
     if (typeof initGame === 'function') {
         initGame();
     }
