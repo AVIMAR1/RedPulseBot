@@ -3815,7 +3815,10 @@ body {
             streak_days: 0,
             referrals_count: 0,
             tasks_completed: 0,
-            theme: 'default'
+            theme: 'default',
+            bank_coins: 0,
+            bank_crystals: 0,
+            bank_stars: 0
         };
 
         // ==========================================
@@ -4134,6 +4137,10 @@ body {
                     state.total_clicks = farmData.totalTaps || 0;
                     state.level = farmData.level || 1;
                     state.click_power = Math.floor(farmData.chargePower) || 1;
+                    // Загружаем банк из фермы
+                    state.bank_coins = farmData.bankCoins || 0;
+                    state.bank_crystals = farmData.bankCrystals || 0;
+                    state.bank_stars = farmData.bankStars || 0;
                     updateUI();
                     return;
                 }
@@ -4152,6 +4159,10 @@ body {
                     state.total_clicks = parsed.total_clicks || 0;
                     state.level = parsed.level || 1;
                     state.click_power = parsed.click_power || 1;
+                    // Загружаем банк из state
+                    state.bank_coins = parsed.bank_coins || 0;
+                    state.bank_crystals = parsed.bank_crystals || 0;
+                    state.bank_stars = parsed.bank_stars || 0;
                     updateUI();
                     return;
                 }
@@ -5381,6 +5392,11 @@ function syncGameState() {
     state.xp = gameState.xp || 0;
     state.xpToNext = gameState.xpToNext || 100;
     state.click_power = Math.floor(gameState.chargePower) || 1;
+    
+    // state ← gameState (банк из фермы)
+    state.bank_coins = gameState.bankCoins || 0;
+    state.bank_crystals = gameState.bankCrystals || 0;
+    state.bank_stars = gameState.bankStars || 0;
 }
 
 // Функции для изменения баланса (автоматически вызывают updateBalance)
@@ -6088,8 +6104,8 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
     switch (block.type) {
         case BLOCK_TYPES.COIN:
             const coins = charge * CONFIG.CONVERSION.COIN * block.level;
-            // Начисляем НА БАЛАНС (не в банк)
-            gameState.coins = (gameState.coins || 0) + coins;
+            // Начисляем В БАНК фермы
+            gameState.bankCoins = (gameState.bankCoins || 0) + coins;
             gameState.totalEarned += coins;
             showFloatingEarn(row, col, `+${Math.floor(coins * 100) / 100} 🪙`, 'coin');
             spawnCharge(x, y, dir, charge, processed, 5);
@@ -6098,8 +6114,8 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
 
         case BLOCK_TYPES.DIAMOND:
             const diamonds = (charge * block.level) / CONFIG.CONVERSION.DIAMOND;
-            // Начисляем НА БАЛАНС (не в банк)
-            gameState.crystals = (gameState.crystals || 0) + diamonds;
+            // Начисляем В БАНК фермы
+            gameState.bankCrystals = (gameState.bankCrystals || 0) + diamonds;
             showFloatingEarn(row, col, `+${Math.floor(diamonds * 10000) / 10000} 💎`, 'diamond');
             spawnCharge(x, y, dir, charge, processed, 5);
             updateBalance();
@@ -6107,8 +6123,8 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
 
         case BLOCK_TYPES.STAR:
             const stars = (charge * block.level) / CONFIG.CONVERSION.STAR;
-            // Начисляем НА БАЛАНС (не в банк)
-            gameState.stars = (gameState.stars || 0) + stars;
+            // Начисляем В БАНК фермы
+            gameState.bankStars = (gameState.bankStars || 0) + stars;
             showFloatingEarn(row, col, `+${Math.floor(stars * 1000000) / 1000000} ⭐`, 'star');
             spawnCharge(x, y, dir, charge, processed, 5);
             updateBalance();
@@ -6116,7 +6132,7 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
 
         case BLOCK_TYPES.MULTIPLIER:
             const newCharge = charge * block.value;
-            showFloatingEarn(row, col, `×${block.value}!`, 'multiplier');
+            showFloatingEarn(row, col, `×${block.value.toFixed(2)}!`, 'multiplier');
             // Выпускаем снаряд из ЦЕНТРА блока
             setTimeout(() => spawnCharge(cellX + CELL_SIZE/2, cellY + CELL_SIZE/2, dir, newCharge, processed, 8), 50);
             break;
@@ -6498,18 +6514,21 @@ function withdraw() {
     if ((gameState.bankCoins || 0) >= 1) {
         const amount = Math.floor(gameState.bankCoins);
         gameState.bankCoins -= amount;
+        state.bank_coins = gameState.bankCoins;  // Обновляем state.bank_coins
         state.click_coins = (state.click_coins || 0) + amount;
         withdrawn = true;
     }
     if ((gameState.bankCrystals || 0) >= 1) {
         const amount = Math.floor(gameState.bankCrystals);
         gameState.bankCrystals -= amount;
+        state.bank_crystals = gameState.bankCrystals;  // Обновляем state.bank_crystals
         state.crystals = (state.crystals || 0) + amount;
         withdrawn = true;
     }
     if ((gameState.bankStars || 0) >= 0.01) {
         const amount = Math.floor(gameState.bankStars * 100) / 100;
         gameState.bankStars -= amount;
+        state.bank_stars = gameState.bankStars;  // Обновляем state.bank_stars
         state.stars = (state.stars || 0) + amount;
         withdrawn = true;
     }
