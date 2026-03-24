@@ -3,7 +3,7 @@ import logging
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.types import BotCommand, BotMenu
+from aiogram.types import BotCommand, MenuButtonWebApp
 from aiogram.exceptions import TelegramForbiddenError
 
 from database import engine, Base, AsyncSessionLocal
@@ -814,7 +814,7 @@ async def main():
         logger.error(f"Seed ивентов не выполнен: {e}")
 
     # Регистрируем хендлеры (только основные для бота + Mini App)
-    from aiogram.types import BotMenu, WebAppInfo
+    from aiogram.types import WebAppInfo
     dp.include_router(start.router)        # /start, /game, Mini App кнопка
     dp.include_router(profile.router)      # /profile
     dp.include_router(tasks.router)        # /tasks
@@ -834,7 +834,7 @@ async def main():
     # Устанавливаем Menu Button для открытия Mini App
     try:
         await bot.set_chat_menu_button(
-            menu_button=BotMenu(
+            menu_button=MenuButtonWebApp(
                 text="🎮 Открыть игру",
                 web_app=WebAppInfo(url=WEBAPP_URL)
             )
