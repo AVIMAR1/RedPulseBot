@@ -2283,7 +2283,7 @@
     </style>
 
     <!-- Подключаем оригинальные стили PulseFarm -->
-    <link rel="stylesheet" href="pf_styles.css?v=2">
+    <link rel="stylesheet" href="/static/pf_styles.css?v=2">
 </head>
 <body>
     <div class="app">
@@ -2705,13 +2705,17 @@
 
         // Получаем userId из Telegram или используем тестовый (для локальной разработки)
         const userId = tg.initDataUnsafe?.user?.id || 123456789; // TEST MODE для локалки
+        
+        // Делаем userId глобально доступным для pf_script.js
+        window.userId = userId;
+        
         const user = tg.initDataUnsafe?.user || {
             id: userId,
             first_name: 'Тестовый пользователь',
             username: 'test_user',
             language_code: 'ru'
         };
-        
+
         // Флаг локального режима
         const isLocalMode = !tg.initDataUnsafe?.user;
 
@@ -3056,7 +3060,7 @@
             } catch(e) {
                 console.error('Ошибка загрузки фермы:', e);
             }
-            
+
             // Пробуем загрузить из redpulse_state
             try {
                 const savedState = localStorage.getItem('redpulse_state');
@@ -3077,6 +3081,14 @@
 
             updateUI();
         }
+
+        // Инициализация при загрузке страницы для Telegram
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('[DOMContentLoaded] Страница загружена, userId:', userId);
+            
+            // Загружаем данные пользователя
+            loadUserData();
+        });
 
         // Обновление интерфейса
         let prevBalance = { coins: 0, stars: 0, crystals: 0 };
@@ -4187,17 +4199,11 @@
                 <div id="dice-result"></div>
             `;
         }
-
-        // Инициализация при загрузке (после всех функций)
-        document.addEventListener('DOMContentLoaded', () => {
-            loadUserData();
-            updateUI();
-        });
     </script>
 
     <!-- ==========================================
          PulseFarm Game Code (ORIGINAL)
          ========================================== -->
-    <script src="pf_script.js?v=2"></script>
+    <script src="/static/pf_script.js?v=2"></script>
 </body>
 </html>

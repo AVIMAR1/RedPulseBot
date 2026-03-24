@@ -40,7 +40,7 @@ def get_farm_stats(telegram_id):
             'blocks_placed': 0,
             'reactions_triggered': 0
         }
-        
+
         # Читаем из базы данных пользователя
         # Эти данные должны обновляться при синхронизации с Mini App
         return farm_data

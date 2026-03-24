@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 import sqlite3
 from pathlib import Path
 from datetime import datetime
@@ -9,6 +10,10 @@ from core.progression import progress_for_xp
 
 router = APIRouter()
 WEBAPP_DIR = Path(__file__).parent / "webapp"
+
+# Подключаем статические файлы для CSS и JS
+# Это нужно чтобы Telegram мог загрузить pf_styles.css и pf_script.js
+router.mount("/static", app=StaticFiles(directory=str(WEBAPP_DIR)), name="static")
 
 # ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 def get_db():
