@@ -570,9 +570,12 @@ async def set_bot_commands():
     await bot.set_my_commands(commands)
 
 async def main():
+    logger.info("🚀 Запуск main()...")
+    
     # Создаем таблицы
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    logger.info("✅ Таблицы БД созданы")
     
     # Миграция: колонка theme в users (для кликера)
     try:

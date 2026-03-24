@@ -1,5 +1,6 @@
 import os
 import random
+import logging
 from datetime import datetime, timedelta
 from aiogram import Router, types
 from aiogram.filters import Command
@@ -14,6 +15,7 @@ from core.achievements import check_and_grant_achievements
 from core.events import apply_event_bonuses
 
 router = Router()
+logger = logging.getLogger(__name__)
 
 def escape_html(text):
     """Экранирует все специальные символы HTML"""
@@ -122,6 +124,7 @@ def apply_random_bonus(user: User) -> dict:
 
 @router.message(Command("start"))
 async def cmd_start(message: types.Message, session: AsyncSession):
+    logger.info(f"📩 /start получен от {message.from_user.id}")
     telegram_id = message.from_user.id
 
     referrer_id = None
