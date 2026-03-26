@@ -30,18 +30,6 @@ def to_int(v, default=0):
 async def get_webapp():
     return FileResponse(WEBAPP_DIR / "index.html")
 
-@router.get("/webapp/test")
-async def get_webapp_test():
-    """Тестовая страница Mini App с фиксированным user_id для локальной разработки"""
-    # Для локального тестирования без Telegram
-    html = (WEBAPP_DIR / "index.html").read_text(encoding='utf-8')
-    # Заменяем получение userId из Telegram на тестовый ID
-    test_html = html.replace(
-        'const userId = tg.initDataUnsafe?.user?.id;',
-        'const userId = tg.initDataUnsafe?.user?.id || 123456789; // TEST MODE'
-    )
-    return HTMLResponse(content=test_html)
-
 @router.get("/api/user/{user_id}")
 async def get_user_data(user_id: int):
     conn = get_db()
@@ -428,9 +416,20 @@ async def save_farm_state(request: Request):
         cursor.execute("""
             UPDATE users SET
                 farm_state_json = ?,
+                blocks_placed = ?,
+                reactions_triggered = ?,
+                reactor_level = ?,
+                total_energy_produced = ?,
                 last_activity = CURRENT_TIMESTAMP
             WHERE telegram_id = ?
-        """, (json.dumps(farm_state), user_id))
+        """, (
+            json.dumps(farm_state),
+            farm_state.get('blocks_placed', 0),
+            farm_state.get('reactions_triggered', 0),
+            farm_state.get('reactor_level', 1),
+            farm_state.get('total_energy_produced', 0),
+            user_id
+        ))
         conn.commit()
         conn.close()
         return {"status": "ok"}
