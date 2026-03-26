@@ -272,7 +272,7 @@ async def main():
     await set_bot_commands()
 
     # Инициализация админки
-    await init_bot(bot)
+    await asyncio.get_event_loop().run_in_executor(None, lambda: init_bot(bot))
 
     # Запуск
     await dp.start_polling(bot)
