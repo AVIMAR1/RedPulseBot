@@ -348,6 +348,58 @@ async def get_farm_stats(user_id: int):
     conn.close()
     return {}
 
+
+@router.get("/api/farm-state/{user_id}")
+async def get_farm_state(user_id: int):
+    """Загружает полное состояние фермы из БД (JSON)"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute("""
+            SELECT farm_state_json
+            FROM users WHERE telegram_id = ?
+        """, (user_id,))
+        row = cursor.fetchone()
+        conn.close()
+
+        if row and row["farm_state_json"]:
+            import json
+            return json.loads(row["farm_state_json"])
+
+    except Exception as e:
+        print(f"Error fetching farm state: {e}")
+
+    conn.close()
+    return {}
+
+
+@router.post("/api/save-farm-state")
+async def save_farm_state(request: Request):
+    """Сохраняет полное состояние фермы в БД"""
+    data = await request.json()
+    user_id = data.get("userId")
+    farm_state = data.get("farmState", {})
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    try:
+        import json
+        cursor.execute("""
+            UPDATE users SET
+                farm_state_json = ?,
+                last_activity = CURRENT_TIMESTAMP
+            WHERE telegram_id = ?
+        """, (json.dumps(farm_state), user_id))
+        conn.commit()
+        conn.close()
+        return {"status": "ok"}
+    except Exception as e:
+        print(f"Error saving farm state: {e}")
+        conn.close()
+        return {"status": "error", "message": str(e)}
+
 @router.get("/api/tasks/{user_id}")
 async def get_tasks(user_id: int):
     conn = get_db()

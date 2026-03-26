@@ -5648,9 +5648,47 @@ function getBlockFullName(block) {
     return `${name} ${levelStr}`;
 }
 
-function loadGame() {
+async function loadGame() {
+    console.log('[loadGame] Начало загрузки, userId:', userId);
+    
+    // Пытаемся загрузить состояние фермы из БД (приоритет)
+    if (userId) {
+        try {
+            const response = await fetch(`/api/farm-state/${userId}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data && Object.keys(data).length > 0) {
+                    console.log('[loadGame] Загружено из БД:', data);
+                    // Объединяем с текущим состоянием
+                    gameState = { ...gameState, ...data };
+                    // Пересчитываем chargePower по новой формуле
+                    gameState.chargePower = CONFIG.BASE_CHARGE_POWER + (gameState.level - 1) * CONFIG.CHARGE_PER_LEVEL;
+                    // Принудительно устанавливаем размер поля 7x7
+                    gameState.fieldRows = 7;
+                    
+                    if (!gameState.grid || gameState.grid.length === 0 || !gameState.grid[0]) {
+                        console.log('[loadGame] Grid отсутствует, создаём...');
+                        initGrid();
+                    }
+                    
+                    // Синхронизация с главным state
+                    syncGameState();
+                    updateUI();
+                    setTimeout(() => renderGrid(), 100);
+                    startPassiveEffects();
+                    console.log('[loadGame] Загружено из БД успешно');
+                    return;
+                }
+            }
+        } catch (e) {
+            console.error('[loadGame] Ошибка загрузки из БД:', e);
+        }
+    }
+    
+    // Fallback: загрузка из localStorage (если нет данных в БД)
+    console.log('[loadGame] Загрузка из localStorage...');
     const saved = localStorage.getItem('pulseFarmSave_v2');
-    // Принудительный сброс сохранения для обновления размера поля
+    
     if (saved) {
         try {
             const data = JSON.parse(saved);
@@ -5661,33 +5699,32 @@ function loadGame() {
                 initGrid();
                 generateShopItems();
                 gameState.firstPlay = true;
+                syncGameState();
+                updateUI();
+                setTimeout(() => renderGrid(), 100);
+                startPassiveEffects();
                 return;
             }
-        } catch (e) {
-            console.error('Save corrupted, resetting...', e);
-            localStorage.removeItem('pulseFarmSave_v2');
-        }
-    }
-    
-    if (saved) {
-        try {
-            const data = JSON.parse(saved);
+            
             gameState = { ...gameState, ...data };
-            // Исправляем загрузку XP - проверяем наличие свойства, а не значение
+            // Исправляем загрузку XP
             if (data.xp === undefined) gameState.xp = 0;
             if (data.xpToNext === undefined) gameState.xpToNext = CONFIG.XP.BASE_PER_LEVEL;
             if (data.level === undefined) gameState.level = 1;
-            // Пересчитываем chargePower по новой формуле (было 0.15, стало 0.5)
+            // Пересчитываем chargePower
             gameState.chargePower = CONFIG.BASE_CHARGE_POWER + (gameState.level - 1) * CONFIG.CHARGE_PER_LEVEL;
             // Принудительно устанавливаем размер поля 7x7
             gameState.fieldRows = 7;
             console.log('[LOAD] XP:', gameState.xp, '/', gameState.xpToNext, 'Level:', gameState.level, 'Charge:', gameState.chargePower, 'Field:', gameState.fieldRows, 'x', FIELD_COLS);
+            
             if (!gameState.shopItems || gameState.shopItems.length === 0) generateShopItems();
             gameState.isCharging = false;
+            
             if (!gameState.grid || gameState.grid.length === 0 || !gameState.grid[0]) {
                 console.log('Grid missing, initializing...');
                 initGrid();
             }
+            
             // Синхронизация с главным state
             syncGameState();
         } catch (e) {
@@ -5696,21 +5733,22 @@ function loadGame() {
             generateShopItems();
         }
     } else {
+        console.log('[loadGame] Нет сохранения, создаём новую игру');
         initGrid();
         generateShopItems();
         showFirstTimeHelp();
         // Синхронизация с главным state
         syncGameState();
     }
+    
     updateUI();
-    // Ждём немного чтобы DOM точно загрузился
     setTimeout(() => {
         renderGrid();
     }, 100);
     startPassiveEffects();
 }
 
-function saveGame() {
+async function saveGame() {
     gameState.playTime = Math.floor((Date.now() - (gameState.lastSaveTime || Date.now())) / 1000) + (gameState.playTime || 0);
     gameState.lastSaveTime = Date.now();
 
@@ -5719,9 +5757,52 @@ function saveGame() {
 
     localStorage.setItem('pulseFarmSave_v2', JSON.stringify(gameState));
     localStorage.setItem('redpulse_state', JSON.stringify(state));
-    
+
     // Сохраняем статистику фермы в БД
     saveFarmStats();
+    
+    // Сохраняем полное состояние фермы в БД
+    saveFarmState();
+}
+
+async function saveFarmState() {
+    if (typeof userId === 'undefined' || !userId) return;
+
+    try {
+        // Сохраняем только важные данные, не весь gameState
+        const farmStateToSave = {
+            grid: gameState.grid,
+            shopItems: gameState.shopItems,
+            level: gameState.level,
+            xp: gameState.xp,
+            xpToNext: gameState.xpToNext,
+            chargePower: gameState.chargePower,
+            fieldRows: gameState.fieldRows,
+            coins: gameState.coins,
+            crystals: gameState.crystals,
+            stars: gameState.stars,
+            bankCoins: gameState.bankCoins,
+            bankCrystals: gameState.bankCrystals,
+            bankStars: gameState.bankStars,
+            totalTaps: gameState.totalTaps,
+            totalEarned: gameState.totalEarned,
+            rerollCost: gameState.rerollCost,
+            expandCost: gameState.expandCost,
+            lastSaveTime: gameState.lastSaveTime
+        };
+
+        await fetch('/api/save-farm-state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: userId,
+                farmState: farmStateToSave
+            })
+        });
+        console.log('[saveFarmState] Сохранено в БД');
+    } catch (e) {
+        console.error('[saveFarmState] Ошибка сохранения:', e);
+    }
 }
 
 async function saveFarmStats() {

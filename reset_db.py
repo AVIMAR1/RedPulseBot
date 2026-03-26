@@ -102,6 +102,7 @@ def reset_database():
             reactions_triggered INTEGER DEFAULT 0,
             reactor_level INTEGER DEFAULT 1,
             total_energy_produced INTEGER DEFAULT 0,
+            farm_state_json TEXT,
             
             -- Бан
             is_banned INTEGER DEFAULT 0,
