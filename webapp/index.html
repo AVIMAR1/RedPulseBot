@@ -4091,7 +4091,10 @@ body {
                 updateCasinoBalance();
             }
 
-            if (pageId === 'profile') loadProfile();
+            if (pageId === 'profile') {
+                console.log('[showPage] Вызываем loadProfile()');
+                loadProfile();
+            }
             if (pageId === 'tasks') loadTasks();
             if (pageId === 'rating') loadRating();
             if (pageId === 'shop') showShopCategory('cases', document.querySelector('.shop-category'));
@@ -5480,26 +5483,57 @@ function updateBalance() {
     window.isSyncing = false;
 }
 
-// Синхронизация gameState и state
+// Синхронизация gameState и state — БЕРЁМ МАКСИМУМ из обоих источников
 function syncGameState() {
     if (typeof state === 'undefined' || typeof gameState === 'undefined') return;
 
-    // state → gameState (валюта из state)
-    gameState.coins = state.click_coins || 0;
-    gameState.crystals = state.crystals || 0;
-    gameState.stars = state.stars || 0;
-    gameState.totalTaps = state.total_clicks || 0;
-
-    // gameState → state (XP, уровень и chargePower из gameState)
-    state.level = gameState.level || 1;
-    state.xp = gameState.xp || 0;
-    state.xpToNext = gameState.xpToNext || 100;
-    state.click_power = Math.floor(gameState.chargePower) || 1;
+    // БЕРЁМ МАКСИМУМ — валюта из бота ИЛИ фермы
+    const maxCoins = Math.max(state.click_coins || 0, Math.floor(gameState.coins || 0));
+    const maxCrystals = Math.max(state.crystals || 0, Math.floor(gameState.crystals || 0));
+    const maxStars = Math.max(state.stars || 0, Math.floor(gameState.stars || 0));
+    const maxClicks = Math.max(state.total_clicks || 0, gameState.totalTaps || 0);
     
+    // Обновляем ОБА источника
+    state.click_coins = maxCoins;
+    gameState.coins = maxCoins;
+    
+    state.crystals = maxCrystals;
+    gameState.crystals = maxCrystals;
+    
+    state.stars = maxStars;
+    gameState.stars = maxStars;
+    
+    state.total_clicks = maxClicks;
+    gameState.totalTaps = maxClicks;
+
+    // XP и уровень — берём максимум
+    const maxLevel = Math.max(state.level || 1, gameState.level || 1);
+    const maxXp = Math.max(state.xp || 0, gameState.xp || 0);
+    
+    state.level = maxLevel;
+    gameState.level = maxLevel;
+    
+    state.xp = maxXp;
+    gameState.xp = maxXp;
+    
+    state.xpToNext = CONFIG.XP.BASE_PER_LEVEL;
+    gameState.xpToNext = CONFIG.XP.BASE_PER_LEVEL;
+    
+    state.click_power = Math.floor(gameState.chargePower) || 1;
+
     // state ← gameState (банк из фермы)
     state.bank_coins = gameState.bankCoins || 0;
     state.bank_crystals = gameState.bankCrystals || 0;
     state.bank_stars = gameState.bankStars || 0;
+    
+    console.log('[syncGameState] Синхронизация (MAX):', {
+        coins: maxCoins,
+        crystals: maxCrystals,
+        stars: maxStars,
+        total_clicks: maxClicks,
+        level: maxLevel,
+        xp: maxXp
+    });
 }
 
 // Функции для изменения баланса (автоматически вызывают updateBalance)
