@@ -101,17 +101,9 @@ async def cmd_profile(message: types.Message, session: AsyncSession):
         f"📅 В боте с: {user.created_at.strftime('%d.%m.%Y') if user.created_at else 'Неизвестно'}"
     )
 
-    # Кнопки
+    # Кнопка для открытия Mini App
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_profile")],
         [InlineKeyboardButton(text="🎮 Открыть ферму", web_app=WebAppInfo(url=WEBAPP_URL))]
     ])
 
     await message.answer(profile_text, parse_mode="HTML", reply_markup=keyboard)
-
-
-@router.callback_query(lambda c: c.data == "refresh_profile")
-async def refresh_profile(callback: types.CallbackQuery, session: AsyncSession):
-    """Обновление профиля"""
-    await callback.answer("Профиль обновлён!", show_alert=True)
-    await cmd_profile(callback.message, session)

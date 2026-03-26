@@ -3453,7 +3453,7 @@ body {
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <button class="help-btn-small" onclick="showHelp()" title="Справка">?</button>
-                    <div class="version">v0.1.4</div>
+                    <div class="version">v0.1.5</div>
                 </div>
             </header>
 
@@ -4193,8 +4193,8 @@ body {
         document.addEventListener('DOMContentLoaded', () => {
             console.log('[DOMContentLoaded] Страница загружена, userId:', userId);
             
-            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 0.1.4 ===
-            const currentVersion = '0.1.4';
+            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 0.1.5 ===
+            const currentVersion = '0.1.5';
             const savedVersion = localStorage.getItem('appVersion');
             
             if (savedVersion !== currentVersion) {
@@ -5506,7 +5506,7 @@ function syncGameState() {
     state.total_clicks = maxClicks;
     gameState.totalTaps = maxClicks;
 
-    // XP и уровень — берём максимум (НО НЕ ПЕРЕПИСЫВАЕМ при каждом клике!)
+    // XP и уровень — берём максимум
     const maxLevel = Math.max(state.level || 1, gameState.level || 1);
     const maxXp = Math.max(state.xp || 0, gameState.xp || 0);
 
@@ -5516,9 +5516,9 @@ function syncGameState() {
     state.xp = maxXp;
     gameState.xp = maxXp;
 
-    // xpToNext всегда из конфига
-    state.xpToNext = CONFIG.XP.BASE_PER_LEVEL;
-    gameState.xpToNext = CONFIG.XP.BASE_PER_LEVEL;
+    // xpToNext рассчитывается динамически: level * 100
+    state.xpToNext = maxLevel * CONFIG.XP.BASE_PER_LEVEL;
+    gameState.xpToNext = maxLevel * CONFIG.XP.BASE_PER_LEVEL;
 
     state.click_power = Math.floor(gameState.chargePower) || 1;
 
@@ -5533,7 +5533,8 @@ function syncGameState() {
         stars: maxStars,
         total_clicks: maxClicks,
         level: maxLevel,
-        xp: maxXp
+        xp: maxXp,
+        xpToNext: state.xpToNext
     });
 }
 
@@ -5747,7 +5748,7 @@ async function loadGame() {
                     gameState.stars = dbData.stars || 0;
                     gameState.level = dbData.level || 1;
                     gameState.xp = dbData.xp || 0;
-                    gameState.xpToNext = CONFIG.XP.BASE_PER_LEVEL;
+                    gameState.xpToNext = gameState.level * CONFIG.XP.BASE_PER_LEVEL;  // Динамический XP
                     gameState.temp = dbData.temp || 0;
                     gameState.maxTemp = dbData.maxTemp || 100;
                     gameState.reactor_level = dbData.reactor_level || 1;
@@ -5757,6 +5758,8 @@ async function loadGame() {
                     console.log('[loadGame] Данные из БД:', {
                         coins: gameState.coins,
                         level: gameState.level,
+                        xp: gameState.xp,
+                        xpToNext: gameState.xpToNext,
                         reactor_level: gameState.reactor_level,
                         temp: gameState.temp,
                         maxTemp: gameState.maxTemp
@@ -5774,10 +5777,12 @@ async function loadGame() {
                     // Синхронизация с state (БД → state)
                     syncGameState();
                     updateUI();
-                    setTimeout(() => {
-                        renderGrid();
-                        console.log('[loadGame] Grid отрисован');
-                    }, 100);
+                    
+                    // Ждём завершения рендера
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    renderGrid();
+                    console.log('[loadGame] Grid отрисован');
+                    
                     startPassiveEffects();
                     console.log('[loadGame] Загружено из БД успешно');
                     return;
@@ -5792,13 +5797,12 @@ async function loadGame() {
     console.log('[loadGame] Нет данных в БД, создаём новую игру');
     initGrid();
     generateShopItems();
+    // Показываем инструкцию только при первом запуске (нет данных в БД)
     showFirstTimeHelp();
     syncGameState();
     
     updateUI();
-    setTimeout(() => {
-        renderGrid();
-    }, 100);
+    setTimeout(() => renderGrid(), 100);
     startPassiveEffects();
 }
 

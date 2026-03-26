@@ -383,6 +383,7 @@ async def get_farm_state(user_id: int):
     cursor = conn.cursor()
 
     try:
+        print(f'[get_farm_state] Запрос для userId={user_id}')
         cursor.execute("""
             SELECT farm_state_json, reactor_level, blocks_placed, reactions_triggered,
                    temp, max_temp, level, xp, click_coins, stars, crystals
@@ -413,6 +414,8 @@ async def get_farm_state(user_id: int):
             
             print(f'[get_farm_state] userId={user_id}, данные:', result)
             return result
+        else:
+            print(f'[get_farm_state] userId={user_id}, данных нет в БД')
 
     except Exception as e:
         print(f"Error fetching farm state: {e}")
