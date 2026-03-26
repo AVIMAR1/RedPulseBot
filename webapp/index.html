@@ -3984,29 +3984,9 @@ body {
             window.isSyncing = false;
         }
 
-        // Синхронизация с фермой — загрузка из БД
-        async function syncWithFarm() {
+        // Синхронизация с фермой
+        function syncWithFarm() {
             try {
-                // Загружаем актуальные данные из БД
-                if (userId) {
-                    const response = await fetch(`/api/user/${userId}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        console.log('[syncWithFarm] Загружено из БД:', data);
-                        
-                        // Обновляем state данными из БД
-                        state.click_coins = data.click_coins || 0;
-                        state.crystals = data.crystals || 0;
-                        state.stars = data.stars || 0;
-                        state.total_clicks = data.total_clicks || 0;
-                        state.level = data.level || 1;
-                        state.click_power = data.click_power || 1;
-                        
-                        // Сохраняем в localStorage (для резервного копирования)
-                        localStorage.setItem('redpulse_state', JSON.stringify(state));
-                    }
-                }
-                
                 // Ферма использует gameState, синхронизируем с state
                 if (typeof gameState !== 'undefined') {
                     // gameState → state (сохраняем изменения из фермы)
@@ -4016,7 +3996,7 @@ body {
                     state.total_clicks = gameState.totalTaps || 0;
                     state.level = gameState.level || 1;
                     state.click_power = Math.floor(gameState.chargePower) || 1;
-
+                    
                     // Сохраняем в localStorage
                     localStorage.setItem('redpulse_state', JSON.stringify(state));
                     if (typeof saveGame === 'function') saveGame();
@@ -4077,13 +4057,9 @@ body {
                 header.style.display = 'none';
                 balanceCard.style.display = 'none';
 
-                // Игра уже инициализирована при загрузке страницы
-                // Просто проверяем что gameState существует
-                if (typeof gameState === 'undefined') {
-                    console.log('[showPage] gameState не определён, вызываем initGame()');
-                    if (typeof initGame === 'function') {
-                        initGame();
-                    }
+                // Инициализировать игру если ещё не сделано
+                if (typeof initGame === 'function') {
+                    initGame();
                 }
 
                 // Сброс кулдауна ядра при входе
@@ -4162,14 +4138,11 @@ body {
         async function loadUserData() {
             if (!userId) return;
 
-            console.log('[loadUserData] Начало загрузки для userId:', userId);
-
             try {
                 // Загружаем данные с сервера (БД — единственный источник правды!)
                 const response = await fetch(`/api/user/${userId}`);
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('[loadUserData] Получено из БД:', data);
                     
                     // Обновляем state данными из БД
                     state.click_coins = data.click_coins || 0;
@@ -4183,6 +4156,7 @@ body {
                     state.auto_clicker = data.auto_clicker || false;
                     state.theme = data.theme || 'default';
                     state.xp = data.xp || 0;
+                    state.xpToNext = CONFIG.XP.BASE_PER_LEVEL;
                     state.streak_days = data.streak_days || 0;
                     state.referrals_count = data.referrals_count || 0;
                     state.tasks_completed = data.tasks_completed || 0;
@@ -4200,41 +4174,50 @@ body {
                     }
                     
                     updateUI();
-                    console.log('[loadUserData] Данные загружены из БД успешно');
+                    console.log('[loadUserData] Данные загружены из БД:', data);
                     return;
                 }
             } catch(e) {
-                console.error('[loadUserData] Ошибка загрузки данных из БД:', e);
+                console.error('Ошибка загрузки данных из БД:', e);
+            }
+
+            // Fallback: пробуем загрузить из localStorage (только для первого запуска)
+            try {
+                const savedState = localStorage.getItem('redpulse_state');
+                if (savedState) {
+                    const parsed = JSON.parse(savedState);
+                    state.click_coins = parsed.click_coins || 0;
+                    state.crystals = parsed.crystals || 0;
+                    state.stars = parsed.stars || 0;
+                    state.total_clicks = parsed.total_clicks || 0;
+                    state.level = parsed.level || 1;
+                    state.click_power = parsed.click_power || 1;
+                    updateUI();
+                    console.log('[loadUserData] Данные загружены из localStorage (fallback)');
+                    return;
+                }
+            } catch(e) {
+                console.warn('Ошибка загрузки localStorage:', e);
             }
 
             updateUI();
-        }
-        
-        // Команда для сброса localStorage (для отладки)
-        window.clearLocalData = function() {
-            localStorage.removeItem('pulseFarmSave_v2');
-            localStorage.removeItem('redpulse_state');
-            console.log('[clearLocalData] localStorage очищен');
-            alert('localStorage очищен! Перезагрузите страницу.');
         }
 
         // Инициализация при загрузке страницы для Telegram
         document.addEventListener('DOMContentLoaded', () => {
             console.log('[DOMContentLoaded] Страница загружена, userId:', userId);
             
-            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage ===
-            // Очищаем старое сохранение, чтобы данные брались из БД
-            const currentVersion = '0.1.1';
+            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 0.1.2 ===
+            const currentVersion = '0.1.2';
             const savedVersion = localStorage.getItem('appVersion');
             
             if (savedVersion !== currentVersion) {
-                console.log('[MIGRATION] Очистка старого localStorage (версия:', savedVersion, '->', currentVersion, ')');
+                console.log('[MIGRATION] Очистка localStorage (версия:', savedVersion, '->', currentVersion, ')');
                 localStorage.removeItem('pulseFarmSave_v2');
                 localStorage.removeItem('redpulse_state');
                 localStorage.setItem('appVersion', currentVersion);
-                console.log('[MIGRATION] localStorage очищен, версия:', currentVersion);
             }
-            // ==========================================
+            // ============================================================
 
             // Загружаем данные пользователя
             loadUserData();
@@ -4731,97 +4714,120 @@ body {
             `;
         }
 
-        // Загрузка профиля — ТОЛЬКО ИЗ БД
+        // Загрузка профиля
         window.loadProfile = async function() {
             if (!userId) return;
 
             try {
                 // Получаем данные из Telegram
                 const tgUser = tg.initDataUnsafe?.user;
-                
-                // Загружаем данные профиля из БД
-                const response = await fetch(`/api/profile/${userId}`);
-                if (response.ok) {
-                    const data = await response.json();
-
-                    // Имя и username из Telegram API (если доступно)
-                    if (tgUser) {
-                        const fullName = tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '');
-                        document.getElementById('profile-name').textContent = fullName || data.first_name || 'Игрок';
-                        document.getElementById('profile-username').textContent = tgUser.username ? '@' + tgUser.username : (data.username ? '@' + data.username : '@не указан');
-
-                        // Аватарка (если Telegram предоставляет)
-                        const avatarEl = document.getElementById('profile-avatar');
-                        if (tgUser.photo_url) {
-                            avatarEl.style.backgroundImage = `url(${tgUser.photo_url})`;
-                            avatarEl.style.backgroundSize = 'cover';
-                            avatarEl.style.backgroundPosition = 'center';
-                            avatarEl.textContent = '';
-                        } else {
-                            avatarEl.textContent = '👤';
-                            avatarEl.style.backgroundImage = 'none';
-                        }
+                if (tgUser) {
+                    // Аватарка из Telegram
+                    const avatarEl = document.getElementById('profile-avatar');
+                    if (tgUser.photo_url) {
+                        avatarEl.style.backgroundImage = `url(${tgUser.photo_url})`;
+                        avatarEl.style.backgroundSize = 'cover';
+                        avatarEl.style.backgroundPosition = 'center';
+                        avatarEl.textContent = '';
                     } else {
-                        document.getElementById('profile-name').textContent = data.first_name || 'Игрок';
-                        document.getElementById('profile-username').textContent = data.username ? '@' + data.username : '@не указан';
-                        document.getElementById('profile-avatar').textContent = '👤';
+                        avatarEl.textContent = '👤';
+                        avatarEl.style.backgroundImage = 'none';
                     }
-
-                    // Баланс
-                    document.getElementById('profile-coins').textContent = (data.click_coins || 0).toLocaleString();
-                    document.getElementById('profile-stars').textContent = (data.stars || 0).toLocaleString();
-                    document.getElementById('profile-crystals').textContent = (data.crystals || 0).toLocaleString();
-
-                    // Уровень игрока и ядра
-                    const coreLevel = data.core_level || 1;
-                    const playerLevel = Math.floor((coreLevel - 1) / 5) + 1;
-                    document.getElementById('profile-core-level').textContent = coreLevel;
-                    document.getElementById('profile-level').textContent = playerLevel;
-
-                    // Остальные данные
-                    document.getElementById('profile-tasks-done').textContent = data.tasks_completed || 0;
-                    document.getElementById('profile-referrals').textContent = data.referrals_count || 0;
-                    document.getElementById('profile-streak').textContent = (data.streak_days || 0) + ' дней';
-                    document.getElementById('profile-created').textContent = data.created_at ? new Date(data.created_at).toLocaleDateString('ru-RU') : '-';
+                    
+                    // Ник и username из Telegram
+                    document.getElementById('profile-name').textContent = tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '');
+                    document.getElementById('profile-username').textContent = tgUser.username ? '@' + tgUser.username : '';
                 }
 
-                // Загружаем рейтинг
-                try {
-                    const ratingResponse = await fetch('/api/rating');
-                    if (ratingResponse.ok) {
-                        const rating = await ratingResponse.json();
-                        const userRank = rating.findIndex(u => u.telegram_id === userId) + 1;
-                        document.getElementById('profile-rating').textContent = userRank > 0 ? `#${userRank}` : '-';
-                    }
-                } catch (e) {
-                    console.error('Ошибка загрузки рейтинга:', e);
-                    document.getElementById('profile-rating').textContent = '-';
-                }
+                // Загрузка профиля — ТОЛЬКО ИЗ БД
+                async function loadProfile() {
+                    if (!userId) return;
 
-                // Загружаем статистику фермы из БД
-                try {
-                    const farmStatsResponse = await fetch(`/api/farm-stats/${userId}`);
-                    if (farmStatsResponse.ok) {
-                        const farmStats = await farmStatsResponse.json();
-                        if (farmStats.reactor_level) {
-                            document.getElementById('profile-core-level').textContent = farmStats.reactor_level;
-                            const playerLevel = Math.floor((farmStats.reactor_level - 1) / 5) + 1;
+                    try {
+                        // Загружаем данные профиля из БД
+                        const response = await fetch(`/api/profile/${userId}`);
+                        if (response.ok) {
+                            const data = await response.json();
+
+                            // Имя и username из Telegram API (если доступно)
+                            if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                                const tgUser = tg.initDataUnsafe.user;
+                                const fullName = tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '');
+                                document.getElementById('profile-name').textContent = fullName || data.first_name || 'Игрок';
+                                document.getElementById('profile-username').textContent = tgUser.username ? '@' + tgUser.username : (data.username ? '@' + data.username : '@не указан');
+                                
+                                // Аватарка (если Telegram предоставляет)
+                                const avatarEl = document.getElementById('profile-avatar');
+                                if (tgUser.photo_url) {
+                                    avatarEl.style.backgroundImage = `url(${tgUser.photo_url})`;
+                                    avatarEl.style.backgroundSize = 'cover';
+                                    avatarEl.style.backgroundPosition = 'center';
+                                    avatarEl.textContent = '';
+                                } else {
+                                    avatarEl.textContent = '👤';
+                                    avatarEl.style.backgroundImage = 'none';
+                                }
+                            } else {
+                                document.getElementById('profile-name').textContent = data.first_name || 'Игрок';
+                                document.getElementById('profile-username').textContent = data.username ? '@' + data.username : '@не указан';
+                                document.getElementById('profile-avatar').textContent = '👤';
+                            }
+
+                            // Баланс
+                            document.getElementById('profile-coins').textContent = (data.click_coins || 0).toLocaleString();
+                            document.getElementById('profile-stars').textContent = (data.stars || 0).toLocaleString();
+                            document.getElementById('profile-crystals').textContent = (data.crystals || 0).toLocaleString();
+
+                            // Уровень игрока и ядра
+                            const coreLevel = data.core_level || 1;
+                            const playerLevel = Math.floor((coreLevel - 1) / 5) + 1;
+                            document.getElementById('profile-core-level').textContent = coreLevel;
                             document.getElementById('profile-level').textContent = playerLevel;
+
+                            // Остальные данные
+                            document.getElementById('profile-tasks-done').textContent = data.tasks_completed || 0;
+                            document.getElementById('profile-referrals').textContent = data.referrals_count || 0;
+                            document.getElementById('profile-streak').textContent = (data.streak_days || 0) + ' дней';
+                            document.getElementById('profile-created').textContent = data.created_at ? new Date(data.created_at).toLocaleDateString('ru-RU') : '-';
                         }
-                        if (farmStats.blocks_placed !== undefined) {
-                            document.getElementById('profile-blocks').textContent = farmStats.blocks_placed.toLocaleString();
+
+                        // Загружаем рейтинг
+                        try {
+                            const ratingResponse = await fetch('/api/rating');
+                            if (ratingResponse.ok) {
+                                const rating = await ratingResponse.json();
+                                const userRank = rating.findIndex(u => u.telegram_id === userId) + 1;
+                                document.getElementById('profile-rating').textContent = userRank > 0 ? `#${userRank}` : '-';
+                            }
+                        } catch (e) {
+                            console.error('Ошибка загрузки рейтинга:', e);
+                            document.getElementById('profile-rating').textContent = '-';
                         }
-                        if (farmStats.reactions_triggered !== undefined) {
-                            document.getElementById('profile-reactions').textContent = farmStats.reactions_triggered.toLocaleString();
+
+                        // Загружаем статистику фермы из БД
+                        try {
+                            const farmStatsResponse = await fetch(`/api/farm-stats/${userId}`);
+                            if (farmStatsResponse.ok) {
+                                const farmStats = await farmStatsResponse.json();
+                                if (farmStats.reactor_level) {
+                                    document.getElementById('profile-core-level').textContent = farmStats.reactor_level;
+                                    const playerLevel = Math.floor((farmStats.reactor_level - 1) / 5) + 1;
+                                    document.getElementById('profile-level').textContent = playerLevel;
+                                }
+                                if (farmStats.blocks_placed !== undefined) {
+                                    document.getElementById('profile-blocks').textContent = farmStats.blocks_placed.toLocaleString();
+                                }
+                                if (farmStats.reactions_triggered !== undefined) {
+                                    document.getElementById('profile-reactions').textContent = farmStats.reactions_triggered.toLocaleString();
+                                }
+                            }
+                        } catch (e) {
+                            console.log('Farm stats API не доступен');
                         }
+                    } catch (error) {
+                        console.error('Ошибка загрузки профиля:', error);
                     }
-                } catch (e) {
-                    console.log('Farm stats API не доступен');
                 }
-            } catch (error) {
-                console.error('Ошибка загрузки профиля:', error);
-            }
-        }
 
         // Загрузка заданий
         async function loadTasks() {
@@ -5443,32 +5449,22 @@ function updateBalance() {
 function syncGameState() {
     if (typeof state === 'undefined' || typeof gameState === 'undefined') return;
 
-    // state → gameState (валюта из state/бота)
+    // state → gameState (валюта из state)
     gameState.coins = state.click_coins || 0;
     gameState.crystals = state.crystals || 0;
     gameState.stars = state.stars || 0;
     gameState.totalTaps = state.total_clicks || 0;
-    
-    // XP и уровень из state/бота
-    gameState.xp = state.xp || 0;
-    gameState.level = state.level || 1;
-    gameState.xpToNext = state.xpToNext || CONFIG.XP.BASE_PER_LEVEL;
 
-    // gameState → state (chargePower из gameState)
+    // gameState → state (XP, уровень и chargePower из gameState)
+    state.level = gameState.level || 1;
+    state.xp = gameState.xp || 0;
+    state.xpToNext = gameState.xpToNext || 100;
     state.click_power = Math.floor(gameState.chargePower) || 1;
-
+    
     // state ← gameState (банк из фермы)
     state.bank_coins = gameState.bankCoins || 0;
     state.bank_crystals = gameState.bankCrystals || 0;
     state.bank_stars = gameState.bankStars || 0;
-    
-    console.log('[syncGameState] Синхронизация:', {
-        coins: gameState.coins,
-        crystals: gameState.crystals,
-        stars: gameState.stars,
-        xp: gameState.xp,
-        level: gameState.level
-    });
 }
 
 // Функции для изменения баланса (автоматически вызывают updateBalance)
@@ -5687,10 +5683,7 @@ async function loadGame() {
                     // Синхронизация с главным state
                     syncGameState();
                     updateUI();
-                    setTimeout(() => {
-                        renderGrid();
-                        console.log('[loadGame] Grid отрисован');
-                    }, 100);
+                    setTimeout(() => renderGrid(), 100);
                     startPassiveEffects();
                     console.log('[loadGame] Загружено из БД успешно');
                     return;
@@ -5760,7 +5753,6 @@ async function loadGame() {
     updateUI();
     setTimeout(() => {
         renderGrid();
-        console.log('[loadGame] Grid отрисован');
     }, 100);
     startPassiveEffects();
 }
@@ -5824,7 +5816,7 @@ async function saveFarmState() {
 
 async function saveFarmStats() {
     if (typeof userId === 'undefined' || !userId) return;
-
+    
     try {
         // Считаем уровень реактора (максимальный уровень блока)
         let maxBlockLevel = 1;
@@ -5837,8 +5829,7 @@ async function saveFarmStats() {
                 }
             });
         }
-
-        // Сохраняем валюту и статистику фермы
+        
         const farmStats = {
             userId: userId,
             reactor_level: maxBlockLevel,
@@ -5850,14 +5841,13 @@ async function saveFarmStats() {
             stars: Math.floor(gameState.stars || 0),
             crystals: Math.floor(gameState.crystals || 0)
         };
-
+        
         // Отправляем на сервер
         await fetch('/api/save-farm-stats', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(farmStats)
         });
-        console.log('[saveFarmStats] Сохранено:', farmStats);
     } catch (e) {
         console.error('[Farm Stats] Ошибка сохранения:', e);
     }
@@ -6938,12 +6928,8 @@ function showFloatingEarn(row, col, text, type) {
 // Функция инициализации игры
 let gameInitialized = false;
 function initGame() {
-    if (gameInitialized) {
-        console.log('[initGame] Уже инициализировано, пропускаем');
-        return;
-    }
+    if (gameInitialized) return;
 
-    console.log('[initGame] Начало инициализации, userId:', userId);
     loadGame();
     updateUI();
     startPassiveEffects();
@@ -6954,13 +6940,13 @@ function initGame() {
     }
 
     gameInitialized = true;
-    console.log('[initGame] Инициализация завершена');
 }
+
+// loadGame() вызывается из initGame() когда страница готова
+// loadGame();
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('[DOMContentLoaded] Страница загружена, userId:', userId);
-    
     // Сброс анимации кнопки ядра чтобы не "ломалась"
     const coreBtn = document.getElementById('coreBtn');
     if (coreBtn) {
@@ -6968,9 +6954,8 @@ document.addEventListener('DOMContentLoaded', () => {
         coreBtn.offsetHeight; // trigger reflow
         coreBtn.style.animation = 'core-pulse 2s ease-in-out infinite';
     }
-
+    
     if (typeof initGame === 'function') {
-        console.log('[DOMContentLoaded] Вызываем initGame()');
         initGame();
     }
 });
