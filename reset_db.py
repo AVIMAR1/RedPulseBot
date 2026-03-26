@@ -59,6 +59,8 @@ def reset_database():
             reactor_level INTEGER DEFAULT 1,
             total_energy_produced INTEGER DEFAULT 0,
             farm_state_json TEXT,
+            temp INTEGER DEFAULT 0,
+            max_temp INTEGER DEFAULT 100,
             click_power INTEGER DEFAULT 1,
             energy_multiplier INTEGER DEFAULT 1,
             auto_clicker INTEGER DEFAULT 0,

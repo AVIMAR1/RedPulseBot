@@ -420,6 +420,13 @@ async def save_farm_state(request: Request):
                 reactions_triggered = ?,
                 reactor_level = ?,
                 total_energy_produced = ?,
+                click_coins = ?,
+                stars = ?,
+                crystals = ?,
+                level = ?,
+                xp = ?,
+                temp = ?,
+                max_temp = ?,
                 last_activity = CURRENT_TIMESTAMP
             WHERE telegram_id = ?
         """, (
@@ -428,6 +435,13 @@ async def save_farm_state(request: Request):
             farm_state.get('reactions_triggered', 0),
             farm_state.get('reactor_level', 1),
             farm_state.get('total_energy_produced', 0),
+            farm_state.get('coins', 0),
+            farm_state.get('stars', 0),
+            farm_state.get('crystals', 0),
+            farm_state.get('level', 1),
+            farm_state.get('xp', 0),
+            farm_state.get('temp', 0),
+            farm_state.get('maxTemp', 100),
             user_id
         ))
         conn.commit()

@@ -178,6 +178,8 @@ async def on_startup():
         add_col("reactor_level", "INTEGER DEFAULT 1")
         add_col("total_energy_produced", "INTEGER DEFAULT 0")
         add_col("farm_state_json", "TEXT")
+        add_col("temp", "INTEGER DEFAULT 0")
+        add_col("max_temp", "INTEGER DEFAULT 100")
         add_col("level", "INTEGER DEFAULT 1")
         add_col("xp", "INTEGER DEFAULT 0")
         add_col("streak_days", "INTEGER DEFAULT 0")

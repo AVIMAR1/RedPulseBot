@@ -5739,9 +5739,14 @@ async function loadGame() {
                     console.log('[loadGame] Загружено из БД:', data);
                     // Объединяем с текущим состоянием
                     gameState = { ...gameState, ...data };
-                    // Пересчитываем chargePower по новой формуле
+                    
+                    // ВАЖНО: загружаем температуру из БД
+                    if (data.temp !== undefined) gameState.temp = data.temp;
+                    if (data.maxTemp !== undefined) gameState.maxTemp = data.maxTemp;
+                    console.log('[loadGame] Температура:', gameState.temp, '/', gameState.maxTemp);
+                    
+                    // Пересчитываем chargePower
                     gameState.chargePower = CONFIG.BASE_CHARGE_POWER + (gameState.level - 1) * CONFIG.CHARGE_PER_LEVEL;
-                    // Принудительно устанавливаем размер поля 7x7
                     gameState.fieldRows = 7;
                     
                     if (!gameState.grid || gameState.grid.length === 0 || !gameState.grid[0]) {
@@ -5847,7 +5852,10 @@ async function saveFarmState() {
     if (typeof userId === 'undefined' || !userId) return;
 
     try {
-        // Сохраняем только важные данные, не весь gameState
+        // Синхронизируем валюту перед сохранением
+        syncGameState();
+
+        // Сохраняем только важные данные
         const farmStateToSave = {
             grid: gameState.grid,
             shopItems: gameState.shopItems,
@@ -5866,8 +5874,17 @@ async function saveFarmState() {
             totalEarned: gameState.totalEarned,
             rerollCost: gameState.rerollCost,
             expandCost: gameState.expandCost,
-            lastSaveTime: gameState.lastSaveTime
+            lastSaveTime: gameState.lastSaveTime,
+            // Температура
+            temp: gameState.temp || 0,
+            maxTemp: gameState.maxTemp || 100,
+            // Статистика фермы
+            blocks_placed: gameState.grid ? gameState.grid.flat().filter(b => b).length : 0,
+            reactions_triggered: gameState.totalTaps || 0,
+            reactor_level: Math.max(...gameState.grid.flat().map(b => b?.level || 1).filter(l => l > 0)) || 1
         };
+
+        console.log('[saveFarmState] Сохранение:', farmStateToSave);
 
         await fetch('/api/save-farm-state', {
             method: 'POST',
@@ -5885,7 +5902,7 @@ async function saveFarmState() {
 
 async function saveFarmStats() {
     if (typeof userId === 'undefined' || !userId) return;
-    
+
     try {
         // Считаем уровень реактора (максимальный уровень блока)
         let maxBlockLevel = 1;
@@ -5898,7 +5915,10 @@ async function saveFarmStats() {
                 }
             });
         }
-        
+
+        // Синхронизируем валюту перед сохранением
+        syncGameState();
+
         const farmStats = {
             userId: userId,
             reactor_level: maxBlockLevel,
@@ -5910,13 +5930,20 @@ async function saveFarmStats() {
             stars: Math.floor(gameState.stars || 0),
             crystals: Math.floor(gameState.crystals || 0)
         };
-        
+
+        console.log('[saveFarmStats] Сохранение:', farmStats);
+
         // Отправляем на сервер
-        await fetch('/api/save-farm-stats', {
+        const response = await fetch('/api/save-farm-stats', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(farmStats)
         });
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('[saveFarmStats] Успех:', result);
+        }
     } catch (e) {
         console.error('[Farm Stats] Ошибка сохранения:', e);
     }
