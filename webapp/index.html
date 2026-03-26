@@ -4077,9 +4077,13 @@ body {
                 header.style.display = 'none';
                 balanceCard.style.display = 'none';
 
-                // Инициализировать игру если ещё не сделано
-                if (typeof initGame === 'function') {
-                    initGame();
+                // Игра уже инициализирована при загрузке страницы
+                // Просто проверяем что gameState существует
+                if (typeof gameState === 'undefined') {
+                    console.log('[showPage] gameState не определён, вызываем initGame()');
+                    if (typeof initGame === 'function') {
+                        initGame();
+                    }
                 }
 
                 // Сброс кулдауна ядра при входе
@@ -5439,22 +5443,32 @@ function updateBalance() {
 function syncGameState() {
     if (typeof state === 'undefined' || typeof gameState === 'undefined') return;
 
-    // state → gameState (валюта из state)
+    // state → gameState (валюта из state/бота)
     gameState.coins = state.click_coins || 0;
     gameState.crystals = state.crystals || 0;
     gameState.stars = state.stars || 0;
     gameState.totalTaps = state.total_clicks || 0;
-
-    // gameState → state (XP, уровень и chargePower из gameState)
-    state.level = gameState.level || 1;
-    state.xp = gameState.xp || 0;
-    state.xpToNext = gameState.xpToNext || 100;
-    state.click_power = Math.floor(gameState.chargePower) || 1;
     
+    // XP и уровень из state/бота
+    gameState.xp = state.xp || 0;
+    gameState.level = state.level || 1;
+    gameState.xpToNext = state.xpToNext || CONFIG.XP.BASE_PER_LEVEL;
+
+    // gameState → state (chargePower из gameState)
+    state.click_power = Math.floor(gameState.chargePower) || 1;
+
     // state ← gameState (банк из фермы)
     state.bank_coins = gameState.bankCoins || 0;
     state.bank_crystals = gameState.bankCrystals || 0;
     state.bank_stars = gameState.bankStars || 0;
+    
+    console.log('[syncGameState] Синхронизация:', {
+        coins: gameState.coins,
+        crystals: gameState.crystals,
+        stars: gameState.stars,
+        xp: gameState.xp,
+        level: gameState.level
+    });
 }
 
 // Функции для изменения баланса (автоматически вызывают updateBalance)
@@ -5673,7 +5687,10 @@ async function loadGame() {
                     // Синхронизация с главным state
                     syncGameState();
                     updateUI();
-                    setTimeout(() => renderGrid(), 100);
+                    setTimeout(() => {
+                        renderGrid();
+                        console.log('[loadGame] Grid отрисован');
+                    }, 100);
                     startPassiveEffects();
                     console.log('[loadGame] Загружено из БД успешно');
                     return;
@@ -5743,6 +5760,7 @@ async function loadGame() {
     updateUI();
     setTimeout(() => {
         renderGrid();
+        console.log('[loadGame] Grid отрисован');
     }, 100);
     startPassiveEffects();
 }
@@ -6920,8 +6938,12 @@ function showFloatingEarn(row, col, text, type) {
 // Функция инициализации игры
 let gameInitialized = false;
 function initGame() {
-    if (gameInitialized) return;
+    if (gameInitialized) {
+        console.log('[initGame] Уже инициализировано, пропускаем');
+        return;
+    }
 
+    console.log('[initGame] Начало инициализации, userId:', userId);
     loadGame();
     updateUI();
     startPassiveEffects();
@@ -6932,13 +6954,13 @@ function initGame() {
     }
 
     gameInitialized = true;
+    console.log('[initGame] Инициализация завершена');
 }
-
-// loadGame() вызывается из initGame() когда страница готова
-// loadGame();
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('[DOMContentLoaded] Страница загружена, userId:', userId);
+    
     // Сброс анимации кнопки ядра чтобы не "ломалась"
     const coreBtn = document.getElementById('coreBtn');
     if (coreBtn) {
@@ -6946,8 +6968,9 @@ document.addEventListener('DOMContentLoaded', () => {
         coreBtn.offsetHeight; // trigger reflow
         coreBtn.style.animation = 'core-pulse 2s ease-in-out infinite';
     }
-    
+
     if (typeof initGame === 'function') {
+        console.log('[DOMContentLoaded] Вызываем initGame()');
         initGame();
     }
 });
