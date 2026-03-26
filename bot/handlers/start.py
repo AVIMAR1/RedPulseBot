@@ -291,3 +291,17 @@ async def cmd_refresh(message: types.Message):
         "• /support - Поддержка",
         parse_mode="HTML"
     )
+
+
+@router.message(Command("cleardb"))
+async def cmd_cleardb(message: types.Message):
+    """Очистка localStorage (для тестирования)"""
+    await message.answer(
+        "🧹 <b>Очистка данных</b>\n\n"
+        "Для очистки localStorage в Mini App:\n"
+        "1. Откройте ферму\n"
+        "2. Введите в консоли браузера:\n"
+        "<code>window.clearLocalData()</code>\n\n"
+        "Или просто закройте и откройте бота заново.",
+        parse_mode="HTML"
+    )

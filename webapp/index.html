@@ -4142,11 +4142,14 @@ body {
         async function loadUserData() {
             if (!userId) return;
 
+            console.log('[loadUserData] Начало загрузки для userId:', userId);
+
             try {
                 // Загружаем данные с сервера (БД — единственный источник правды!)
                 const response = await fetch(`/api/user/${userId}`);
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('[loadUserData] Получено из БД:', data);
                     
                     // Обновляем state данными из БД
                     state.click_coins = data.click_coins || 0;
@@ -4177,33 +4180,22 @@ body {
                     }
                     
                     updateUI();
-                    console.log('[loadUserData] Данные загружены из БД:', data);
+                    console.log('[loadUserData] Данные загружены из БД успешно');
                     return;
                 }
             } catch(e) {
-                console.error('Ошибка загрузки данных из БД:', e);
-            }
-
-            // Fallback: пробуем загрузить из localStorage (только для первого запуска)
-            try {
-                const savedState = localStorage.getItem('redpulse_state');
-                if (savedState) {
-                    const parsed = JSON.parse(savedState);
-                    state.click_coins = parsed.click_coins || 0;
-                    state.crystals = parsed.crystals || 0;
-                    state.stars = parsed.stars || 0;
-                    state.total_clicks = parsed.total_clicks || 0;
-                    state.level = parsed.level || 1;
-                    state.click_power = parsed.click_power || 1;
-                    updateUI();
-                    console.log('[loadUserData] Данные загружены из localStorage (fallback)');
-                    return;
-                }
-            } catch(e) {
-                console.warn('Ошибка загрузки localStorage:', e);
+                console.error('[loadUserData] Ошибка загрузки данных из БД:', e);
             }
 
             updateUI();
+        }
+        
+        // Команда для сброса localStorage (для отладки)
+        window.clearLocalData = function() {
+            localStorage.removeItem('pulseFarmSave_v2');
+            localStorage.removeItem('redpulse_state');
+            console.log('[clearLocalData] localStorage очищен');
+            alert('localStorage очищен! Перезагрузите страницу.');
         }
 
         // Инициализация при загрузке страницы для Telegram
@@ -5784,7 +5776,7 @@ async function saveFarmState() {
 
 async function saveFarmStats() {
     if (typeof userId === 'undefined' || !userId) return;
-    
+
     try {
         // Считаем уровень реактора (максимальный уровень блока)
         let maxBlockLevel = 1;
@@ -5797,21 +5789,27 @@ async function saveFarmStats() {
                 }
             });
         }
-        
+
+        // Сохраняем валюту и статистику фермы
         const farmStats = {
             userId: userId,
             reactor_level: maxBlockLevel,
             blocks_placed: blocksCount,
             reactions_triggered: gameState.totalTaps || 0,
-            total_energy_produced: gameState.totalEarned || 0
+            total_energy_produced: gameState.totalEarned || 0,
+            // ВАЖНО: сохраняем валюту из фермы в БД
+            click_coins: Math.floor(gameState.coins || 0),
+            stars: Math.floor(gameState.stars || 0),
+            crystals: Math.floor(gameState.crystals || 0)
         };
-        
+
         // Отправляем на сервер
         await fetch('/api/save-farm-stats', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(farmStats)
         });
+        console.log('[saveFarmStats] Сохранено:', farmStats);
     } catch (e) {
         console.error('[Farm Stats] Ошибка сохранения:', e);
     }

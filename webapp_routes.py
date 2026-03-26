@@ -301,7 +301,7 @@ async def get_profile(user_id: int):
 
 @router.post("/api/save-farm-stats")
 async def save_farm_stats(request: Request):
-    """Сохраняет статистику фермы (реактора) в БД"""
+    """Сохраняет статистику фермы (реактора) и валюту в БД"""
     data = await request.json()
     user_id = data.get("userId")
 
@@ -309,23 +309,50 @@ async def save_farm_stats(request: Request):
     blocks_placed = int(data.get("blocks_placed", 0))
     reactions_triggered = int(data.get("reactions_triggered", 0))
     total_energy_produced = int(data.get("total_energy_produced", 0))
+    
+    # Валюта из фермы
+    click_coins = int(data.get("click_coins", 0))
+    stars = int(data.get("stars", 0))
+    crystals = int(data.get("crystals", 0))
 
     conn = get_db()
     cursor = conn.cursor()
 
     try:
+        # Получаем текущие значения из БД
+        cursor.execute("SELECT click_coins, stars, crystals FROM users WHERE telegram_id = ?", (user_id,))
+        row = cursor.fetchone()
+        
+        if row:
+            # Берём БОЛЬШЕЕ значение (чтобы не потерять данные)
+            db_coins = int(row["click_coins"] or 0)
+            db_stars = int(row["stars"] or 0)
+            db_crystals = int(row["crystals"] or 0)
+            
+            final_coins = max(db_coins, click_coins)
+            final_stars = max(db_stars, stars)
+            final_crystals = max(db_crystals, crystals)
+        else:
+            final_coins = click_coins
+            final_stars = stars
+            final_crystals = crystals
+        
         cursor.execute("""
             UPDATE users SET
                 reactor_level = ?,
                 blocks_placed = ?,
                 reactions_triggered = ?,
                 total_energy_produced = ?,
+                click_coins = ?,
+                stars = ?,
+                crystals = ?,
                 last_activity = CURRENT_TIMESTAMP
             WHERE telegram_id = ?
-        """, (reactor_level, blocks_placed, reactions_triggered, total_energy_produced, user_id))
+        """, (reactor_level, blocks_placed, reactions_triggered, total_energy_produced, 
+              final_coins, final_stars, final_crystals, user_id))
         conn.commit()
         conn.close()
-        return {"status": "ok"}
+        return {"status": "ok", "click_coins": final_coins, "stars": final_stars, "crystals": final_crystals}
     except Exception as e:
         print(f"Error saving farm stats: {e}")
         conn.close()
