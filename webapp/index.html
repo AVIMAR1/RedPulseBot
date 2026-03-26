@@ -3795,21 +3795,18 @@ body {
         tg.ready();
         tg.expand();
 
-        // Получаем userId из Telegram или используем тестовый (для локальной разработки)
-        const userId = tg.initDataUnsafe?.user?.id || 123456789; // TEST MODE для локалки
+        // Получаем userId из Telegram
+        const userId = tg.initDataUnsafe?.user?.id;
+        console.log('[INIT] userId из Telegram:', userId);
         
+        if (!userId) {
+            console.error('[INIT] ОШИБКА: userId не получен из Telegram!');
+        }
+
         // Делаем userId глобально доступным для pf_script.js
         window.userId = userId;
-        
-        const user = tg.initDataUnsafe?.user || {
-            id: userId,
-            first_name: 'Тестовый пользователь',
-            username: 'test_user',
-            language_code: 'ru'
-        };
 
-        // Флаг локального режима
-        const isLocalMode = !tg.initDataUnsafe?.user;
+        const user = tg.initDataUnsafe?.user;
 
         // Состояние приложения
         let state = {
