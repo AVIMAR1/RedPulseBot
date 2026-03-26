@@ -102,9 +102,10 @@ async def get_user_data(user_id: int):
 
 @router.post("/api/save-clicks")
 async def save_clicks(request: Request):
+    """Сохраняет валюту и данные из фермы в БД"""
     data = await request.json()
     user_id = data.get("userId")
-    
+
     click_coins = to_int(data.get("click_coins"), 0)
     stars = to_int(data.get("stars"), 0)
     crystals = to_int(data.get("crystals"), 0)
@@ -116,25 +117,36 @@ async def save_clicks(request: Request):
     theme = data.get("theme") or ""
     if len(theme) > 32:
         theme = theme[:32]
-    
+
     conn = get_db()
     cursor = conn.cursor()
-    
+
     old_total_clicks = 0
     old_xp = 0
+    old_coins = 0
+    old_stars = 0
+    old_crystals = 0
     try:
-        cursor.execute("SELECT total_clicks, xp FROM users WHERE telegram_id = ?", (user_id,))
+        cursor.execute("SELECT total_clicks, xp, click_coins, stars, crystals FROM users WHERE telegram_id = ?", (user_id,))
         row = cursor.fetchone()
         if row:
             old_total_clicks = int(row["total_clicks"] or 0)
             old_xp = int(row["xp"] or 0)
-    except Exception:
-        pass
-    
+            old_coins = int(row["click_coins"] or 0)
+            old_stars = int(row["stars"] or 0)
+            old_crystals = int(row["crystals"] or 0)
+    except Exception as e:
+        print(f"Error fetching old data: {e}")
+
+    # Берём БОЛЬШЕЕ значение из БД и от фермы (чтобы не потерять данные)
     total_clicks = max(old_total_clicks, total_clicks_in)
+    final_coins = max(old_coins, click_coins)
+    final_stars = max(old_stars, stars)
+    final_crystals = max(old_crystals, crystals)
+    
     delta_clicks = max(0, total_clicks - old_total_clicks)
     xp_gain = delta_clicks
-    
+
     # Бонус общей казны
     try:
         cursor.execute("SELECT bonus_active_until FROM global_bank WHERE id = 1")
@@ -148,11 +160,11 @@ async def save_clicks(request: Request):
                 pass
     except Exception:
         pass
-    
+
     xp = old_xp + xp_gain
     p = progress_for_xp(xp)
     level = p["level"]
-    
+
     # Общая казна
     try:
         cursor.execute("INSERT OR IGNORE INTO global_bank(id, coins, xp, level, target) VALUES(1, 0, 0, 1, 100000)")
@@ -161,20 +173,20 @@ async def save_clicks(request: Request):
             cursor.execute("UPDATE global_bank SET coins = coins + ?, xp = xp + ? WHERE id = 1", (add_bank, add_bank))
     except Exception:
         pass
-    
+
     try:
         cursor.execute("""
             UPDATE users SET click_coins = ?, stars = ?, crystals = ?, total_clicks = ?,
                 click_power = ?, auto_clicker = ?, energy_multiplier = ?, theme = ?,
                 xp = ?, level = ?, last_activity = CURRENT_TIMESTAMP
             WHERE telegram_id = ?
-        """, (click_coins, stars, crystals, total_clicks, click_power, auto_clicker, energy_multiplier, theme, xp, level, user_id))
+        """, (final_coins, final_stars, final_crystals, total_clicks, click_power, auto_clicker, energy_multiplier, theme, xp, level, user_id))
     except Exception as e:
         print(f"Error updating user: {e}")
-    
+
     conn.commit()
     conn.close()
-    return {"status": "ok", "xp": xp, "level": level}
+    return {"status": "ok", "xp": xp, "level": level, "click_coins": final_coins, "stars": final_stars, "crystals": final_crystals}
 
 @router.post("/api/buy-boost")
 async def buy_boost(request: Request):

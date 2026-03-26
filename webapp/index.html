@@ -4705,120 +4705,97 @@ body {
             `;
         }
 
-        // Загрузка профиля
+        // Загрузка профиля — ТОЛЬКО ИЗ БД
         window.loadProfile = async function() {
             if (!userId) return;
 
             try {
                 // Получаем данные из Telegram
                 const tgUser = tg.initDataUnsafe?.user;
-                if (tgUser) {
-                    // Аватарка из Telegram
-                    const avatarEl = document.getElementById('profile-avatar');
-                    if (tgUser.photo_url) {
-                        avatarEl.style.backgroundImage = `url(${tgUser.photo_url})`;
-                        avatarEl.style.backgroundSize = 'cover';
-                        avatarEl.style.backgroundPosition = 'center';
-                        avatarEl.textContent = '';
+                
+                // Загружаем данные профиля из БД
+                const response = await fetch(`/api/profile/${userId}`);
+                if (response.ok) {
+                    const data = await response.json();
+
+                    // Имя и username из Telegram API (если доступно)
+                    if (tgUser) {
+                        const fullName = tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '');
+                        document.getElementById('profile-name').textContent = fullName || data.first_name || 'Игрок';
+                        document.getElementById('profile-username').textContent = tgUser.username ? '@' + tgUser.username : (data.username ? '@' + data.username : '@не указан');
+
+                        // Аватарка (если Telegram предоставляет)
+                        const avatarEl = document.getElementById('profile-avatar');
+                        if (tgUser.photo_url) {
+                            avatarEl.style.backgroundImage = `url(${tgUser.photo_url})`;
+                            avatarEl.style.backgroundSize = 'cover';
+                            avatarEl.style.backgroundPosition = 'center';
+                            avatarEl.textContent = '';
+                        } else {
+                            avatarEl.textContent = '👤';
+                            avatarEl.style.backgroundImage = 'none';
+                        }
                     } else {
-                        avatarEl.textContent = '👤';
-                        avatarEl.style.backgroundImage = 'none';
+                        document.getElementById('profile-name').textContent = data.first_name || 'Игрок';
+                        document.getElementById('profile-username').textContent = data.username ? '@' + data.username : '@не указан';
+                        document.getElementById('profile-avatar').textContent = '👤';
                     }
-                    
-                    // Ник и username из Telegram
-                    document.getElementById('profile-name').textContent = tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '');
-                    document.getElementById('profile-username').textContent = tgUser.username ? '@' + tgUser.username : '';
+
+                    // Баланс
+                    document.getElementById('profile-coins').textContent = (data.click_coins || 0).toLocaleString();
+                    document.getElementById('profile-stars').textContent = (data.stars || 0).toLocaleString();
+                    document.getElementById('profile-crystals').textContent = (data.crystals || 0).toLocaleString();
+
+                    // Уровень игрока и ядра
+                    const coreLevel = data.core_level || 1;
+                    const playerLevel = Math.floor((coreLevel - 1) / 5) + 1;
+                    document.getElementById('profile-core-level').textContent = coreLevel;
+                    document.getElementById('profile-level').textContent = playerLevel;
+
+                    // Остальные данные
+                    document.getElementById('profile-tasks-done').textContent = data.tasks_completed || 0;
+                    document.getElementById('profile-referrals').textContent = data.referrals_count || 0;
+                    document.getElementById('profile-streak').textContent = (data.streak_days || 0) + ' дней';
+                    document.getElementById('profile-created').textContent = data.created_at ? new Date(data.created_at).toLocaleDateString('ru-RU') : '-';
                 }
 
-                // Загрузка профиля — ТОЛЬКО ИЗ БД
-                async function loadProfile() {
-                    if (!userId) return;
+                // Загружаем рейтинг
+                try {
+                    const ratingResponse = await fetch('/api/rating');
+                    if (ratingResponse.ok) {
+                        const rating = await ratingResponse.json();
+                        const userRank = rating.findIndex(u => u.telegram_id === userId) + 1;
+                        document.getElementById('profile-rating').textContent = userRank > 0 ? `#${userRank}` : '-';
+                    }
+                } catch (e) {
+                    console.error('Ошибка загрузки рейтинга:', e);
+                    document.getElementById('profile-rating').textContent = '-';
+                }
 
-                    try {
-                        // Загружаем данные профиля из БД
-                        const response = await fetch(`/api/profile/${userId}`);
-                        if (response.ok) {
-                            const data = await response.json();
-
-                            // Имя и username из Telegram API (если доступно)
-                            if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                                const tgUser = tg.initDataUnsafe.user;
-                                const fullName = tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '');
-                                document.getElementById('profile-name').textContent = fullName || data.first_name || 'Игрок';
-                                document.getElementById('profile-username').textContent = tgUser.username ? '@' + tgUser.username : (data.username ? '@' + data.username : '@не указан');
-                                
-                                // Аватарка (если Telegram предоставляет)
-                                const avatarEl = document.getElementById('profile-avatar');
-                                if (tgUser.photo_url) {
-                                    avatarEl.style.backgroundImage = `url(${tgUser.photo_url})`;
-                                    avatarEl.style.backgroundSize = 'cover';
-                                    avatarEl.style.backgroundPosition = 'center';
-                                    avatarEl.textContent = '';
-                                } else {
-                                    avatarEl.textContent = '👤';
-                                    avatarEl.style.backgroundImage = 'none';
-                                }
-                            } else {
-                                document.getElementById('profile-name').textContent = data.first_name || 'Игрок';
-                                document.getElementById('profile-username').textContent = data.username ? '@' + data.username : '@не указан';
-                                document.getElementById('profile-avatar').textContent = '👤';
-                            }
-
-                            // Баланс
-                            document.getElementById('profile-coins').textContent = (data.click_coins || 0).toLocaleString();
-                            document.getElementById('profile-stars').textContent = (data.stars || 0).toLocaleString();
-                            document.getElementById('profile-crystals').textContent = (data.crystals || 0).toLocaleString();
-
-                            // Уровень игрока и ядра
-                            const coreLevel = data.core_level || 1;
-                            const playerLevel = Math.floor((coreLevel - 1) / 5) + 1;
-                            document.getElementById('profile-core-level').textContent = coreLevel;
+                // Загружаем статистику фермы из БД
+                try {
+                    const farmStatsResponse = await fetch(`/api/farm-stats/${userId}`);
+                    if (farmStatsResponse.ok) {
+                        const farmStats = await farmStatsResponse.json();
+                        if (farmStats.reactor_level) {
+                            document.getElementById('profile-core-level').textContent = farmStats.reactor_level;
+                            const playerLevel = Math.floor((farmStats.reactor_level - 1) / 5) + 1;
                             document.getElementById('profile-level').textContent = playerLevel;
-
-                            // Остальные данные
-                            document.getElementById('profile-tasks-done').textContent = data.tasks_completed || 0;
-                            document.getElementById('profile-referrals').textContent = data.referrals_count || 0;
-                            document.getElementById('profile-streak').textContent = (data.streak_days || 0) + ' дней';
-                            document.getElementById('profile-created').textContent = data.created_at ? new Date(data.created_at).toLocaleDateString('ru-RU') : '-';
                         }
-
-                        // Загружаем рейтинг
-                        try {
-                            const ratingResponse = await fetch('/api/rating');
-                            if (ratingResponse.ok) {
-                                const rating = await ratingResponse.json();
-                                const userRank = rating.findIndex(u => u.telegram_id === userId) + 1;
-                                document.getElementById('profile-rating').textContent = userRank > 0 ? `#${userRank}` : '-';
-                            }
-                        } catch (e) {
-                            console.error('Ошибка загрузки рейтинга:', e);
-                            document.getElementById('profile-rating').textContent = '-';
+                        if (farmStats.blocks_placed !== undefined) {
+                            document.getElementById('profile-blocks').textContent = farmStats.blocks_placed.toLocaleString();
                         }
-
-                        // Загружаем статистику фермы из БД
-                        try {
-                            const farmStatsResponse = await fetch(`/api/farm-stats/${userId}`);
-                            if (farmStatsResponse.ok) {
-                                const farmStats = await farmStatsResponse.json();
-                                if (farmStats.reactor_level) {
-                                    document.getElementById('profile-core-level').textContent = farmStats.reactor_level;
-                                    const playerLevel = Math.floor((farmStats.reactor_level - 1) / 5) + 1;
-                                    document.getElementById('profile-level').textContent = playerLevel;
-                                }
-                                if (farmStats.blocks_placed !== undefined) {
-                                    document.getElementById('profile-blocks').textContent = farmStats.blocks_placed.toLocaleString();
-                                }
-                                if (farmStats.reactions_triggered !== undefined) {
-                                    document.getElementById('profile-reactions').textContent = farmStats.reactions_triggered.toLocaleString();
-                                }
-                            }
-                        } catch (e) {
-                            console.log('Farm stats API не доступен');
+                        if (farmStats.reactions_triggered !== undefined) {
+                            document.getElementById('profile-reactions').textContent = farmStats.reactions_triggered.toLocaleString();
                         }
-                    } catch (error) {
-                        console.error('Ошибка загрузки профиля:', error);
                     }
+                } catch (e) {
+                    console.log('Farm stats API не доступен');
                 }
+            } catch (error) {
+                console.error('Ошибка загрузки профиля:', error);
+            }
+        }
 
         // Загрузка заданий
         async function loadTasks() {
