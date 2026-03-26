@@ -5749,8 +5749,8 @@ async function loadGame() {
                     gameState.level = dbData.level || 1;
                     gameState.xp = dbData.xp || 0;
                     gameState.xpToNext = gameState.level * CONFIG.XP.BASE_PER_LEVEL;  // Динамический XP
-                    gameState.temp = dbData.temp || 0;
-                    gameState.maxTemp = dbData.maxTemp || 100;
+                    gameState.temp = dbData.temp !== undefined && dbData.temp !== null ? dbData.temp : 0;
+                    gameState.maxTemp = dbData.maxTemp !== undefined && dbData.maxTemp !== null ? dbData.maxTemp : 100;
                     gameState.reactor_level = dbData.reactor_level || 1;
                     gameState.blocks_placed = dbData.blocks_placed || 0;
                     gameState.reactions_triggered = dbData.reactions_triggered || 0;
@@ -5790,6 +5790,7 @@ async function loadGame() {
             }
         } catch (e) {
             console.error('[loadGame] Ошибка загрузки из БД:', e);
+            console.error('[loadGame] Stack:', e.stack);
         }
     }
     
