@@ -3988,9 +3988,29 @@ body {
             window.isSyncing = false;
         }
 
-        // Синхронизация с фермой
-        function syncWithFarm() {
+        // Синхронизация с фермой — загрузка из БД
+        async function syncWithFarm() {
             try {
+                // Загружаем актуальные данные из БД
+                if (userId) {
+                    const response = await fetch(`/api/user/${userId}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('[syncWithFarm] Загружено из БД:', data);
+                        
+                        // Обновляем state данными из БД
+                        state.click_coins = data.click_coins || 0;
+                        state.crystals = data.crystals || 0;
+                        state.stars = data.stars || 0;
+                        state.total_clicks = data.total_clicks || 0;
+                        state.level = data.level || 1;
+                        state.click_power = data.click_power || 1;
+                        
+                        // Сохраняем в localStorage (для резервного копирования)
+                        localStorage.setItem('redpulse_state', JSON.stringify(state));
+                    }
+                }
+                
                 // Ферма использует gameState, синхронизируем с state
                 if (typeof gameState !== 'undefined') {
                     // gameState → state (сохраняем изменения из фермы)
@@ -4000,7 +4020,7 @@ body {
                     state.total_clicks = gameState.totalTaps || 0;
                     state.level = gameState.level || 1;
                     state.click_power = Math.floor(gameState.chargePower) || 1;
-                    
+
                     // Сохраняем в localStorage
                     localStorage.setItem('redpulse_state', JSON.stringify(state));
                     if (typeof saveGame === 'function') saveGame();
@@ -4202,6 +4222,20 @@ body {
         document.addEventListener('DOMContentLoaded', () => {
             console.log('[DOMContentLoaded] Страница загружена, userId:', userId);
             
+            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage ===
+            // Очищаем старое сохранение, чтобы данные брались из БД
+            const currentVersion = 'v3'; // Новая версия хранения
+            const savedVersion = localStorage.getItem('appVersion');
+            
+            if (savedVersion !== currentVersion) {
+                console.log('[MIGRATION] Очистка старого localStorage (версия:', savedVersion, '->', currentVersion, ')');
+                localStorage.removeItem('pulseFarmSave_v2');
+                localStorage.removeItem('redpulse_state');
+                localStorage.setItem('appVersion', currentVersion);
+                console.log('[MIGRATION] localStorage очищен, версия:', currentVersion);
+            }
+            // ==========================================
+
             // Загружаем данные пользователя
             loadUserData();
         });
