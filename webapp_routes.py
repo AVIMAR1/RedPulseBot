@@ -378,21 +378,41 @@ async def get_farm_stats(user_id: int):
 
 @router.get("/api/farm-state/{user_id}")
 async def get_farm_state(user_id: int):
-    """Загружает полное состояние фермы из БД (JSON)"""
+    """Загружает полное состояние фермы из БД"""
     conn = get_db()
     cursor = conn.cursor()
 
     try:
         cursor.execute("""
-            SELECT farm_state_json
+            SELECT farm_state_json, reactor_level, blocks_placed, reactions_triggered,
+                   temp, max_temp, level, xp, click_coins, stars, crystals
             FROM users WHERE telegram_id = ?
         """, (user_id,))
         row = cursor.fetchone()
         conn.close()
 
-        if row and row["farm_state_json"]:
-            import json
-            return json.loads(row["farm_state_json"])
+        if row:
+            result = {
+                "reactor_level": row["reactor_level"] or 1,
+                "blocks_placed": row["blocks_placed"] or 0,
+                "reactions_triggered": row["reactions_triggered"] or 0,
+                "temp": row["temp"] or 0,
+                "maxTemp": row["max_temp"] or 100,
+                "level": row["level"] or 1,
+                "xp": row["xp"] or 0,
+                "coins": row["click_coins"] or 0,
+                "stars": row["stars"] or 0,
+                "crystals": row["crystals"] or 0
+            }
+            
+            # Если есть farm_state_json, объединяем
+            if row["farm_state_json"]:
+                import json
+                farm_state = json.loads(row["farm_state_json"])
+                result = { **result, **farm_state }
+            
+            print(f'[get_farm_state] userId={user_id}, данные:', result)
+            return result
 
     except Exception as e:
         print(f"Error fetching farm state: {e}")

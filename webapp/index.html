@@ -3453,7 +3453,7 @@ body {
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <button class="help-btn-small" onclick="showHelp()" title="Справка">?</button>
-                    <div class="version">v0.1.3</div>
+                    <div class="version">v0.1.4</div>
                 </div>
             </header>
 
@@ -4193,8 +4193,8 @@ body {
         document.addEventListener('DOMContentLoaded', () => {
             console.log('[DOMContentLoaded] Страница загружена, userId:', userId);
             
-            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 0.1.3 ===
-            const currentVersion = '0.1.3';
+            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 0.1.4 ===
+            const currentVersion = '0.1.4';
             const savedVersion = localStorage.getItem('appVersion');
             
             if (savedVersion !== currentVersion) {
@@ -5732,26 +5732,35 @@ function getBlockFullName(block) {
 async function loadGame() {
     console.log('[loadGame] Начало загрузки, userId:', userId);
     
-    // Пытаемся загрузить состояние фермы из БД (приоритет)
+    // ЗАГРУЖАЕМ ТОЛЬКО ИЗ БД (localStorage не используется!)
     if (userId) {
         try {
             const response = await fetch(`/api/farm-state/${userId}`);
             if (response.ok) {
-                const data = await response.json();
-                if (data && Object.keys(data).length > 0) {
-                    console.log('[loadGame] Загружено из БД:', data);
-                    // Объединяем с текущим состоянием
-                    gameState = { ...gameState, ...data };
+                const dbData = await response.json();
+                console.log('[loadGame] Загружено из БД:', dbData);
+                
+                if (dbData && Object.keys(dbData).length > 0) {
+                    // Загружаем ВСЕ данные из БД
+                    gameState.coins = dbData.coins || 0;
+                    gameState.crystals = dbData.crystals || 0;
+                    gameState.stars = dbData.stars || 0;
+                    gameState.level = dbData.level || 1;
+                    gameState.xp = dbData.xp || 0;
+                    gameState.xpToNext = CONFIG.XP.BASE_PER_LEVEL;
+                    gameState.temp = dbData.temp || 0;
+                    gameState.maxTemp = dbData.maxTemp || 100;
+                    gameState.reactor_level = dbData.reactor_level || 1;
+                    gameState.blocks_placed = dbData.blocks_placed || 0;
+                    gameState.reactions_triggered = dbData.reactions_triggered || 0;
                     
-                    // ВАЖНО: загружаем температуру из БД
-                    if (data.temp !== undefined) gameState.temp = data.temp;
-                    if (data.maxTemp !== undefined) gameState.maxTemp = data.maxTemp;
-                    // Загружаем статистику фермы из БД
-                    if (data.reactor_level !== undefined) gameState.reactor_level = data.reactor_level;
-                    if (data.blocks_placed !== undefined) gameState.blocks_placed = data.blocks_placed;
-                    if (data.reactions_triggered !== undefined) gameState.reactions_triggered = data.reactions_triggered;
-                    console.log('[loadGame] Температура:', gameState.temp, '/', gameState.maxTemp);
-                    console.log('[loadGame] Ферма:', gameState.reactor_level, gameState.blocks_placed, gameState.reactions_triggered);
+                    console.log('[loadGame] Данные из БД:', {
+                        coins: gameState.coins,
+                        level: gameState.level,
+                        reactor_level: gameState.reactor_level,
+                        temp: gameState.temp,
+                        maxTemp: gameState.maxTemp
+                    });
                     
                     // Пересчитываем chargePower
                     gameState.chargePower = CONFIG.BASE_CHARGE_POWER + (gameState.level - 1) * CONFIG.CHARGE_PER_LEVEL;
@@ -5762,10 +5771,13 @@ async function loadGame() {
                         initGrid();
                     }
                     
-                    // Синхронизация с главным state
+                    // Синхронизация с state (БД → state)
                     syncGameState();
                     updateUI();
-                    setTimeout(() => renderGrid(), 100);
+                    setTimeout(() => {
+                        renderGrid();
+                        console.log('[loadGame] Grid отрисован');
+                    }, 100);
                     startPassiveEffects();
                     console.log('[loadGame] Загружено из БД успешно');
                     return;
@@ -5776,61 +5788,12 @@ async function loadGame() {
         }
     }
     
-    // Fallback: загрузка из localStorage (если нет данных в БД)
-    console.log('[loadGame] Загрузка из localStorage...');
-    const saved = localStorage.getItem('pulseFarmSave_v2');
-    
-    if (saved) {
-        try {
-            const data = JSON.parse(saved);
-            // Проверяем если старое сохранение с неправильным размером поля
-            if (data.fieldRows && data.fieldRows !== 7) {
-                console.log('[LOAD] Старое сохранение с полем', data.fieldRows, 'строк. Сбрасываем...');
-                localStorage.removeItem('pulseFarmSave_v2');
-                initGrid();
-                generateShopItems();
-                gameState.firstPlay = true;
-                syncGameState();
-                updateUI();
-                setTimeout(() => renderGrid(), 100);
-                startPassiveEffects();
-                return;
-            }
-            
-            gameState = { ...gameState, ...data };
-            // Исправляем загрузку XP
-            if (data.xp === undefined) gameState.xp = 0;
-            if (data.xpToNext === undefined) gameState.xpToNext = CONFIG.XP.BASE_PER_LEVEL;
-            if (data.level === undefined) gameState.level = 1;
-            // Пересчитываем chargePower
-            gameState.chargePower = CONFIG.BASE_CHARGE_POWER + (gameState.level - 1) * CONFIG.CHARGE_PER_LEVEL;
-            // Принудительно устанавливаем размер поля 7x7
-            gameState.fieldRows = 7;
-            console.log('[LOAD] XP:', gameState.xp, '/', gameState.xpToNext, 'Level:', gameState.level, 'Charge:', gameState.chargePower, 'Field:', gameState.fieldRows, 'x', FIELD_COLS);
-            
-            if (!gameState.shopItems || gameState.shopItems.length === 0) generateShopItems();
-            gameState.isCharging = false;
-            
-            if (!gameState.grid || gameState.grid.length === 0 || !gameState.grid[0]) {
-                console.log('Grid missing, initializing...');
-                initGrid();
-            }
-            
-            // Синхронизация с главным state
-            syncGameState();
-        } catch (e) {
-            console.error('Save corrupted, resetting...', e);
-            initGrid();
-            generateShopItems();
-        }
-    } else {
-        console.log('[loadGame] Нет сохранения, создаём новую игру');
-        initGrid();
-        generateShopItems();
-        showFirstTimeHelp();
-        // Синхронизация с главным state
-        syncGameState();
-    }
+    // Если нет данных в БД — создаём новую игру
+    console.log('[loadGame] Нет данных в БД, создаём новую игру');
+    initGrid();
+    generateShopItems();
+    showFirstTimeHelp();
+    syncGameState();
     
     updateUI();
     setTimeout(() => {
@@ -5846,14 +5809,58 @@ async function saveGame() {
     // Синхронизация с главным state
     syncGameState();
 
-    localStorage.setItem('pulseFarmSave_v2', JSON.stringify(gameState));
-    localStorage.setItem('redpulse_state', JSON.stringify(state));
-
-    // Сохраняем статистику фермы в БД
+    // Сохраняем ТОЛЬКО в БД (localStorage не используется!)
     saveFarmStats();
-    
-    // Сохраняем полное состояние фермы в БД
     saveFarmState();
+}
+
+async function saveFarmStats() {
+    if (typeof userId === 'undefined' || !userId) return;
+
+    try {
+        // Считаем уровень реактора (максимальный уровень блока)
+        let maxBlockLevel = 1;
+        let blocksCount = 0;
+        if (gameState.grid) {
+            gameState.grid.flat().forEach(block => {
+                if (block) {
+                    blocksCount++;
+                    if (block.level > maxBlockLevel) maxBlockLevel = block.level;
+                }
+            });
+        }
+
+        // Синхронизируем валюту перед сохранением
+        syncGameState();
+
+        const farmStats = {
+            userId: userId,
+            reactor_level: maxBlockLevel,
+            blocks_placed: blocksCount,
+            reactions_triggered: gameState.totalTaps || 0,
+            total_energy_produced: gameState.totalEarned || 0,
+            // ВАЖНО: сохраняем валюту из фермы в БД
+            click_coins: Math.floor(gameState.coins || 0),
+            stars: Math.floor(gameState.stars || 0),
+            crystals: Math.floor(gameState.crystals || 0)
+        };
+
+        console.log('[saveFarmStats] Сохранение:', farmStats);
+
+        // Отправляем на сервер
+        const response = await fetch('/api/save-farm-stats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(farmStats)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('[saveFarmStats] Успех:', result);
+        }
+    } catch (e) {
+        console.error('[Farm Stats] Ошибка сохранения:', e);
+    }
 }
 
 async function saveFarmState() {
