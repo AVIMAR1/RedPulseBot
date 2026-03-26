@@ -153,23 +153,23 @@ MENU_BUTTON_TEXTS = {
 )
 async def handle_support_message(message: types.Message, session: AsyncSession):
     telegram_id = message.from_user.id
-    
+
     # Проверяем, есть ли у пользователя открытый тикет
     open_ticket = await session.execute(
         select(SupportTicket)
         .where(
             and_(
                 SupportTicket.user_id == telegram_id,
-                SupportTicket.status.in_(['open', 'waiting_admin'])
+                SupportTicket.status.in_(['open', 'waiting_admin', 'in_progress', 'waiting_user'])
             )
         )
         .order_by(desc(SupportTicket.created_at))
         .limit(1)
     )
     ticket = open_ticket.scalar_one_or_none()
-    
-    if ticket and ticket.status == 'waiting_admin':
-        # Это ответ на сообщение поддержки
+
+    if ticket and ticket.status in ['waiting_user', 'waiting_admin', 'open', 'in_progress']:
+        # Это ответ на сообщение поддержки — добавляем сообщение в тикет
         new_message = SupportMessage(
             ticket_id=ticket.id,
             user_id=telegram_id,
@@ -177,16 +177,16 @@ async def handle_support_message(message: types.Message, session: AsyncSession):
             message=message.text
         )
         session.add(new_message)
-        
+
         ticket.status = 'waiting_admin'
         ticket.last_activity = datetime.now()
         ticket.reminder_count = 0
-        
+
         await session.commit()
-        
+
         builder = InlineKeyboardBuilder()
         builder.button(text="📋 К моим обращениям", callback_data="support_my_tickets")
-        
+
         await message.answer(
             "✅ **Сообщение отправлено!**\n\n"
             "Мы получили твой ответ и скоро свяжемся с тобой.\n"
@@ -194,18 +194,22 @@ async def handle_support_message(message: types.Message, session: AsyncSession):
             parse_mode="Markdown",
             reply_markup=builder.as_markup()
         )
-        
-    elif not ticket:
-        # Создаём новый тикет
+
+    elif telegram_id in _new_ticket_type:
+        # Пользователь выбрал тип тикета — создаём новый тикет
         user_result = await session.execute(
             select(User).where(User.telegram_id == telegram_id)
         )
-        user = user_result.scalar_one()
-        
+        user = user_result.scalar_one_or_none()
+
+        if not user:
+            await message.answer("❌ Сначала введите /start")
+            return
+
         if user.is_banned:
             await message.answer("🚫 Вы забанены и не можете обращаться в поддержку.")
             return
-        
+
         subject = message.text[:100] + ("..." if len(message.text) > 100 else "")
         ticket_type = _new_ticket_type.pop(telegram_id, "question")
         new_ticket = SupportTicket(
@@ -217,7 +221,7 @@ async def handle_support_message(message: types.Message, session: AsyncSession):
         )
         session.add(new_ticket)
         await session.flush()
-        
+
         new_message = SupportMessage(
             ticket_id=new_ticket.id,
             user_id=telegram_id,
@@ -225,12 +229,12 @@ async def handle_support_message(message: types.Message, session: AsyncSession):
             message=message.text
         )
         session.add(new_message)
-        
+
         await session.commit()
-        
+
         builder = InlineKeyboardBuilder()
         builder.button(text="📋 Мои обращения", callback_data="support_my_tickets")
-        
+
         await message.answer(
             "✅ **Обращение создано!**\n\n"
             f"Номер тикета: #{new_ticket.id}\n\n"
@@ -240,6 +244,11 @@ async def handle_support_message(message: types.Message, session: AsyncSession):
             parse_mode="Markdown",
             reply_markup=builder.as_markup()
         )
+
+    else:
+        # У пользователя нет открытого тикета и он не выбирал тип — игнорируем сообщение
+        # Или предлагаем создать тикет через /support
+        pass
 
 # Просмотр всех обращений пользователя
 @router.callback_query(lambda c: c.data == "support_my_tickets")

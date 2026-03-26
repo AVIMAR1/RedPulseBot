@@ -3708,6 +3708,22 @@ body {
                 </div>
             </div>
             <div class="profile-details">
+                <!-- Баланс -->
+                <div class="profile-balance-section" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; padding: 12px; background: rgba(231, 76, 60, 0.1); border-radius: 12px; border: 1px solid rgba(231, 76, 60, 0.2);">
+                    <div class="profile-balance-item" style="text-align: center;">
+                        <div style="font-size: 20px; margin-bottom: 4px;">🪙</div>
+                        <div id="profile-coins" style="font-weight: 700; font-size: 14px; color: #f1c40f;">0</div>
+                    </div>
+                    <div class="profile-balance-item" style="text-align: center;">
+                        <div style="font-size: 20px; margin-bottom: 4px;">⭐</div>
+                        <div id="profile-stars" style="font-weight: 700; font-size: 14px; color: #ff0000;">0</div>
+                    </div>
+                    <div class="profile-balance-item" style="text-align: center;">
+                        <div style="font-size: 20px; margin-bottom: 4px;">💎</div>
+                        <div id="profile-crystals" style="font-weight: 700; font-size: 14px; color: #3498db;">0</div>
+                    </div>
+                </div>
+                
                 <div class="profile-detail-item">
                     <span class="profile-detail-label">👥 Рефералов</span>
                     <span class="profile-detail-value" id="profile-referrals">0</span>
@@ -4701,13 +4717,18 @@ body {
                 const response = await fetch(`/api/profile/${userId}`);
                 if (response.ok) {
                     const data = await response.json();
-                    
+
+                    // Баланс
+                    document.getElementById('profile-coins').textContent = (data.click_coins || 0).toLocaleString();
+                    document.getElementById('profile-stars').textContent = (data.stars || 0).toLocaleString();
+                    document.getElementById('profile-crystals').textContent = (data.crystals || 0).toLocaleString();
+
                     // Уровень игрока и ядра
                     const coreLevel = data.core_level || 1;
                     const playerLevel = Math.floor((coreLevel - 1) / 5) + 1;
                     document.getElementById('profile-core-level').textContent = coreLevel;
                     document.getElementById('profile-level').textContent = playerLevel;
-                    
+
                     // Остальные данные
                     document.getElementById('profile-tasks-done').textContent = data.tasks_completed || 0;
                     document.getElementById('profile-referrals').textContent = data.referrals_count || 0;
@@ -4728,32 +4749,47 @@ body {
                     document.getElementById('profile-rating').textContent = '-';
                 }
 
-                // Обновляем статистику фермы из localStorage
-                const farmStateRaw = localStorage.getItem('pulseFarmSave_v2');
-                if (farmStateRaw) {
-                    try {
-                        const farmState = JSON.parse(farmStateRaw);
-                        // Уровень реактора = максимальный уровень блока
-                        let maxBlockLevel = 1;
-                        if (farmState.grid) {
-                            farmState.grid.flat().forEach(block => {
-                                if (block && block.level > maxBlockLevel) maxBlockLevel = block.level;
-                            });
+                // Обновляем статистику фермы из БД (приоритет) или localStorage
+                // Данные фермы уже должны быть в БД благодаря saveFarmStats()
+                // Но если пользователь зашёл с другого устройства — загружаем из БД
+                try {
+                    const farmStatsResponse = await fetch(`/api/farm-stats/${userId}`);
+                    if (farmStatsResponse.ok) {
+                        const farmStats = await farmStatsResponse.json();
+                        if (farmStats.reactor_level) {
+                            document.getElementById('profile-core-level').textContent = farmStats.reactor_level;
+                            const playerLevel = Math.floor((farmStats.reactor_level - 1) / 5) + 1;
+                            document.getElementById('profile-level').textContent = playerLevel;
                         }
-                        document.getElementById('profile-core-level').textContent = maxBlockLevel;
-                        
-                        // Уровень игрока = (уровень ядра - 1) / 5 + 1
-                        const playerLevel = Math.floor((maxBlockLevel - 1) / 5) + 1;
-                        document.getElementById('profile-level').textContent = playerLevel;
-                        
-                        // Блоков = количество блоков в сетке
-                        const blocksCount = farmState.grid ? farmState.grid.flat().filter(b => b).length : 0;
-                        document.getElementById('profile-blocks').textContent = blocksCount;
-                        
-                        // Реакций = reactionsTriggered (тапы ядра)
-                        document.getElementById('profile-reactions').textContent = (farmState.totalTaps || 0).toLocaleString();
-                    } catch (e) {
-                        console.error('Ошибка чтения фермы:', e);
+                        if (farmStats.blocks_placed !== undefined) {
+                            document.getElementById('profile-blocks').textContent = farmStats.blocks_placed.toLocaleString();
+                        }
+                        if (farmStats.reactions_triggered !== undefined) {
+                            document.getElementById('profile-reactions').textContent = farmStats.reactions_triggered.toLocaleString();
+                        }
+                    }
+                } catch (e) {
+                    console.log('Farm stats API not available, using localStorage fallback');
+                    // Fallback к localStorage
+                    const farmStateRaw = localStorage.getItem('pulseFarmSave_v2');
+                    if (farmStateRaw) {
+                        try {
+                            const farmState = JSON.parse(farmStateRaw);
+                            let maxBlockLevel = 1;
+                            if (farmState.grid) {
+                                farmState.grid.flat().forEach(block => {
+                                    if (block && block.level > maxBlockLevel) maxBlockLevel = block.level;
+                                });
+                            }
+                            document.getElementById('profile-core-level').textContent = maxBlockLevel;
+                            const playerLevel = Math.floor((maxBlockLevel - 1) / 5) + 1;
+                            document.getElementById('profile-level').textContent = playerLevel;
+                            const blocksCount = farmState.grid ? farmState.grid.flat().filter(b => b).length : 0;
+                            document.getElementById('profile-blocks').textContent = blocksCount;
+                            document.getElementById('profile-reactions').textContent = (farmState.totalTaps || 0).toLocaleString();
+                        } catch (e) {
+                            console.error('Ошибка чтения фермы:', e);
+                        }
                     }
                 }
             } catch (error) {
@@ -6703,8 +6739,11 @@ function startPassiveEffects() {
         }
     }, 1000);
 
-    // Auto-save
+    // Auto-save game state
     setInterval(() => { saveGame(); }, 15000);
+    
+    // Auto-save farm stats to DB every 5 seconds
+    setInterval(() => { saveFarmStats(); }, 5000);
 }
 
 function showFirstTimeHelp() {
