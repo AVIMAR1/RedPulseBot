@@ -5854,25 +5854,37 @@ async function saveFarmStats() {
 }
 
 function updateUI() {
-    // Обновление баланса фермы
-    const coinsEl = document.getElementById('coins');
-    const crystalsEl = document.getElementById('crystals');
-    const starsEl = document.getElementById('stars');
-    const bankCoinsEl = document.getElementById('bankCoins');
-    const bankCrystalsEl = document.getElementById('bankCrystals');
-    const bankStarsEl = document.getElementById('bankStars');
+    // Проверка что мы на странице фермы
+    const clickerPage = document.getElementById('clicker');
+    const isOnClickerPage = clickerPage && clickerPage.classList.contains('active');
+    
+    // Обновление баланса фермы (только если на странице фермы)
+    if (isOnClickerPage) {
+        const coinsEl = document.getElementById('coins');
+        const crystalsEl = document.getElementById('crystals');
+        const starsEl = document.getElementById('stars');
+        const bankCoinsEl = document.getElementById('bankCoins');
+        const bankCrystalsEl = document.getElementById('bankCrystals');
+        const bankStarsEl = document.getElementById('bankStars');
 
-    if (coinsEl) coinsEl.textContent = (Math.floor(gameState.coins * 100) / 100).toFixed(2);
-    if (crystalsEl) crystalsEl.textContent = formatNumber(gameState.crystals);
-    if (starsEl) starsEl.textContent = (gameState.stars || 0).toFixed(2);
-    if (bankCoinsEl) bankCoinsEl.textContent = (Math.floor((gameState.bankCoins || 0) * 100) / 100).toFixed(2);
-    if (bankCrystalsEl) bankCrystalsEl.textContent = (Math.floor((gameState.bankCrystals || 0) * 10000) / 10000).toFixed(4);
-    if (bankStarsEl) bankStarsEl.textContent = (gameState.bankStars || 0).toFixed(4);
+        if (coinsEl) coinsEl.textContent = (Math.floor(gameState.coins * 100) / 100).toFixed(2);
+        if (crystalsEl) crystalsEl.textContent = formatNumber(gameState.crystals);
+        if (starsEl) starsEl.textContent = (gameState.stars || 0).toFixed(2);
+        if (bankCoinsEl) bankCoinsEl.textContent = (Math.floor((gameState.bankCoins || 0) * 100) / 100).toFixed(2);
+        if (bankCrystalsEl) bankCrystalsEl.textContent = (Math.floor((gameState.bankCrystals || 0) * 10000) / 10000).toFixed(4);
+        if (bankStarsEl) bankStarsEl.textContent = (gameState.bankStars || 0).toFixed(4);
+    }
 
     // Синхронизация с главным state для обновления баланса
     syncGameState();
+    
+    // Обновляем баланс в главном меню (только если элементы существуют)
     if (typeof updateMainBalance === 'function') {
-        updateMainBalance();
+        try {
+            updateMainBalance();
+        } catch (e) {
+            // Игнорируем ошибки если элементов нет на странице
+        }
     }
 
     const levelBadge = document.getElementById('levelBadge');
@@ -5942,8 +5954,11 @@ function updateUI() {
         }
     }
 
-    document.getElementById('rerollCost').textContent = formatNumber(gameState.rerollCost || CONFIG.PRICES.REROLL_BASE);
-    document.getElementById('expandCost').textContent = formatNumber(gameState.expandCost || CONFIG.PRICES.EXPAND_BASE);
+    const rerollCostEl = document.getElementById('rerollCost');
+    if (rerollCostEl) rerollCostEl.textContent = formatNumber(gameState.rerollCost || CONFIG.PRICES.REROLL_BASE);
+    
+    const expandCostEl = document.getElementById('expandCost');
+    if (expandCostEl) expandCostEl.textContent = formatNumber(gameState.expandCost || CONFIG.PRICES.EXPAND_BASE);
 
     // Обновление силы ядра
     const corePowerEl = document.getElementById('corePower');
