@@ -3579,10 +3579,6 @@ body {
                         <i class="fas fa-random"></i>
                         Обновить (<span id="rerollCost">100</span>🪙)
                     </button>
-                    <button class="shop-btn expand" onclick="expandField()">
-                        <i class="fas fa-expand"></i>
-                        +1 строка (<span id="expandCost">2000</span>🪙)
-                    </button>
                 </div>
             </div>
 
@@ -4224,7 +4220,7 @@ body {
             
             // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage ===
             // Очищаем старое сохранение, чтобы данные брались из БД
-            const currentVersion = 'v3'; // Новая версия хранения
+            const currentVersion = '0.1.1';
             const savedVersion = localStorage.getItem('appVersion');
             
             if (savedVersion !== currentVersion) {
