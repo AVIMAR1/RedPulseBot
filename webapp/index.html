@@ -5492,40 +5492,41 @@ function syncGameState() {
     const maxCrystals = Math.max(state.crystals || 0, Math.floor(gameState.crystals || 0));
     const maxStars = Math.max(state.stars || 0, Math.floor(gameState.stars || 0));
     const maxClicks = Math.max(state.total_clicks || 0, gameState.totalTaps || 0);
-    
+
     // Обновляем ОБА источника
     state.click_coins = maxCoins;
     gameState.coins = maxCoins;
-    
+
     state.crystals = maxCrystals;
     gameState.crystals = maxCrystals;
-    
+
     state.stars = maxStars;
     gameState.stars = maxStars;
-    
+
     state.total_clicks = maxClicks;
     gameState.totalTaps = maxClicks;
 
-    // XP и уровень — берём максимум
+    // XP и уровень — берём максимум (НО НЕ ПЕРЕПИСЫВАЕМ при каждом клике!)
     const maxLevel = Math.max(state.level || 1, gameState.level || 1);
     const maxXp = Math.max(state.xp || 0, gameState.xp || 0);
-    
+
     state.level = maxLevel;
     gameState.level = maxLevel;
-    
+
     state.xp = maxXp;
     gameState.xp = maxXp;
-    
+
+    // xpToNext всегда из конфига
     state.xpToNext = CONFIG.XP.BASE_PER_LEVEL;
     gameState.xpToNext = CONFIG.XP.BASE_PER_LEVEL;
-    
+
     state.click_power = Math.floor(gameState.chargePower) || 1;
 
     // state ← gameState (банк из фермы)
     state.bank_coins = gameState.bankCoins || 0;
     state.bank_crystals = gameState.bankCrystals || 0;
     state.bank_stars = gameState.bankStars || 0;
-    
+
     console.log('[syncGameState] Синхронизация (MAX):', {
         coins: maxCoins,
         crystals: maxCrystals,
@@ -5654,7 +5655,9 @@ let gameState = {
     baseBlockPrice: CONFIG.PRICES.BLOCK_BASE, rerollCost: CONFIG.PRICES.REROLL_BASE, expandCost: CONFIG.PRICES.EXPAND_BASE,
     lastTapTime: 0, currentCooldown: 10000, isCharging: false,
     totalTaps: 0, totalEarned: 0, playTime: 0, firstPlay: true,
-    damageTaken: 0, lastDamageReset: Date.now(), coreBrokenUntil: 0
+    damageTaken: 0, lastDamageReset: Date.now(), coreBrokenUntil: 0,
+    // Статистика фермы (загружается из БД)
+    reactor_level: 1, blocks_placed: 0, reactions_triggered: 0
 };
 
 function initGrid() {
@@ -5743,7 +5746,12 @@ async function loadGame() {
                     // ВАЖНО: загружаем температуру из БД
                     if (data.temp !== undefined) gameState.temp = data.temp;
                     if (data.maxTemp !== undefined) gameState.maxTemp = data.maxTemp;
+                    // Загружаем статистику фермы из БД
+                    if (data.reactor_level !== undefined) gameState.reactor_level = data.reactor_level;
+                    if (data.blocks_placed !== undefined) gameState.blocks_placed = data.blocks_placed;
+                    if (data.reactions_triggered !== undefined) gameState.reactions_triggered = data.reactions_triggered;
                     console.log('[loadGame] Температура:', gameState.temp, '/', gameState.maxTemp);
+                    console.log('[loadGame] Ферма:', gameState.reactor_level, gameState.blocks_placed, gameState.reactions_triggered);
                     
                     // Пересчитываем chargePower
                     gameState.chargePower = CONFIG.BASE_CHARGE_POWER + (gameState.level - 1) * CONFIG.CHARGE_PER_LEVEL;
@@ -5878,10 +5886,10 @@ async function saveFarmState() {
             // Температура
             temp: gameState.temp || 0,
             maxTemp: gameState.maxTemp || 100,
-            // Статистика фермы
-            blocks_placed: gameState.grid ? gameState.grid.flat().filter(b => b).length : 0,
-            reactions_triggered: gameState.totalTaps || 0,
-            reactor_level: Math.max(...gameState.grid.flat().map(b => b?.level || 1).filter(l => l > 0)) || 1
+            // Статистика фермы (НЕ пересчитываем, а берём из gameState)
+            blocks_placed: gameState.blocks_placed || 0,
+            reactions_triggered: gameState.reactions_triggered || 0,
+            reactor_level: gameState.reactor_level || 1
         };
 
         console.log('[saveFarmState] Сохранение:', farmStateToSave);
