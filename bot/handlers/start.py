@@ -11,8 +11,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models import User, Case, UserCase, GlobalBank
 from bot.keyboards import main_menu, REFERRAL_BONUS, WEBAPP_URL
 from core.progression import progress_for_xp
-from core.achievements import check_and_grant_achievements
-from core.events import apply_event_bonuses
 
 router = Router()
 logger = logging.getLogger(__name__)
