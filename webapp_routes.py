@@ -32,10 +32,12 @@ async def get_webapp():
 
 @router.get("/api/user/{user_id}")
 async def get_user_data(user_id: int):
+    """Получение данных пользователя с логированием"""
     conn = get_db()
     cursor = conn.cursor()
-    
+
     try:
+        print(f'[get_user_data] Запрос для userId={user_id}')
         cursor.execute("""
             SELECT click_coins, stars, crystals, total_clicks,
                    click_power, auto_clicker, energy_multiplier, theme,
@@ -44,23 +46,28 @@ async def get_user_data(user_id: int):
             FROM users WHERE telegram_id = ?
         """, (user_id,))
         user = cursor.fetchone()
+        
+        if user:
+            print(f'[get_user_data] userId={user_id}, данные:', dict(user))
+        else:
+            print(f'[get_user_data] userId={user_id}, данных нет в БД')
     except Exception as e:
         print(f"Error fetching user: {e}")
         user = None
-    
+
     conn.close()
-    
+
     if user:
         def get(k, default=0):
             v = user[k]
             return default if v is None else v
-        
+
         xp = int(get("xp", 0) or 0)
         level = int(get("level", 1) or 1)
         if xp <= 0:
             xp = int(get("total_clicks", 0) or 0)
         p = progress_for_xp(xp)
-        
+
         return {
             "click_coins": get("click_coins", 0),
             "stars": get("stars", 0),
@@ -87,6 +94,55 @@ async def get_user_data(user_id: int):
         "first_name": "", "username": "", "created_at": "",
         "streak_days": 0, "referrals_count": 0, "tasks_completed": 0
     }
+
+
+@router.get("/api/debug/{user_id}")
+async def debug_user(user_id: int):
+    """DEBUG: Показывает ВСЕ данные пользователя из БД"""
+    conn = get_db()
+    cursor = conn.cursor()
+
+    try:
+        # Получаем ВСЕ колонки
+        cursor.execute("SELECT * FROM users WHERE telegram_id = ?", (user_id,))
+        user = cursor.fetchone()
+        
+        if not user:
+            return {
+                "error": "Пользователь не найден",
+                "telegram_id": user_id,
+                "БД": "redpulse.db"
+            }
+        
+        # Преобразуем в dict
+        user_dict = dict(user)
+        
+        # Получаем список колонок
+        columns = [description[0] for description in cursor.description]
+        
+        return {
+            "telegram_id": user_id,
+            "найдено": True,
+            "колонки": columns,
+            "данные": user_dict,
+            "farm_state_json": user_dict.get('farm_state_json'),
+            "кратко": {
+                "click_coins": user_dict.get('click_coins'),
+                "stars": user_dict.get('stars'),
+                "crystals": user_dict.get('crystals'),
+                "level": user_dict.get('level'),
+                "xp": user_dict.get('xp'),
+                "temp": user_dict.get('temp'),
+                "max_temp": user_dict.get('max_temp'),
+                "reactor_level": user_dict.get('reactor_level'),
+                "blocks_placed": user_dict.get('blocks_placed'),
+                "reactions_triggered": user_dict.get('reactions_triggered')
+            }
+        }
+    except Exception as e:
+        return {"error": str(e), "telegram_id": user_id}
+    finally:
+        conn.close()
 
 @router.post("/api/save-clicks")
 async def save_clicks(request: Request):
