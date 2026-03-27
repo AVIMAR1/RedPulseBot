@@ -3790,15 +3790,18 @@ body {
     </div>
 
     <script>
+        // Глобальный userId
+        let userId = null;
+        
         // Инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
         // Получаем userId из Telegram
-        const userId = tg.initDataUnsafe?.user?.id;
+        userId = tg.initDataUnsafe?.user?.id;
         console.log('[INIT] userId из Telegram:', userId);
-        
+
         if (!userId) {
             console.error('[INIT] ОШИБКА: userId не получен из Telegram!');
         }
