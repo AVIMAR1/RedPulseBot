@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-RedPulseBot - Сброс БД к чистой структуре v0.1.3
+RedPulseBot - Сброс БД к чистой структуре v0.1.7
 Удаляет ВСЕ данные и создаёт новую структуру
 """
 
@@ -42,6 +42,7 @@ def reset_database():
             telegram_id INTEGER UNIQUE NOT NULL,
             username TEXT,
             first_name TEXT,
+            last_name TEXT,
             click_coins INTEGER DEFAULT 0,
             stars INTEGER DEFAULT 0,
             crystals INTEGER DEFAULT 0,

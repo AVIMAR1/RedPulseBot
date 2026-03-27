@@ -3453,7 +3453,7 @@ body {
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <button class="help-btn-small" onclick="showHelp()" title="Справка">?</button>
-                    <div class="version">v0.1.6</div>
+                    <div class="version">v0.1.7</div>
                 </div>
             </header>
 
@@ -4193,8 +4193,8 @@ body {
         document.addEventListener('DOMContentLoaded', () => {
             console.log('[DOMContentLoaded] Страница загружена, userId:', userId);
             
-            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 0.1.6 ===
-            const currentVersion = '0.1.6';
+            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 0.1.7 ===
+            const currentVersion = '0.1.7';
             const savedVersion = localStorage.getItem('appVersion');
             
             if (savedVersion !== currentVersion) {
