@@ -208,11 +208,11 @@ def reset_database():
     conn.commit()
     conn.close()
 
-    print("\n✅ БД сброшена к v0.1.3!")
+    print("\n✅ БД сброшена к v0.1.7!")
     print(f"📁 Бэкап: {BACKUP_PATH}")
 
 if __name__ == "__main__":
-    print("🔴 Сброс БД RedPulseBot v0.1.3")
+    print("🔴 Сброс БД RedPulseBot v0.1.7")
     print("   Все данные будут удалены!")
     response = input("\nПродолжить? (yes): ")
     if response.lower() == 'yes':
