@@ -4723,7 +4723,7 @@ body {
                 const nameEl = document.getElementById('profile-name');
                 const usernameEl = document.getElementById('profile-username');
                 const avatarEl = document.getElementById('profile-avatar');
-                console.log('[loadProfile] Элементы:', { nameEl, usernameEl, avatarEl });
+                console.log('[loadProfile] Элементы:', nameEl ? 'OK' : 'NULL', usernameEl ? 'OK' : 'NULL', avatarEl ? 'OK' : 'NULL');
                 
                 // Загружаем данные профиля из БД
                 console.log('[loadProfile] Запрос к /api/profile/' + userId);
@@ -4772,7 +4772,7 @@ body {
                     const coinsEl = document.getElementById('profile-coins');
                     const starsEl = document.getElementById('profile-stars');
                     const crystalsEl = document.getElementById('profile-crystals');
-                    console.log('[loadProfile] Элементы баланса:', { coinsEl, starsEl, crystalsEl });
+                    console.log('[loadProfile] Элементы баланса:', coinsEl ? 'OK' : 'NULL', starsEl ? 'OK' : 'NULL', crystalsEl ? 'OK' : 'NULL');
                     
                     if (coinsEl) {
                         coinsEl.textContent = (data.click_coins || 0).toLocaleString();
@@ -4813,12 +4813,7 @@ body {
                     if (streakEl) streakEl.textContent = (data.streak_days || 0) + ' дней';
                     if (createdEl) createdEl.textContent = data.created_at ? new Date(data.created_at).toLocaleDateString('ru-RU') : '-';
                     
-                    console.log('[loadProfile] Остальные данные:', {
-                        tasks: data.tasks_completed,
-                        referrals: data.referrals_count,
-                        streak: data.streak_days,
-                        created: data.created_at
-                    });
+                    console.log('[loadProfile] Остальные данные:', data.tasks_completed, data.referrals_count, data.streak_days);
                 } else {
                     console.error('[loadProfile] Ошибка HTTP:', response.status);
                     const errorText = await response.text();
@@ -5021,18 +5016,14 @@ body {
             const balanceCrystals = document.getElementById('balance-crystals');
             const balanceStars = document.getElementById('balance-stars');
 
-            console.log('[updateMainBalanceWithAnimation] Элементы:', {
-                coins: !!balanceCoins,
-                crystals: !!balanceCrystals,
-                stars: !!balanceStars
-            });
+            console.log('[updateMainBalanceWithAnimation] Элементы:', balanceCoins ? 'OK' : 'NULL', balanceCrystals ? 'OK' : 'NULL', balanceStars ? 'OK' : 'NULL');
 
             // Читаем текущие значения из DOM (до обновления)
             const oldCoins = parseFloat((balanceCoins?.textContent || '0').replace(/,/g, '')) || 0;
             const oldCrystals = parseFloat((balanceCrystals?.textContent || '0').replace(/,/g, '')) || 0;
             const oldStars = parseFloat((balanceStars?.textContent || '0').replace(/,/g, '')) || 0;
 
-            console.log('[updateMainBalanceWithAnimation] Старые значения из DOM:', { oldCoins, oldCrystals, oldStars });
+            console.log('[updateMainBalanceWithAnimation] Старые значения:', oldCoins, oldCrystals, oldStars);
 
             // Получаем свежие данные из localStorage
             try {
@@ -5045,12 +5036,8 @@ body {
                     const newCrystals = mainState.crystals || 0;
                     const newStars = mainState.stars || 0;
 
-                    console.log('[updateMainBalanceWithAnimation] Новые значения из localStorage:', { newCoins, newCrystals, newStars });
-                    console.log('[updateMainBalanceWithAnimation] Сравнение:', {
-                        coinsChanged: newCoins !== oldCoins,
-                        crystalsChanged: newCrystals !== oldCrystals,
-                        starsChanged: newStars !== oldStars
-                    });
+                    console.log('[updateMainBalanceWithAnimation] Новые значения:', newCoins, newCrystals, newStars);
+                    console.log('[updateMainBalanceWithAnimation] Сравнение:', newCoins !== oldCoins, newCrystals !== oldCrystals, newStars !== oldStars);
 
                     // Обновляем state
                     state.click_coins = newCoins;
@@ -5530,15 +5517,7 @@ function syncGameState() {
     state.bank_crystals = gameState.bankCrystals || 0;
     state.bank_stars = gameState.bankStars || 0;
 
-    console.log('[syncGameState] Синхронизация (MAX):', {
-        coins: maxCoins,
-        crystals: maxCrystals,
-        stars: maxStars,
-        total_clicks: maxClicks,
-        level: maxLevel,
-        xp: maxXp,
-        xpToNext: state.xpToNext
-    });
+    console.log('[syncGameState] Синхронизация:', maxCoins, maxCrystals, maxStars, maxLevel, maxXp);
 }
 
 // Функции для изменения баланса (автоматически вызывают updateBalance)
@@ -5758,15 +5737,7 @@ async function loadGame() {
                     gameState.blocks_placed = dbData.blocks_placed || 0;
                     gameState.reactions_triggered = dbData.reactions_triggered || 0;
                     
-                    console.log('[loadGame] Данные из БД:', {
-                        coins: gameState.coins,
-                        level: gameState.level,
-                        xp: gameState.xp,
-                        xpToNext: gameState.xpToNext,
-                        reactor_level: gameState.reactor_level,
-                        temp: gameState.temp,
-                        maxTemp: gameState.maxTemp
-                    });
+                    console.log('[loadGame] Данные из БД:', gameState.coins, gameState.level, gameState.xp, gameState.temp, gameState.maxTemp);
                     
                     // Пересчитываем chargePower
                     gameState.chargePower = CONFIG.BASE_CHARGE_POWER + (gameState.level - 1) * CONFIG.CHARGE_PER_LEVEL;
