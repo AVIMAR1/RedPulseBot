@@ -4788,11 +4788,17 @@ body {
                 const nameEl = document.getElementById('profile-name');
                 const usernameEl = document.getElementById('profile-username');
                 const avatarEl = document.getElementById('profile-avatar');
-                console.log('[loadProfile] Элементы:', nameEl ? 'OK' : 'NULL', usernameEl ? 'OK' : 'NULL', avatarEl ? 'OK' : 'NULL');
+                console.log('[loadProfile] Элементы:', {
+                    name: nameEl ? 'OK' : 'NULL',
+                    username: usernameEl ? 'OK' : 'NULL',
+                    avatar: avatarEl ? 'OK' : 'NULL'
+                });
 
                 // Загружаем данные профиля из БД
-                console.log('[loadProfile] Запрос к /api/profile/' + userId);
-                const response = await fetch(`/api/profile/${userId}`);
+                const profileUrl = `/api/profile/${userId}`;
+                console.log('[loadProfile] Запрос к:', profileUrl);
+                
+                const response = await fetch(profileUrl);
                 console.log('[loadProfile] Ответ API status:', response.status);
 
                 if (response.ok) {
@@ -4842,25 +4848,23 @@ body {
                     const coinsEl = document.getElementById('profile-coins');
                     const starsEl = document.getElementById('profile-stars');
                     const crystalsEl = document.getElementById('profile-crystals');
-                    console.log('[loadProfile] Элементы баланса:', coinsEl ? 'OK' : 'NULL', starsEl ? 'OK' : 'NULL', crystalsEl ? 'OK' : 'NULL');
+                    console.log('[loadProfile] Элементы баланса:', {
+                        coins: coinsEl ? 'OK' : 'NULL',
+                        stars: starsEl ? 'OK' : 'NULL',
+                        crystals: crystalsEl ? 'OK' : 'NULL'
+                    });
 
                     if (coinsEl) {
                         coinsEl.textContent = (data.click_coins || 0).toLocaleString();
-                        console.log('[loadProfile] coinsEl.textContent:', coinsEl.textContent);
-                    } else {
-                        console.error('[loadProfile] НЕТ элемента profile-coins!');
+                        console.log('[loadProfile] coins:', coinsEl.textContent);
                     }
                     if (starsEl) {
                         starsEl.textContent = (data.stars || 0).toLocaleString();
-                        console.log('[loadProfile] starsEl.textContent:', starsEl.textContent);
-                    } else {
-                        console.error('[loadProfile] НЕТ элемента profile-stars!');
+                        console.log('[loadProfile] stars:', starsEl.textContent);
                     }
                     if (crystalsEl) {
                         crystalsEl.textContent = (data.crystals || 0).toLocaleString();
-                        console.log('[loadProfile] crystalsEl.textContent:', crystalsEl.textContent);
-                    } else {
-                        console.error('[loadProfile] НЕТ элемента profile-crystals!');
+                        console.log('[loadProfile] crystals:', crystalsEl.textContent);
                     }
 
                     // Уровень игрока и ядра
@@ -4868,6 +4872,10 @@ body {
                     const playerLevel = Math.floor((coreLevel - 1) / 5) + 1;
                     const coreLevelEl = document.getElementById('profile-core-level');
                     const playerLevelEl = document.getElementById('profile-level');
+                    console.log('[loadProfile] Элементы уровней:', {
+                        core: coreLevelEl ? 'OK' : 'NULL',
+                        player: playerLevelEl ? 'OK' : 'NULL'
+                    });
                     if (coreLevelEl) coreLevelEl.textContent = coreLevel;
                     if (playerLevelEl) playerLevelEl.textContent = playerLevel;
                     console.log('[loadProfile] Уровень ядра:', coreLevel, 'игрока:', playerLevel);
@@ -4875,9 +4883,18 @@ body {
                     // Блоки и реакции (из profile API)
                     const blocksEl = document.getElementById('profile-blocks');
                     const reactionsEl = document.getElementById('profile-reactions');
-                    if (blocksEl) blocksEl.textContent = (data.blocks_placed || 0).toLocaleString();
-                    if (reactionsEl) reactionsEl.textContent = (data.reactions_triggered || 0).toLocaleString();
-                    console.log('[loadProfile] Блоки:', data.blocks_placed, 'Реакции:', data.reactions_triggered);
+                    console.log('[loadProfile] Элементы фермы:', {
+                        blocks: blocksEl ? 'OK' : 'NULL',
+                        reactions: reactionsEl ? 'OK' : 'NULL'
+                    });
+                    if (blocksEl) {
+                        blocksEl.textContent = (data.blocks_placed || 0).toLocaleString();
+                        console.log('[loadProfile] Блоки:', blocksEl.textContent);
+                    }
+                    if (reactionsEl) {
+                        reactionsEl.textContent = (data.reactions_triggered || 0).toLocaleString();
+                        console.log('[loadProfile] Реакции:', reactionsEl.textContent);
+                    }
 
                     // Остальные данные
                     const tasksEl = document.getElementById('profile-tasks-done');
@@ -4890,7 +4907,12 @@ body {
                     if (streakEl) streakEl.textContent = (data.streak_days || 0) + ' дней';
                     if (createdEl) createdEl.textContent = data.created_at ? new Date(data.created_at).toLocaleDateString('ru-RU') : '-';
 
-                    console.log('[loadProfile] Остальные данные:', data.tasks_completed, data.referrals_count, data.streak_days);
+                    console.log('[loadProfile] Остальные данные:', {
+                        tasks: data.tasks_completed,
+                        referrals: data.referrals_count,
+                        streak: data.streak_days,
+                        created: data.created_at
+                    });
                 } else {
                     console.error('[loadProfile] Ошибка HTTP:', response.status);
                     const errorText = await response.text();
