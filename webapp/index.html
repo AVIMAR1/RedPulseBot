@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#e74c3c">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Red Pulse | Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -3814,6 +3817,63 @@ body {
 
         const user = tg.initDataUnsafe?.user;
 
+        // ==========================================
+        // КОНФИГУРАЦИЯ (должна быть определена ДО всех функций)
+        // ==========================================
+        const CONFIG = {
+            TEMP_PER_TAP: 15,
+            TEMP_COOLDOWN_RATE: 0.4,
+            TEMP_MAX_BASE: 100,
+            TAP_COOLDOWN: 10000,
+            BASE_CHARGE_POWER: 1,
+            CHARGE_PER_LEVEL: 0.5,
+            DROP_RATES: { COIN: 50, ROUTER: 25, MULTIPLIER: 10, DIAMOND: 10, STAR: 5 },
+            MULTIPLIER_VALUES: [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
+            MULTIPLIER_CHANCES: [35, 25, 18, 10, 6, 3, 2, 1],
+            ROUTER_VALUES: [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0],
+            RARITY_PRICE_MULT: { COIN: 1.0, ROUTER: 1.2, MULTIPLIER: 1.3, DIAMOND: 1.4, STAR: 1.5 },
+            PRICES: { BLOCK_BASE: 25, BLOCK_GROWTH: 1.25, BLOCK_ADD: 8, REROLL_BASE: 100, REROLL_GROWTH: 1.15, REROLL_ADD: 15, EXPAND_BASE: 2000, EXPAND_GROWTH: 1.35, EXPAND_ADD: 800 },
+            XP: { BASE_PER_TAP: 10, BASE_PER_LEVEL: 100, GROWTH: 1.15, LEVEL_BONUS_CHARGE: 0.05, LEVEL_BONUS_TEMP: 10 },
+            CONVERSION: { COIN: 1, DIAMOND: 3000, STAR: 50000 },
+            SELL_BASE: 20,
+            SELL_LEVEL_MULT: 1.5,
+            LEVEL_BENEFITS: [
+                { level: 1, benefit: 'Начало игры' },
+                { level: 5, benefit: '+25% к температуре' },
+                { level: 10, benefit: 'Открыт магазин' },
+                { level: 15, benefit: '+50% к температуре' },
+                { level: 20, benefit: 'x2 к XP' },
+                { level: 25, benefit: '+75% к температуре' },
+                { level: 30, benefit: 'Максимальный уровень!' }
+            ]
+        };
+
+        // Константы фермы
+        const CELL_SIZE = 33;
+        const GAP = 3;
+        const FIELD_COLS = 7;
+        const FIELD_ROWS = 7;
+        const CHARGE_COL = 3;
+        const MIN_TEMP_FOR_TAP = 10;
+        const MIN_COOLDOWN = 5000;
+        const MAX_COOLDOWN = 10000;
+        const MAX_DAMAGE_PER_HOUR = 3;
+        const CORE_BREAK_DURATION = 3600000;
+
+        const BLOCK_TYPES = { COIN: 'coin', DIAMOND: 'diamond', STAR: 'star', ROUTER: 'router', MULTIPLIER: 'multiplier' };
+        const ROUTER_TYPES = { DIRECTOR: 'director', MULTIPLIER: 'multi' };
+        const ROUTER_CONFIGS = [
+            { type: ROUTER_TYPES.DIRECTOR, ports: ['top', 'right'] },
+            { type: ROUTER_TYPES.DIRECTOR, ports: ['top', 'left'] },
+            { type: ROUTER_TYPES.DIRECTOR, ports: ['bottom', 'right'] },
+            { type: ROUTER_TYPES.DIRECTOR, ports: ['bottom', 'left'] },
+            { type: ROUTER_TYPES.MULTIPLIER, ports: ['top', 'bottom', 'left'] },
+            { type: ROUTER_TYPES.MULTIPLIER, ports: ['top', 'bottom', 'right'] },
+            { type: ROUTER_TYPES.MULTIPLIER, ports: ['top', 'left', 'right'] },
+            { type: ROUTER_TYPES.MULTIPLIER, ports: ['bottom', 'left', 'right'] },
+            { type: ROUTER_TYPES.MULTIPLIER, ports: ['top', 'bottom', 'left', 'right'] }
+        ];
+
         // Состояние приложения
         let state = {
             click_coins: 0,
@@ -5566,62 +5626,6 @@ function spendStars(amount) {
     return true;
 }
 
-const CONFIG = {
-    TEMP_PER_TAP: 15,
-    TEMP_COOLDOWN_RATE: 0.4,
-    TEMP_MAX_BASE: 100,
-    TAP_COOLDOWN: 10000,
-    BASE_CHARGE_POWER: 1,
-    CHARGE_PER_LEVEL: 0.5,  // +0.5 к силе заряда за уровень (было 0.15)
-    DROP_RATES: { COIN: 50, ROUTER: 25, MULTIPLIER: 10, DIAMOND: 10, STAR: 5 },
-    MULTIPLIER_VALUES: [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
-    MULTIPLIER_CHANCES: [35, 25, 18, 10, 6, 3, 2, 1],
-    ROUTER_VALUES: [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0],
-    RARITY_PRICE_MULT: { COIN: 1.0, ROUTER: 1.2, MULTIPLIER: 1.3, DIAMOND: 1.4, STAR: 1.5 },
-    PRICES: { BLOCK_BASE: 25, BLOCK_GROWTH: 1.25, BLOCK_ADD: 8, REROLL_BASE: 100, REROLL_GROWTH: 1.15, REROLL_ADD: 15, EXPAND_BASE: 2000, EXPAND_GROWTH: 1.35, EXPAND_ADD: 800 },
-    XP: { BASE_PER_TAP: 10, BASE_PER_LEVEL: 100, GROWTH: 1.15, LEVEL_BONUS_CHARGE: 0.05, LEVEL_BONUS_TEMP: 10 },
-    CONVERSION: { COIN: 1, DIAMOND: 3000, STAR: 50000 },
-    SELL_BASE: 20,
-    SELL_LEVEL_MULT: 1.5,
-    LEVEL_BENEFITS: [
-        { level: 1, benefit: 'Начало игры' },
-        { level: 5, benefit: '+25% к температуре' },
-        { level: 10, benefit: 'Открыт магазин' },
-        { level: 15, benefit: '+50% к температуре' },
-        { level: 20, benefit: 'x2 к XP' },
-        { level: 25, benefit: '+75% к температуре' },
-        { level: 30, benefit: 'Максимальный уровень!' }
-    ]
-};
-
-const CELL_SIZE = 33;
-const GAP = 3;
-const FIELD_COLS = 7;
-const FIELD_ROWS = 7;
-const CHARGE_COL = 3;
-const TEMP_PER_TAP = 15;
-const TEMP_COOLDOWN_RATE = 0.4;
-const TEMP_MAX_BASE = 100;
-const MIN_TEMP_FOR_TAP = 10;
-const MIN_COOLDOWN = 5000;
-const MAX_COOLDOWN = 10000;
-const MAX_DAMAGE_PER_HOUR = 3;
-const CORE_BREAK_DURATION = 3600000;
-
-const BLOCK_TYPES = { COIN: 'coin', DIAMOND: 'diamond', STAR: 'star', ROUTER: 'router', MULTIPLIER: 'multiplier' };
-const ROUTER_TYPES = { DIRECTOR: 'director', MULTIPLIER: 'multi' };
-const ROUTER_CONFIGS = [
-    { type: ROUTER_TYPES.DIRECTOR, ports: ['top', 'right'] },
-    { type: ROUTER_TYPES.DIRECTOR, ports: ['top', 'left'] },
-    { type: ROUTER_TYPES.DIRECTOR, ports: ['bottom', 'right'] },
-    { type: ROUTER_TYPES.DIRECTOR, ports: ['bottom', 'left'] },
-    { type: ROUTER_TYPES.MULTIPLIER, ports: ['top', 'bottom', 'left'] },
-    { type: ROUTER_TYPES.MULTIPLIER, ports: ['top', 'bottom', 'right'] },
-    { type: ROUTER_TYPES.MULTIPLIER, ports: ['top', 'left', 'right'] },
-    { type: ROUTER_TYPES.MULTIPLIER, ports: ['bottom', 'left', 'right'] },
-    { type: ROUTER_TYPES.MULTIPLIER, ports: ['top', 'bottom', 'left', 'right'] }
-];
-
 // Глобальная функция получения класса цвета уровня
 window.getLevelColorClass = function(level) {
     if (level >= 21) return 'block-level-21-23';
@@ -5805,7 +5809,7 @@ async function saveFarmStats() {
         return;
     }
 
-    try:
+    try {
         // Считаем уровень реактора (максимальный уровень блока)
         let maxBlockLevel = 1;
         let blocksCount = 0;
