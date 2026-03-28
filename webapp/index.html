@@ -3803,7 +3803,10 @@ body {
         console.log('[INIT] userId из Telegram:', userId);
 
         if (!userId) {
-            console.error('[INIT] ОШИБКА: userId не получен из Telegram!');
+            console.warn('[INIT] userId не получен из Telegram! Запуск в режиме отладки (браузер).');
+            // ТЕСТОВЫЙ userId для отладки в браузере
+            userId = 999999999;
+            console.log('[INIT] Установлен тестовый userId:', userId);
         }
 
         // Делаем userId глобально доступным для pf_script.js
@@ -5449,7 +5452,7 @@ if (typeof tg !== 'undefined') {
 // ==========================================
 
 // Центральная функция обновления баланса - вызывает обновление UI и сохранение
-function updateBalance() {
+window.updateBalance = function() {
     if (typeof isSyncing !== 'undefined' && isSyncing) return;
     window.isSyncing = true;
 
@@ -5474,7 +5477,7 @@ function updateBalance() {
 }
 
 // Синхронизация gameState и state — БЕРЁМ МАКСИМУМ из обоих источников
-function syncGameState() {
+window.syncGameState = function() {
     if (typeof state === 'undefined' || typeof gameState === 'undefined') return;
 
     // БЕРЁМ МАКСИМУМ — валюта из бота ИЛИ фермы
@@ -5619,7 +5622,8 @@ const ROUTER_CONFIGS = [
     { type: ROUTER_TYPES.MULTIPLIER, ports: ['top', 'bottom', 'left', 'right'] }
 ];
 
-function getLevelColorClass(level) {
+// Глобальная функция получения класса цвета уровня
+window.getLevelColorClass = function(level) {
     if (level >= 21) return 'block-level-21-23';
     if (level >= 18) return 'block-level-18-20';
     if (level >= 15) return 'block-level-15-17';
@@ -5712,9 +5716,10 @@ function getBlockFullName(block) {
     return `${name} ${levelStr}`;
 }
 
-async function loadGame() {
+// Глобальная функция загрузки игры
+window.loadGame = async function() {
     console.log('[loadGame] Начало загрузки, userId:', userId);
-    
+
     // ЗАГРУЖАЕМ ТОЛЬКО ИЗ БД (localStorage не используется!)
     if (userId) {
         try {
@@ -5722,7 +5727,7 @@ async function loadGame() {
             if (response.ok) {
                 const dbData = await response.json();
                 console.log('[loadGame] Загружено из БД:', dbData);
-                
+
                 if (dbData && Object.keys(dbData).length > 0) {
                     // Загружаем ВСЕ данные из БД
                     gameState.coins = dbData.coins || 0;
@@ -5781,7 +5786,8 @@ async function loadGame() {
     startPassiveEffects();
 }
 
-async function saveGame() {
+// Глобальная функция сохранения игры
+window.saveGame = async function() {
     gameState.playTime = Math.floor((Date.now() - (gameState.lastSaveTime || Date.now())) / 1000) + (gameState.playTime || 0);
     gameState.lastSaveTime = Date.now();
 
@@ -5901,11 +5907,12 @@ async function saveFarmState() {
     }
 }
 
-function updateUI() {
+// Глобальная функция обновления UI фермы
+window.updateUI = function() {
     // Проверка что мы на странице фермы
     const clickerPage = document.getElementById('clicker');
     const isOnClickerPage = clickerPage && clickerPage.classList.contains('active');
-    
+
     // Обновление баланса фермы (только если на странице фермы)
     if (isOnClickerPage) {
         const coinsEl = document.getElementById('coins');
@@ -6034,7 +6041,8 @@ function updateUI() {
     renderShopItems();
 }
 
-function renderShopItems() {
+// Глобальная функция отрисовки магазина
+window.renderShopItems = function() {
     const container = document.getElementById('shopItemsContainer');
     if (!container) return;
     container.innerHTML = '';
@@ -6061,13 +6069,15 @@ function renderShopItems() {
     });
 }
 
-function formatNumber(num) {
+// Глобальная функция форматирования чисел
+window.formatNumber = function(num) {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
 }
 
-function renderGrid() {
+// Глобальная функция отрисовки сетки
+window.renderGrid = function() {
     const gridEl = document.getElementById('fieldGrid');
     if (!gridEl) {
         console.error('renderGrid: fieldGrid элемент не найден!');
@@ -6130,13 +6140,14 @@ function renderGrid() {
     }
 }
 
-function tapCore() {
+// Глобальная функция для кнопки ядра (сделана глобальной через window)
+window.tapCore = function tapCore() {
     // Проверка что gameState определён
     if (typeof gameState === 'undefined') {
         console.error('tapCore: gameState не определён');
         return;
     }
-    
+
     if (gameState.isCharging) return;
 
     const now = Date.now();
@@ -6610,7 +6621,8 @@ function levelUp() {
     }
 }
 
-function buyShopItem(index) {
+// Глобальная функция для покупки блока в ферме
+window.buyShopItem = function(index) {
     const item = gameState.shopItems[index];
     if (!item) return;
 
@@ -6666,7 +6678,8 @@ function buyShopItem(index) {
     renderGrid();
 }
 
-function rerollShop() {
+// Глобальная функция для обновления магазина
+window.rerollShop = function() {
     if ((state.click_coins || 0) < (gameState.rerollCost || CONFIG.PRICES.REROLL_BASE)) {
         showToast('Недостаточно монет!', 'error');
         return;
@@ -6678,7 +6691,8 @@ function rerollShop() {
     updateBalance();
 }
 
-function expandField() {
+// Глобальная функция для расширения поля
+window.expandField = function() {
     if ((state.click_coins || 0) < (gameState.expandCost || CONFIG.PRICES.EXPAND_BASE)) {
         showToast('Недостаточно монет!', 'error');
         return;
@@ -6696,7 +6710,8 @@ function expandField() {
     renderGrid();
 }
 
-function sellSelected() {
+// Глобальная функция для продажи блока
+window.sellSelected = function() {
     if (!gameState.selectedCell) {
         showToast('Выберите блок!', 'warning');
         return;
@@ -6729,7 +6744,8 @@ function sellSelected() {
     renderGrid();
 }
 
-function withdraw() {
+// Глобальная функция для вывода из банка
+window.withdraw = function() {
     let withdrawn = false;
     if ((gameState.bankCoins || 0) >= 1) {
         const amount = Math.floor(gameState.bankCoins);
@@ -6773,7 +6789,8 @@ function withdraw() {
     }
 }
 
-function repairCore() {
+// Глобальная функция для починки ядра
+window.repairCore = function() {
     if (gameState.coreBrokenUntil > Date.now()) {
         // Починка без просмотра рекламы (пока рекламы нет)
         gameState.coreBrokenUntil = 0;
@@ -6781,11 +6798,11 @@ function repairCore() {
         gameState.temp = 0;
         showToast('✅ Ядро починено!', 'success');
         if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-        
+
         // Скрываем кнопку
         const repairBtn = document.getElementById('repairBtn');
         if (repairBtn) repairBtn.style.display = 'none';
-        
+
         updateUI();
         saveGame();
     }
@@ -6793,7 +6810,8 @@ function repairCore() {
 
 let selectedForMove = null;
 
-function onCellClick(e, row, col) {
+// Глобальная функция для клика по ячейке
+window.onCellClick = function(e, row, col) {
     const block = gameState.grid[row][col];
 
     if (selectedForMove) {
@@ -6896,7 +6914,8 @@ function onCellClick(e, row, col) {
     }
 }
 
-function startPassiveEffects() {
+// Глобальная функция запуска пассивных эффектов
+window.startPassiveEffects = function() {
     // Temperature cooldown
     setInterval(() => {
         if (gameState.temp > 0) {
@@ -6932,17 +6951,19 @@ function showFirstTimeHelp() {
     document.getElementById('helpModal').classList.add('active');
 }
 
-function showHelp() {
+// Глобальные функции справки
+window.showHelp = function() {
     const helpContent = `<strong>🔥 RedPulse Farm!</strong><br><br>Здесь энергия ядра превращается в богатство. Запускайте заряды, чтобы активировать блоки на ферме и зарабатывать монеты, алмазы и звезды.<br><br><strong>⚙️ КАК ЭТО РАБОТАЕТ:</strong><br>Устанавливайте блоки с умом:<br>💰 Блоки валют — приносят доход.<br>🔄 Маршрутизатор — принимает импульс и отправляет его дальше, преумножая мощность.<br>⚡ Бустер — усиливает заряд.<br><br>🔄 Скрещивание: Повышайте уровень блоков, чтобы увеличить награду.<br><br><strong>⚠️ ВНИМАНИЕ: КОНТРОЛЬ ТЕМПЕРАТУРЫ!</strong><br>Каждый выстрел нагревает ядро на 15 градусов. Если перегреть систему, ядро начнет разрушаться. Три аварии — и ядро встанет на 1 час. Следите за датчиками!<br><br><strong>📅 О СЕЗОНАХ:</strong><br>После окончания сезона монеты и звезды сгорают, но алмазы остаются у вас навсегда.`;
     document.getElementById('helpBody').innerHTML = helpContent;
     document.getElementById('helpModal').classList.add('active');
 }
 
-function closeHelp() {
+window.closeHelp = function() {
     document.getElementById('helpModal').classList.remove('active');
 }
 
-function showToast(message, type = 'success') {
+// Глобальная функция уведомлений
+window.showToast = function(message, type = 'success') {
     const toast = document.getElementById('toast');
     const toastIcon = document.getElementById('toastIcon');
     const toastMessage = document.getElementById('toastMessage');
@@ -6990,7 +7011,7 @@ function showFloatingEarn(row, col, text, type) {
 
 // Функция инициализации игры
 let gameInitialized = false;
-function initGame() {
+window.initGame = function() {
     if (gameInitialized) return;
 
     loadGame();
