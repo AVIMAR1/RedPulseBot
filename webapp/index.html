@@ -3837,6 +3837,12 @@ body {
             CONVERSION: { COIN: 1, DIAMOND: 3000, STAR: 50000 },
             SELL_BASE: 20,
             SELL_LEVEL_MULT: 1.5,
+            // Константы для ядра
+            MIN_TEMP_FOR_TAP: 10,
+            MIN_COOLDOWN: 5000,
+            MAX_COOLDOWN: 10000,
+            MAX_DAMAGE_PER_HOUR: 3,
+            CORE_BREAK_DURATION: 3600000,
             LEVEL_BENEFITS: [
                 { level: 1, benefit: 'Начало игры' },
                 { level: 5, benefit: '+25% к температуре' },
@@ -3854,12 +3860,8 @@ body {
         const FIELD_COLS = 7;
         const FIELD_ROWS = 7;
         const CHARGE_COL = 3;
-        const MIN_TEMP_FOR_TAP = 10;
-        const MIN_COOLDOWN = 5000;
-        const MAX_COOLDOWN = 10000;
-        const MAX_DAMAGE_PER_HOUR = 3;
-        const CORE_BREAK_DURATION = 3600000;
 
+        // Типы блоков
         const BLOCK_TYPES = { COIN: 'coin', DIAMOND: 'diamond', STAR: 'star', ROUTER: 'router', MULTIPLIER: 'multiplier' };
         const ROUTER_TYPES = { DIRECTOR: 'director', MULTIPLIER: 'multi' };
         const ROUTER_CONFIGS = [
@@ -5960,7 +5962,7 @@ window.updateUI = function() {
     const tempFill = document.getElementById('tempFill');
     const currentTemp = gameState.temp || 0;
     const availableTemp = (gameState.maxTemp || 100) - currentTemp;
-    const isTempCritical = availableTemp < TEMP_PER_TAP; // Меньше 15 = критично (нужно 15 для тапа)
+    const isTempCritical = availableTemp < CONFIG.TEMP_PER_TAP; // Меньше 15 = критично (нужно 15 для тапа)
 
     if (tempText) tempText.textContent = `${Math.floor(currentTemp)}/${gameState.maxTemp || 100}`;
     if (tempFill) {
@@ -6181,18 +6183,18 @@ window.tapCore = function tapCore() {
 
     // Check temperature - show warning BEFORE damage
     const availableTemp = gameState.maxTemp - gameState.temp;
-    if (availableTemp < MIN_TEMP_FOR_TAP) {
+    if (availableTemp < CONFIG.MIN_TEMP_FOR_TAP) {
         // Show critical warning if this is the last warning
         const warningOverlay = document.getElementById('warningOverlay');
         const warningText = document.getElementById('warningText');
 
-        if (gameState.damageTaken >= MAX_DAMAGE_PER_HOUR - 1) {
+        if (gameState.damageTaken >= CONFIG.MAX_DAMAGE_PER_HOUR - 1) {
             // Last warning - critical
             warningOverlay.classList.add('critical');
             warningText.textContent = '⚠️ ПОСЛЕДНЕЕ ПРЕДУПРЕЖДЕНИЕ! СЛОМАЕТСЯ!';
         } else {
             warningOverlay.classList.remove('critical');
-            warningText.textContent = `⚠️ ПЕРЕГРЕВ! Ещё ${MAX_DAMAGE_PER_HOUR - gameState.damageTaken - 1} предупрежд.`;
+            warningText.textContent = `⚠️ ПЕРЕГРЕВ! Ещё ${CONFIG.MAX_DAMAGE_PER_HOUR - gameState.damageTaken - 1} предупрежд.`;
         }
 
         warningOverlay.classList.add('show');
@@ -6218,8 +6220,8 @@ window.tapCore = function tapCore() {
         fieldWrapper?.classList.add('field-damaged');
         setTimeout(() => { fieldWrapper?.classList.remove('field-damaged'); }, 500);
 
-        if (gameState.damageTaken >= MAX_DAMAGE_PER_HOUR) {
-            gameState.coreBrokenUntil = now + CORE_BREAK_DURATION;
+        if (gameState.damageTaken >= CONFIG.MAX_DAMAGE_PER_HOUR) {
+            gameState.coreBrokenUntil = now + CONFIG.CORE_BREAK_DURATION;
             showToast(`Ядро СЛОМАНО! 60м 00с`, 'error');
             fieldWrapper?.classList.add('field-broken');
             // Hide warning overlay
@@ -6232,9 +6234,9 @@ window.tapCore = function tapCore() {
     }
 
     // Normal tap
-    gameState.currentCooldown = Math.floor(Math.random() * (MAX_COOLDOWN - MIN_COOLDOWN + 1)) + MIN_COOLDOWN;
+    gameState.currentCooldown = Math.floor(Math.random() * (CONFIG.MAX_COOLDOWN - CONFIG.MIN_COOLDOWN + 1)) + CONFIG.MIN_COOLDOWN;
     gameState.lastTapTime = now;
-    gameState.temp = Math.min(gameState.temp + TEMP_PER_TAP, gameState.maxTemp);
+    gameState.temp = Math.min(gameState.temp + CONFIG.TEMP_PER_TAP, gameState.maxTemp);
     gameState.isCharging = true;
     gameState.totalTaps++;
 
