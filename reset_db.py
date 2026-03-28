@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-RedPulseBot - Сброс БД к чистой структуре v0.1.7
+RedPulseBot - Сброс БД к чистой структуре v1.3
 Удаляет ВСЕ данные и создаёт новую структуру
 """
 
@@ -10,6 +10,7 @@ from datetime import datetime
 
 DB_PATH = 'redpulse.db'
 BACKUP_PATH = f'redpulse_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db'
+VERSION = '1.3'
 
 def reset_database():
     # Бэкап
@@ -26,16 +27,16 @@ def reset_database():
     # Удаляем все таблицы
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
     tables = cursor.fetchall()
-    
+
     for table in tables:
         if table[0] != 'sqlite_sequence':
             cursor.execute(f"DROP TABLE IF EXISTS {table[0]}")
             print(f"   └─ Удалена: {table[0]}")
 
     # Создаём новые таблицы
-    print("\n📋 Создаём новую структуру...")
+    print(f"\n📋 Создаём новую структуру v{VERSION}...")
 
-    # Users
+    # Users - полная структура для фермы
     cursor.execute("""
         CREATE TABLE users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,6 +48,7 @@ def reset_database():
             stars INTEGER DEFAULT 0,
             crystals INTEGER DEFAULT 0,
             referrer_id INTEGER,
+            referral_bonus INTEGER DEFAULT 0,
             referrals_count INTEGER DEFAULT 0,
             total_clicks INTEGER DEFAULT 0,
             tasks_completed INTEGER DEFAULT 0,
@@ -55,21 +57,38 @@ def reset_database():
             streak_days INTEGER DEFAULT 0,
             streak_last_date TEXT,
             last_daily_reward_at TEXT,
+            last_random_bonus_at TEXT,
+            click_power INTEGER DEFAULT 1,
+            energy_multiplier INTEGER DEFAULT 1,
+            auto_clicker INTEGER DEFAULT 0,
+            theme TEXT DEFAULT 'default',
+            is_banned INTEGER DEFAULT 0,
+            ban_reason TEXT,
+            ban_expires TEXT,
+            banned_at TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            -- Ферма (реактор)
+            reactor_level INTEGER DEFAULT 1,
             blocks_placed INTEGER DEFAULT 0,
             reactions_triggered INTEGER DEFAULT 0,
-            reactor_level INTEGER DEFAULT 1,
             total_energy_produced INTEGER DEFAULT 0,
             farm_state_json TEXT,
             temp INTEGER DEFAULT 0,
             max_temp INTEGER DEFAULT 100,
-            click_power INTEGER DEFAULT 1,
-            energy_multiplier INTEGER DEFAULT 1,
-            auto_clicker INTEGER DEFAULT 0,
-            is_banned INTEGER DEFAULT 0,
-            ban_reason TEXT,
-            ban_expires TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            -- Петомец
+            gender TEXT DEFAULT 'male',
+            pet_type TEXT,
+            pet_name TEXT,
+            pet_level INTEGER DEFAULT 1,
+            pet_xp INTEGER DEFAULT 0,
+            pet_hunger INTEGER DEFAULT 100,
+            pet_happiness INTEGER DEFAULT 100,
+            pet_last_interaction TEXT,
+            -- Титулы
+            current_title_id INTEGER,
+            -- Предупреждения
+            warnings_count INTEGER DEFAULT 0
         )
     """)
     print("   └─ users ✓")
@@ -198,21 +217,34 @@ def reset_database():
     """)
     print("   └─ broadcast_messages ✓")
 
+    # Rewards
+    cursor.execute("""
+        CREATE TABLE rewards (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            reward_type TEXT NOT NULL,
+            amount INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    print("   └─ rewards ✓")
+
     # Индексы
     cursor.execute("CREATE INDEX ix_users_stars ON users(stars)")
     cursor.execute("CREATE INDEX ix_users_telegram_id ON users(telegram_id)")
     cursor.execute("CREATE INDEX ix_users_level ON users(level)")
+    cursor.execute("CREATE INDEX ix_users_reactor ON users(reactor_level)")
     cursor.execute("CREATE INDEX ix_support_tickets_status ON support_tickets(status)")
     print("   └─ Индексы ✓")
 
     conn.commit()
     conn.close()
 
-    print("\n✅ БД сброшена к v0.1.7!")
+    print(f"\n✅ БД сброшена к v{VERSION}!")
     print(f"📁 Бэкап: {BACKUP_PATH}")
 
 if __name__ == "__main__":
-    print("🔴 Сброс БД RedPulseBot v0.1.7")
+    print(f"🔴 Сброс БД RedPulseBot v{VERSION}")
     print("   Все данные будут удалены!")
     response = input("\nПродолжить? (yes): ")
     if response.lower() == 'yes':

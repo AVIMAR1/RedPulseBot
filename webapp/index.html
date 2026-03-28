@@ -4261,8 +4261,8 @@ body {
         document.addEventListener('DOMContentLoaded', () => {
             console.log('[DOMContentLoaded] Страница загружена, userId:', userId);
             
-            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 0.1.7 ===
-            const currentVersion = '0.1.7';
+            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 1.3 ===
+            const currentVersion = '1.3';
             const savedVersion = localStorage.getItem('appVersion');
             
             if (savedVersion !== currentVersion) {
@@ -4773,28 +4773,28 @@ body {
             console.log('==================== [loadProfile] START ====================');
             console.log('[loadProfile] userId:', userId);
             console.log('[loadProfile] tg:', typeof tg);
-            
+
             if (!userId) {
                 console.error('[loadProfile] НЕТ userId!');
                 return;
             }
-            
+
             try {
                 // Получаем данные из Telegram
                 const tgUser = tg.initDataUnsafe?.user;
                 console.log('[loadProfile] tgUser:', tgUser);
-                
+
                 // Проверяем элементы
                 const nameEl = document.getElementById('profile-name');
                 const usernameEl = document.getElementById('profile-username');
                 const avatarEl = document.getElementById('profile-avatar');
                 console.log('[loadProfile] Элементы:', nameEl ? 'OK' : 'NULL', usernameEl ? 'OK' : 'NULL', avatarEl ? 'OK' : 'NULL');
-                
+
                 // Загружаем данные профиля из БД
                 console.log('[loadProfile] Запрос к /api/profile/' + userId);
                 const response = await fetch(`/api/profile/${userId}`);
                 console.log('[loadProfile] Ответ API status:', response.status);
-                
+
                 if (response.ok) {
                     const data = await response.json();
                     console.log('[loadProfile] Данные из БД:', JSON.stringify(data, null, 2));
@@ -4822,15 +4822,20 @@ body {
                                 avatarEl.textContent = '';
                             } else {
                                 console.log('[loadProfile] Нет photo_url, ставим заглушку');
-                                avatarEl.textContent = '👤';
-                                avatarEl.style.backgroundImage = 'none';
+                                avatarEl.textContent = getInitials(fullName || data.first_name || 'Игрок');
+                                avatarEl.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
                             }
                         }
                     } else {
+                        // Запуск через браузер (не из Telegram)
                         console.log('[loadProfile] Нет tgUser, используем данные из БД');
-                        if (nameEl) nameEl.textContent = data.first_name || 'Игрок';
-                        if (usernameEl) usernameEl.textContent = data.username ? '@' + data.username : '@не указан';
-                        if (avatarEl) avatarEl.textContent = '👤';
+                        const fullName = data.first_name || 'Тестовый Пользователь';
+                        if (nameEl) nameEl.textContent = fullName;
+                        if (usernameEl) usernameEl.textContent = data.username ? '@' + data.username : '@test_user';
+                        if (avatarEl) {
+                            avatarEl.textContent = getInitials(fullName);
+                            avatarEl.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+                        }
                     }
 
                     // Баланс
@@ -4838,7 +4843,7 @@ body {
                     const starsEl = document.getElementById('profile-stars');
                     const crystalsEl = document.getElementById('profile-crystals');
                     console.log('[loadProfile] Элементы баланса:', coinsEl ? 'OK' : 'NULL', starsEl ? 'OK' : 'NULL', crystalsEl ? 'OK' : 'NULL');
-                    
+
                     if (coinsEl) {
                         coinsEl.textContent = (data.click_coins || 0).toLocaleString();
                         console.log('[loadProfile] coinsEl.textContent:', coinsEl.textContent);
@@ -4867,17 +4872,24 @@ body {
                     if (playerLevelEl) playerLevelEl.textContent = playerLevel;
                     console.log('[loadProfile] Уровень ядра:', coreLevel, 'игрока:', playerLevel);
 
+                    // Блоки и реакции (из profile API)
+                    const blocksEl = document.getElementById('profile-blocks');
+                    const reactionsEl = document.getElementById('profile-reactions');
+                    if (blocksEl) blocksEl.textContent = (data.blocks_placed || 0).toLocaleString();
+                    if (reactionsEl) reactionsEl.textContent = (data.reactions_triggered || 0).toLocaleString();
+                    console.log('[loadProfile] Блоки:', data.blocks_placed, 'Реакции:', data.reactions_triggered);
+
                     // Остальные данные
                     const tasksEl = document.getElementById('profile-tasks-done');
                     const referralsEl = document.getElementById('profile-referrals');
                     const streakEl = document.getElementById('profile-streak');
                     const createdEl = document.getElementById('profile-created');
-                    
+
                     if (tasksEl) tasksEl.textContent = data.tasks_completed || 0;
                     if (referralsEl) referralsEl.textContent = data.referrals_count || 0;
                     if (streakEl) streakEl.textContent = (data.streak_days || 0) + ' дней';
                     if (createdEl) createdEl.textContent = data.created_at ? new Date(data.created_at).toLocaleDateString('ru-RU') : '-';
-                    
+
                     console.log('[loadProfile] Остальные данные:', data.tasks_completed, data.referrals_count, data.streak_days);
                 } else {
                     console.error('[loadProfile] Ошибка HTTP:', response.status);
@@ -4898,36 +4910,21 @@ body {
                 } catch (e) {
                     console.error('[loadProfile] Ошибка загрузки рейтинга:', e);
                 }
-
-                // Загружаем статистику фермы из БД
-                try {
-                    const farmStatsResponse = await fetch(`/api/farm-stats/${userId}`);
-                    console.log('[loadProfile] Farm stats response:', farmStatsResponse.status);
-                    if (farmStatsResponse.ok) {
-                        const farmStats = await farmStatsResponse.json();
-                        console.log('[loadProfile] Ферма данные:', farmStats);
-                        if (farmStats.reactor_level) {
-                            document.getElementById('profile-core-level').textContent = farmStats.reactor_level;
-                            const playerLevel = Math.floor((farmStats.reactor_level - 1) / 5) + 1;
-                            document.getElementById('profile-level').textContent = playerLevel;
-                        }
-                        if (farmStats.blocks_placed !== undefined) {
-                            const blocksEl = document.getElementById('profile-blocks');
-                            if (blocksEl) blocksEl.textContent = farmStats.blocks_placed.toLocaleString();
-                        }
-                        if (farmStats.reactions_triggered !== undefined) {
-                            const reactionsEl = document.getElementById('profile-reactions');
-                            if (reactionsEl) reactionsEl.textContent = farmStats.reactions_triggered.toLocaleString();
-                        }
-                    }
-                } catch (e) {
-                    console.log('[loadProfile] Farm stats API не доступен:', e);
-                }
             } catch (error) {
                 console.error('[loadProfile] КРИТИЧЕСКАЯ ОШИБКА:', error);
                 console.error('[loadProfile] Stack:', error.stack);
             }
             console.log('==================== [loadProfile] END ====================');
+        }
+
+        // Функция для получения инициалов из имени
+        function getInitials(name) {
+            if (!name) return '👤';
+            const parts = name.trim().split(' ');
+            if (parts.length >= 2) {
+                return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+            }
+            return name.trim().substring(0, 2).toUpperCase();
         }
 
         // Загрузка заданий
