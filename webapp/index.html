@@ -4161,10 +4161,10 @@ body {
 
             if (pageId === 'profile') {
                 console.log('[showPage] Вызываем loadProfile()');
-                loadProfile();
+                window.loadProfile();
             }
-            if (pageId === 'tasks') loadTasks();
-            if (pageId === 'rating') loadRating();
+            if (pageId === 'tasks') window.loadTasks && window.loadTasks();
+            if (pageId === 'rating') window.loadRating && window.loadRating();
             if (pageId === 'shop') showShopCategory('cases', document.querySelector('.shop-category'));
         }
 
@@ -4950,25 +4950,25 @@ body {
         }
 
         // Загрузка заданий
-        async function loadTasks() {
+        window.loadTasks = async function() {
             try {
                 const response = await fetch(`/api/tasks/${userId}`);
                 if (response.ok) {
                     const tasks = await response.json();
                     const container = document.getElementById('tasks-list');
-                    
+
                     if (tasks.length === 0) {
                         container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">Нет доступных заданий</p>';
                         return;
                     }
-                    
+
                     container.innerHTML = tasks.map(task => `
                         <div class="task-item">
                             <div class="task-info">
                                 <div class="task-title">${task.title}</div>
                                 <div class="task-reward">+${task.reward_coins} 🪙 ${task.reward_stars ? '+ ' + task.reward_stars + ' ⭐' : ''}</div>
                             </div>
-                            <button class="task-btn ${task.completed ? 'completed' : ''}" 
+                            <button class="task-btn ${task.completed ? 'completed' : ''}"
                                     onclick="${task.completed ? '' : `completeTask(${task.id})`}">
                                 ${task.completed ? '✓' : 'Выполнить'}
                             </button>
@@ -4981,14 +4981,14 @@ body {
         }
 
         // Выполнение задания
-        async function completeTask(taskId) {
+        window.completeTask = async function(taskId) {
             try {
                 const response = await fetch('/api/complete-task', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ userId, taskId })
                 });
-                
+
                 const result = await response.json();
                 if (result.success) {
                     if (result.reward_coins) state.click_coins += result.reward_coins;
@@ -4997,7 +4997,7 @@ body {
                     if (typeof saveGame === 'function') saveGame();
                     setTimeout(() => updateMainBalance(), 100);
                     showToast('Задание выполнено!', 'success');
-                    loadTasks();
+                    window.loadTasks && window.loadTasks();
                 } else {
                     showToast(result.error || 'Ошибка', 'error');
                 }
