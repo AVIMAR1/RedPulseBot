@@ -28,7 +28,13 @@ def to_int(v, default=0):
 # ========== МАРШРУТЫ ==========
 @router.get("/webapp", response_class=HTMLResponse)
 async def get_webapp():
-    return FileResponse(WEBAPP_DIR / "index.html")
+    """Отдаёт index.html с заголовками для отключения кэширования"""
+    from fastapi.responses import FileResponse
+    response = FileResponse(WEBAPP_DIR / "index.html")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @router.get("/api/user/{user_id}")
 async def get_user_data(user_id: int):
