@@ -38,25 +38,26 @@ async def get_webapp():
 
 @router.get("/api/user/{user_id}")
 async def get_user_data(user_id: int):
-    """Получение данных пользователя с логированием"""
+    """Получение данных пользователя с логированием и проверкой регистрации"""
     conn = get_db()
     cursor = conn.cursor()
 
     try:
         print(f'[get_user_data] Запрос для userId={user_id}')
-        cursor.execute("""
-            SELECT click_coins, stars, crystals, total_clicks,
-                   click_power, auto_clicker, energy_multiplier, theme,
-                   xp, level, streak_days, referrals_count, tasks_completed,
-                   first_name, username, created_at
-            FROM users WHERE telegram_id = ?
-        """, (user_id,))
+        
+        # Проверяем, существует ли пользователь
+        cursor.execute("SELECT telegram_id, first_name, username FROM users WHERE telegram_id = ?", (user_id,))
         user = cursor.fetchone()
         
-        if user:
-            print(f'[get_user_data] userId={user_id}, данные:', dict(user))
-        else:
-            print(f'[get_user_data] userId={user_id}, данных нет в БД')
+        if not user:
+            print(f'[get_user_data] userId={user_id} НЕ ЗАРЕГИСТРИРОВАН!')
+            conn.close()
+            return {
+                "error": "NOT_REGISTERED",
+                "message": "Пользователь не найден. Нажмите /start в боте для регистрации."
+            }, 403
+        
+        print(f'[get_user_data] userId={user_id}, данные:', dict(user))
     except Exception as e:
         print(f"Error fetching user: {e}")
         user = None
@@ -64,42 +65,55 @@ async def get_user_data(user_id: int):
     conn.close()
 
     if user:
-        def get(k, default=0):
-            v = user[k]
-            return default if v is None else v
+        # Загружаем полные данные пользователя
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT click_coins, stars, crystals, total_clicks,
+                   click_power, auto_clicker, energy_multiplier, theme,
+                   xp, level, streak_days, referrals_count, tasks_completed,
+                   first_name, username, created_at
+            FROM users WHERE telegram_id = ?
+        """, (user_id,))
+        full_user = cursor.fetchone()
+        conn.close()
+        
+        if full_user:
+            def get(k, default=0):
+                v = full_user[k]
+                return default if v is None else v
 
-        xp = int(get("xp", 0) or 0)
-        level = int(get("level", 1) or 1)
-        if xp <= 0:
-            xp = int(get("total_clicks", 0) or 0)
-        p = progress_for_xp(xp)
+            xp = int(get("xp", 0) or 0)
+            level = int(get("level", 1) or 1)
+            if xp <= 0:
+                xp = int(get("total_clicks", 0) or 0)
+            p = progress_for_xp(xp)
 
-        return {
-            "click_coins": get("click_coins", 0),
-            "stars": get("stars", 0),
-            "crystals": get("crystals", 0),
-            "total_clicks": get("total_clicks", 0),
-            "click_power": get("click_power", 1),
-            "auto_clicker": bool(get("auto_clicker")),
-            "max_energy": 1000 * (get("energy_multiplier") or 1),
-            "energy": 1000 * (get("energy_multiplier") or 1),
-            "theme": get("theme", "default"),
-            "xp": xp,
-            "level": p["level"],
-            "first_name": get("first_name", ""),
-            "username": get("username", ""),
-            "created_at": get("created_at", ""),
-            "streak_days": get("streak_days", 0),
-            "referrals_count": get("referrals_count", 0),
-            "tasks_completed": get("tasks_completed", 0)
-        }
+            return {
+                "click_coins": get("click_coins", 0),
+                "stars": get("stars", 0),
+                "crystals": get("crystals", 0),
+                "total_clicks": get("total_clicks", 0),
+                "click_power": get("click_power", 1),
+                "auto_clicker": bool(get("auto_clicker")),
+                "max_energy": 1000 * (get("energy_multiplier") or 1),
+                "energy": 1000 * (get("energy_multiplier") or 1),
+                "theme": get("theme", "default"),
+                "xp": xp,
+                "level": p["level"],
+                "first_name": get("first_name", ""),
+                "username": get("username", ""),
+                "created_at": get("created_at", ""),
+                "streak_days": get("streak_days", 0),
+                "referrals_count": get("referrals_count", 0),
+                "tasks_completed": get("tasks_completed", 0)
+            }
+    
+    # Если пользователь не найден
     return {
-        "click_coins": 0, "stars": 0, "crystals": 0, "total_clicks": 0,
-        "click_power": 1, "auto_clicker": False, "max_energy": 1000,
-        "energy": 1000, "theme": "default", "xp": 0, "level": 1,
-        "first_name": "", "username": "", "created_at": "",
-        "streak_days": 0, "referrals_count": 0, "tasks_completed": 0
-    }
+        "error": "NOT_REGISTERED",
+        "message": "Пользователь не найден. Нажмите /start в боте для регистрации."
+    }, 403
 
 
 @router.get("/api/debug/{user_id}")

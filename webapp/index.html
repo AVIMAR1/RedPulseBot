@@ -1200,6 +1200,61 @@
             background: transparent;
         }
 
+        /* Access Denied Screen */
+        .access-denied {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .access-denied-content {
+            text-align: center;
+            padding: 40px 20px;
+            max-width: 400px;
+        }
+
+        .access-denied-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+        }
+
+        .access-denied h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .access-denied p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            line-height: 1.5;
+        }
+
+        .access-denied-btn {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            border-radius: var(--border-radius-sm);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .access-denied-btn:active {
+            transform: scale(0.95);
+        }
+
         @keyframes modalIn {
             from { opacity: 0; transform: scale(0.9); }
             to { opacity: 1; transform: scale(1); }
@@ -3786,6 +3841,16 @@ body {
         </nav>
     </div>
 
+    <!-- Access Denied Screen -->
+    <div id="accessDenied" class="access-denied" style="display: none;">
+        <div class="access-denied-content">
+            <div class="access-denied-icon">🔒</div>
+            <h2>Доступ запрещён</h2>
+            <p id="accessDeniedMessage">Для доступа к приложению необходимо авторизоваться через Telegram</p>
+            <button class="access-denied-btn" onclick="Telegram.WebApp.close()">Закрыть</button>
+        </div>
+    </div>
+
     <!-- Toast -->
     <div class="toast" id="toast">
         <span class="toast-icon">РІСљ"</span>
@@ -3806,16 +3871,40 @@ body {
         console.log('[INIT] userId из Telegram:', userId);
 
         if (!userId) {
-            console.warn('[INIT] userId не получен из Telegram! Запуск в режиме отладки (браузер).');
-            // ТЕСТОВЫЙ userId для отладки в браузере
-            userId = 999999999;
-            console.log('[INIT] Установлен тестовый userId:', userId);
+            console.error('[INIT] ОШИБКА: userId не получен из Telegram!');
+            showAccessDenied('Требуется авторизация через Telegram');
+        } else {
+            // Проверяем, что есть initData (защита от прямого доступа)
+            const initData = tg.initData;
+            if (!initData) {
+                console.error('[INIT] ОШИБКА: initData отсутствует!');
+                showAccessDenied('Неверные данные авторизации');
+            } else {
+                console.log('[INIT] Авторизация успешна, userId:', userId);
+                // Делаем userId глобально доступным для pf_script.js
+                window.userId = userId;
+            }
         }
 
-        // Делаем userId глобально доступным для pf_script.js
-        window.userId = userId;
-
         const user = tg.initDataUnsafe?.user;
+
+        // Функция показа экрана блокировки
+        function showAccessDenied(message) {
+            const app = document.querySelector('.app');
+            const accessDenied = document.getElementById('accessDenied');
+            const accessDeniedMessage = document.getElementById('accessDeniedMessage');
+            
+            if (app) app.style.display = 'none';
+            if (accessDenied) {
+                accessDenied.style.display = 'flex';
+                if (accessDeniedMessage) accessDeniedMessage.textContent = message;
+            }
+            
+            // Закрываем приложение через 3 секунды если пользователь не нажал кнопку
+            setTimeout(() => {
+                if (tg && tg.close) tg.close();
+            }, 10000);
+        }
 
         // ==========================================
         // КОНФИГУРАЦИЯ (должна быть определена ДО всех функций)
@@ -4487,10 +4576,26 @@ body {
             try {
                 // Загружаем данные с сервера (БД — единственный источник правды!)
                 const response = await fetch(`/api/user/${userId}`);
+                console.log('[loadUserData] Ответ API:', response.status);
+                
+                if (response.status === 403) {
+                    const errorData = await response.json();
+                    console.error('[loadUserData] Пользователь не зарегистрирован:', errorData);
+                    showAccessDenied(errorData.message || 'Сначала зарегистрируйтесь в боте (нажмите /start)');
+                    return;
+                }
+                
                 if (response.ok) {
                     const data = await response.json();
                     console.log('[loadUserData] Получено из БД:', data);
-                    
+
+                    // Проверяем, нет ли ошибки в данных
+                    if (data.error === 'NOT_REGISTERED') {
+                        console.error('[loadUserData] Пользователь не зарегистрирован!');
+                        showAccessDenied(data.message || 'Сначала зарегистрируйтесь в боте (нажмите /start)');
+                        return;
+                    }
+
                     // Обновляем state данными из БД
                     state.click_coins = data.click_coins || 0;
                     state.crystals = data.crystals || 0;
@@ -4510,10 +4615,10 @@ body {
                     state.first_name = data.first_name || '';
                     state.username = data.username || '';
                     state.created_at = data.created_at || '';
-                    
+
                     updateUI();
                     console.log('[loadUserData] Данные загружены из БД успешно');
-                    
+
                     // Обновляем баланс в главном меню
                     setTimeout(() => {
                         if (typeof updateMainBalance === 'function') {
@@ -4521,7 +4626,7 @@ body {
                             console.log('[loadUserData] Баланс обновлён');
                         }
                     }, 100);
-                    
+
                     return;
                 } else {
                     console.error('[loadUserData] Ошибка HTTP:', response.status);
