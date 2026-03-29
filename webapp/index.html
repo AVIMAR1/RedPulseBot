@@ -3873,8 +3873,16 @@ body {
     </div>
 
     <script>
+        // СРАЗУ блокируем всё приложение до проверки авторизации
+        document.addEventListener('DOMContentLoaded', function() {
+            // Скрываем приложение пока не проверим авторизацию
+            const app = document.querySelector('.app');
+            if (app) app.style.visibility = 'hidden';
+        });
+
         // Глобальный userId
         let userId = null;
+        let isAuthorized = false;
 
         // Инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
@@ -3889,15 +3897,19 @@ body {
         console.log('[INIT] initData:', initData ? 'присутствует' : 'ОТСУТСТВУЕТ');
 
         if (!userId || !initData) {
-            console.error('[INIT] ОШИБКА: Авторизация не пройдена!');
-            // Показываем экран блокировки НЕМЕДЛЕННО
-            setTimeout(() => {
-                showAccessDenied('Требуется авторизация через Telegram. Откройте бота и нажмите /start');
-            }, 100);
+            console.error('[INIT] ОШИБКА: Авторизация не пройдена! Блокируем доступ.');
+            // Блокируем всё приложение
+            showAccessDenied('Требуется авторизация через Telegram. Откройте бота и нажмите /start');
+            isAuthorized = false;
         } else {
             console.log('[INIT] Авторизация успешна, userId:', userId);
             // Делаем userId глобально доступным для pf_script.js
             window.userId = userId;
+            isAuthorized = true;
+            
+            // Показываем приложение
+            const app = document.querySelector('.app');
+            if (app) app.style.visibility = 'visible';
         }
 
         const user = tg.initDataUnsafe?.user;
@@ -4661,16 +4673,22 @@ body {
         document.addEventListener('DOMContentLoaded', () => {
             console.log('[DOMContentLoaded] Страница загружена, userId:', userId);
             
+            // === ПРОВЕРКА АВТОРИЗАЦИИ ПЕРЕД ЗАГРУЗКОЙ ===
+            if (!isAuthorized || !userId) {
+                console.error('[DOMContentLoaded] Доступ заблокирован! isAuthorized:', isAuthorized, 'userId:', userId);
+                return; // НЕ загружаем ничего если нет авторизации
+            }
+            
             // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 0.1.4 ===
             const currentVersion = '0.1.4';
             const savedVersion = localStorage.getItem('appVersion');
             
             if (savedVersion !== currentVersion) {
                 console.log('[MIGRATION] Очистка localStorage (версия:', savedVersion, '->', currentVersion, ')');
-                // Очищаем ВСЁ
+                // Очищаем ВСЁ полностью
                 localStorage.clear();
                 localStorage.setItem('appVersion', currentVersion);
-                console.log('[MIGRATION] localStorage полностью очищен');
+                console.log('[MIGRATION] localStorage полностью очищен, версия:', currentVersion);
             }
             // ============================================================
 
@@ -6141,6 +6159,12 @@ window.loadGame = async function() {
 
 // Глобальная функция сохранения игры
 window.saveGame = async function() {
+    // НЕ сохраняем если нет авторизации
+    if (!isAuthorized || !userId) {
+        console.warn('[saveGame] Отмена сохранения: нет авторизации');
+        return;
+    }
+    
     gameState.playTime = Math.floor((Date.now() - (gameState.lastSaveTime || Date.now())) / 1000) + (gameState.playTime || 0);
     gameState.lastSaveTime = Date.now();
 
@@ -7029,8 +7053,9 @@ window.buyShopItem = function(index) {
     const item = gameState.shopItems[index];
     if (!item) return;
 
-    // Проверяем монеты в gameState (основной источник для фермы)
-    if ((gameState.coins || 0) < item.price) {
+    // Проверяем монеты в gameState И state (берём минимум для безопасности)
+    const availableCoins = Math.min(gameState.coins || 0, state.click_coins || 0);
+    if (availableCoins < item.price) {
         showToast('Недостаточно монет!', 'error');
         return;
     }
@@ -7064,7 +7089,9 @@ window.buyShopItem = function(index) {
     
     // Тратим монеты из ОБЕИХ источников (синхронизация)
     gameState.coins -= item.price;
-    state.click_coins = gameState.coins;
+    state.click_coins -= item.price;
+    
+    console.log('[buyShopItem] Куплен блок за', item.price, 'осталось:', gameState.coins, state.click_coins);
     
     gameState.baseBlockPrice = Math.floor(gameState.baseBlockPrice * 1.1);
 
@@ -7090,12 +7117,19 @@ window.buyShopItem = function(index) {
 
 // Глобальная функция для обновления магазина
 window.rerollShop = function() {
-    if ((gameState.coins || 0) < (gameState.rerollCost || CONFIG.PRICES.REROLL_BASE)) {
+    const cost = gameState.rerollCost || CONFIG.PRICES.REROLL_BASE;
+    const availableCoins = Math.min(gameState.coins || 0, state.click_coins || 0);
+    
+    if (availableCoins < cost) {
         showToast('Недостаточно монет!', 'error');
         return;
     }
-    gameState.coins -= gameState.rerollCost;
-    state.click_coins = gameState.coins;
+    
+    gameState.coins -= cost;
+    state.click_coins -= cost;
+    
+    console.log('[rerollShop] Обновление магазина за', cost, 'осталось:', gameState.coins, state.click_coins);
+    
     generateShopItems();
     gameState.rerollCost = Math.floor(gameState.rerollCost * CONFIG.PRICES.REROLL_GROWTH + CONFIG.PRICES.REROLL_ADD);
     showToast('Ассортимент обновлён!', 'success');
@@ -7105,12 +7139,19 @@ window.rerollShop = function() {
 
 // Глобальная функция для расширения поля
 window.expandField = function() {
-    if ((gameState.coins || 0) < (gameState.expandCost || CONFIG.PRICES.EXPAND_BASE)) {
+    const cost = gameState.expandCost || CONFIG.PRICES.EXPAND_BASE;
+    const availableCoins = Math.min(gameState.coins || 0, state.click_coins || 0);
+    
+    if (availableCoins < cost) {
         showToast('Недостаточно монет!', 'error');
         return;
     }
-    gameState.coins -= gameState.expandCost;
-    state.click_coins = gameState.coins;
+    
+    gameState.coins -= cost;
+    state.click_coins -= cost;
+    
+    console.log('[expandField] Расширение поля за', cost, 'осталось:', gameState.coins, state.click_coins);
+    
     gameState.fieldRows++;
     gameState.grid.push([]);
     for (let col = 0; col < FIELD_COLS; col++) {
