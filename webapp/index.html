@@ -4098,6 +4098,282 @@ body {
         // Показать страницу
         let wasOnClicker = false;
 
+        // ==========================================
+        // Функции профиля (должны быть ДО showPage)
+        // ==========================================
+        
+        // Функция для получения инициалов из имени
+        function getInitials(name) {
+            if (!name) return '👤';
+            const parts = name.trim().split(' ');
+            if (parts.length >= 2) {
+                return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+            }
+            return name.trim().substring(0, 2).toUpperCase();
+        }
+
+        // Загрузка профиля
+        window.loadProfile = async function() {
+            console.log('==================== [loadProfile] START ====================');
+            console.log('[loadProfile] userId:', userId);
+            console.log('[loadProfile] tg:', typeof tg);
+
+            if (!userId) {
+                console.error('[loadProfile] НЕТ userId!');
+                return;
+            }
+
+            try {
+                // Получаем данные из Telegram
+                const tgUser = tg.initDataUnsafe?.user;
+                console.log('[loadProfile] tgUser:', tgUser);
+
+                // Проверяем элементы
+                const nameEl = document.getElementById('profile-name');
+                const usernameEl = document.getElementById('profile-username');
+                const avatarEl = document.getElementById('profile-avatar');
+                console.log('[loadProfile] Элементы:', {
+                    name: nameEl ? 'OK' : 'NULL',
+                    username: usernameEl ? 'OK' : 'NULL',
+                    avatar: avatarEl ? 'OK' : 'NULL'
+                });
+
+                // Загружаем данные профиля из БД
+                const profileUrl = `/api/profile/${userId}`;
+                console.log('[loadProfile] Запрос к:', profileUrl);
+                
+                const response = await fetch(profileUrl);
+                console.log('[loadProfile] Ответ API status:', response.status);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('[loadProfile] Данные из БД:', JSON.stringify(data, null, 2));
+
+                    // Имя и username из Telegram API (если доступно)
+                    if (tgUser) {
+                        const fullName = tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '');
+                        console.log('[loadProfile] fullName:', fullName);
+                        if (nameEl) {
+                            nameEl.textContent = fullName || data.first_name || 'Игрок';
+                            console.log('[loadProfile] nameEl.textContent:', nameEl.textContent);
+                        }
+                        if (usernameEl) {
+                            usernameEl.textContent = tgUser.username ? '@' + tgUser.username : (data.username ? '@' + data.username : '@не указан');
+                            console.log('[loadProfile] usernameEl.textContent:', usernameEl.textContent);
+                        }
+
+                        // Аватарка (если Telegram предоставляет)
+                        if (avatarEl) {
+                            if (tgUser.photo_url) {
+                                console.log('[loadProfile] Устанавливаем аватарку:', tgUser.photo_url);
+                                avatarEl.style.backgroundImage = `url(${tgUser.photo_url})`;
+                                avatarEl.style.backgroundSize = 'cover';
+                                avatarEl.style.backgroundPosition = 'center';
+                                avatarEl.textContent = '';
+                            } else {
+                                console.log('[loadProfile] Нет photo_url, ставим заглушку');
+                                avatarEl.textContent = getInitials(fullName || data.first_name || 'Игрок');
+                                avatarEl.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+                            }
+                        }
+                    } else {
+                        // Запуск через браузер (не из Telegram)
+                        console.log('[loadProfile] Нет tgUser, используем данные из БД');
+                        const fullName = data.first_name || 'Тестовый Пользователь';
+                        if (nameEl) nameEl.textContent = fullName;
+                        if (usernameEl) usernameEl.textContent = data.username ? '@' + data.username : '@test_user';
+                        if (avatarEl) {
+                            avatarEl.textContent = getInitials(fullName);
+                            avatarEl.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+                        }
+                    }
+
+                    // Баланс
+                    const coinsEl = document.getElementById('profile-coins');
+                    const starsEl = document.getElementById('profile-stars');
+                    const crystalsEl = document.getElementById('profile-crystals');
+                    console.log('[loadProfile] Элементы баланса:', {
+                        coins: coinsEl ? 'OK' : 'NULL',
+                        stars: starsEl ? 'OK' : 'NULL',
+                        crystals: crystalsEl ? 'OK' : 'NULL'
+                    });
+
+                    if (coinsEl) {
+                        coinsEl.textContent = (data.click_coins || 0).toLocaleString();
+                        console.log('[loadProfile] coins:', coinsEl.textContent);
+                    }
+                    if (starsEl) {
+                        starsEl.textContent = (data.stars || 0).toLocaleString();
+                        console.log('[loadProfile] stars:', starsEl.textContent);
+                    }
+                    if (crystalsEl) {
+                        crystalsEl.textContent = (data.crystals || 0).toLocaleString();
+                        console.log('[loadProfile] crystals:', crystalsEl.textContent);
+                    }
+
+                    // Уровень игрока и ядра
+                    const coreLevel = data.core_level || 1;
+                    const playerLevel = Math.floor((coreLevel - 1) / 5) + 1;
+                    const coreLevelEl = document.getElementById('profile-core-level');
+                    const playerLevelEl = document.getElementById('profile-level');
+                    console.log('[loadProfile] Элементы уровней:', {
+                        core: coreLevelEl ? 'OK' : 'NULL',
+                        player: playerLevelEl ? 'OK' : 'NULL'
+                    });
+                    if (coreLevelEl) coreLevelEl.textContent = coreLevel;
+                    if (playerLevelEl) playerLevelEl.textContent = playerLevel;
+                    console.log('[loadProfile] Уровень ядра:', coreLevel, 'игрока:', playerLevel);
+
+                    // Блоки и реакции (из profile API)
+                    const blocksEl = document.getElementById('profile-blocks');
+                    const reactionsEl = document.getElementById('profile-reactions');
+                    console.log('[loadProfile] Элементы фермы:', {
+                        blocks: blocksEl ? 'OK' : 'NULL',
+                        reactions: reactionsEl ? 'OK' : 'NULL'
+                    });
+                    if (blocksEl) {
+                        blocksEl.textContent = (data.blocks_placed || 0).toLocaleString();
+                        console.log('[loadProfile] Блоки:', blocksEl.textContent);
+                    }
+                    if (reactionsEl) {
+                        reactionsEl.textContent = (data.reactions_triggered || 0).toLocaleString();
+                        console.log('[loadProfile] Реакции:', reactionsEl.textContent);
+                    }
+
+                    // Остальные данные
+                    const tasksEl = document.getElementById('profile-tasks-done');
+                    const referralsEl = document.getElementById('profile-referrals');
+                    const streakEl = document.getElementById('profile-streak');
+                    const createdEl = document.getElementById('profile-created');
+
+                    if (tasksEl) tasksEl.textContent = data.tasks_completed || 0;
+                    if (referralsEl) referralsEl.textContent = data.referrals_count || 0;
+                    if (streakEl) streakEl.textContent = (data.streak_days || 0) + ' дней';
+                    if (createdEl) createdEl.textContent = data.created_at ? new Date(data.created_at).toLocaleDateString('ru-RU') : '-';
+
+                    console.log('[loadProfile] Остальные данные:', {
+                        tasks: data.tasks_completed,
+                        referrals: data.referrals_count,
+                        streak: data.streak_days,
+                        created: data.created_at
+                    });
+                } else {
+                    console.error('[loadProfile] Ошибка HTTP:', response.status);
+                    const errorText = await response.text();
+                    console.error('[loadProfile] Ошибка текст:', errorText);
+                }
+
+                // Загружаем рейтинг
+                try {
+                    const ratingResponse = await fetch('/api/rating');
+                    if (ratingResponse.ok) {
+                        const rating = await ratingResponse.json();
+                        const userRank = rating.findIndex(u => u.telegram_id === userId) + 1;
+                        const rankEl = document.getElementById('profile-rating');
+                        if (rankEl) rankEl.textContent = userRank > 0 ? `#${userRank}` : '-';
+                        console.log('[loadProfile] Рейтинг:', userRank);
+                    }
+                } catch (e) {
+                    console.error('[loadProfile] Ошибка загрузки рейтинга:', e);
+                }
+            } catch (error) {
+                console.error('[loadProfile] КРИТИЧЕСКАЯ ОШИБКА:', error);
+                console.error('[loadProfile] Stack:', error.stack);
+            }
+            console.log('==================== [loadProfile] END ====================');
+        }
+
+        // Загрузка заданий
+        window.loadTasks = async function() {
+            try {
+                const response = await fetch(`/api/tasks/${userId}`);
+                if (response.ok) {
+                    const tasks = await response.json();
+                    const container = document.getElementById('tasks-list');
+
+                    if (tasks.length === 0) {
+                        container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">Нет доступных заданий</p>';
+                        return;
+                    }
+
+                    container.innerHTML = tasks.map(task => `
+                        <div class="task-item">
+                            <div class="task-info">
+                                <div class="task-title">${task.title}</div>
+                                <div class="task-reward">+${task.reward_coins} 🪙 ${task.reward_stars ? '+ ' + task.reward_stars + ' ⭐' : ''}</div>
+                            </div>
+                            <button class="task-btn ${task.completed ? 'completed' : ''}"
+                                    onclick="${task.completed ? '' : `completeTask(${task.id})`}">
+                                ${task.completed ? '✓' : 'Выполнить'}
+                            </button>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки заданий:', error);
+            }
+        }
+
+        // Выполнение задания
+        window.completeTask = async function(taskId) {
+            try {
+                const response = await fetch('/api/complete-task', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, taskId })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    if (result.reward_coins) state.click_coins += result.reward_coins;
+                    if (result.reward_stars) state.stars += result.reward_stars;
+                    updateUI();
+                    if (typeof saveGame === 'function') saveGame();
+                    setTimeout(() => updateMainBalance(), 100);
+                    showToast('Задание выполнено!', 'success');
+                    window.loadTasks && window.loadTasks();
+                } else {
+                    showToast(result.error || 'Ошибка', 'error');
+                }
+            } catch (error) {
+                showToast('Ошибка выполнения', 'error');
+            }
+        }
+
+        // Загрузка рейтинга
+        window.loadRating = async function() {
+            try {
+                const response = await fetch('/api/rating');
+                if (response.ok) {
+                    const rating = await response.json();
+                    const container = document.getElementById('rating-list');
+
+                    container.innerHTML = rating.map((player, index) => {
+                        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+                        const isCurrentUser = player.telegram_id === userId;
+
+                        return `
+                            <div class="task-item" style="${isCurrentUser ? 'border-color:var(--primary)' : ''}">
+                                <div style="display:flex;align-items:center;gap:12px;flex:1;">
+                                    <div style="font-size:20px;font-weight:700;width:30px;">${medal}</div>
+                                    <div>
+                                        <div style="font-weight:600;">${player.first_name || 'Игрок'}</div>
+                                        <div style="font-size:12px;color:var(--text-secondary);">@${player.username || 'unknown'}</div>
+                                    </div>
+                                </div>
+                                <div style="font-weight:700;color:var(--gold);">${player.stars} ⭐</div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки рейтинга:', error);
+            }
+        }
+
+        // ==========================================
+        // Основная функция showPage
+        // ==========================================
         function showPage(pageId) {
             // Запоминаем если мы СЕЙЧАС на ферме (перед переходом)
             const currentPage = document.querySelector('.page.active');
@@ -4937,104 +5213,6 @@ body {
                 console.error('[loadProfile] Stack:', error.stack);
             }
             console.log('==================== [loadProfile] END ====================');
-        }
-
-        // Функция для получения инициалов из имени
-        function getInitials(name) {
-            if (!name) return '👤';
-            const parts = name.trim().split(' ');
-            if (parts.length >= 2) {
-                return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-            }
-            return name.trim().substring(0, 2).toUpperCase();
-        }
-
-        // Загрузка заданий
-        window.loadTasks = async function() {
-            try {
-                const response = await fetch(`/api/tasks/${userId}`);
-                if (response.ok) {
-                    const tasks = await response.json();
-                    const container = document.getElementById('tasks-list');
-
-                    if (tasks.length === 0) {
-                        container.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">Нет доступных заданий</p>';
-                        return;
-                    }
-
-                    container.innerHTML = tasks.map(task => `
-                        <div class="task-item">
-                            <div class="task-info">
-                                <div class="task-title">${task.title}</div>
-                                <div class="task-reward">+${task.reward_coins} 🪙 ${task.reward_stars ? '+ ' + task.reward_stars + ' ⭐' : ''}</div>
-                            </div>
-                            <button class="task-btn ${task.completed ? 'completed' : ''}"
-                                    onclick="${task.completed ? '' : `completeTask(${task.id})`}">
-                                ${task.completed ? '✓' : 'Выполнить'}
-                            </button>
-                        </div>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки заданий:', error);
-            }
-        }
-
-        // Выполнение задания
-        window.completeTask = async function(taskId) {
-            try {
-                const response = await fetch('/api/complete-task', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, taskId })
-                });
-
-                const result = await response.json();
-                if (result.success) {
-                    if (result.reward_coins) state.click_coins += result.reward_coins;
-                    if (result.reward_stars) state.stars += result.reward_stars;
-                    updateUI();
-                    if (typeof saveGame === 'function') saveGame();
-                    setTimeout(() => updateMainBalance(), 100);
-                    showToast('Задание выполнено!', 'success');
-                    window.loadTasks && window.loadTasks();
-                } else {
-                    showToast(result.error || 'Ошибка', 'error');
-                }
-            } catch (error) {
-                showToast('Ошибка выполнения', 'error');
-            }
-        }
-
-        // Загрузка рейтинга
-        window.loadRating = async function() {
-            try {
-                const response = await fetch('/api/rating');
-                if (response.ok) {
-                    const rating = await response.json();
-                    const container = document.getElementById('rating-list');
-
-                    container.innerHTML = rating.map((player, index) => {
-                        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-                        const isCurrentUser = player.telegram_id === userId;
-
-                        return `
-                            <div class="task-item" style="${isCurrentUser ? 'border-color:var(--primary)' : ''}">
-                                <div style="display:flex;align-items:center;gap:12px;flex:1;">
-                                    <div style="font-size:20px;font-weight:700;width:30px;">${medal}</div>
-                                    <div>
-                                        <div style="font-weight:600;">${player.first_name || 'Игрок'}</div>
-                                        <div style="font-size:12px;color:var(--text-secondary);">@${player.username || 'unknown'}</div>
-                                    </div>
-                                </div>
-                                <div style="font-weight:700;color:var(--gold);">${player.stars} ⭐</div>
-                            </div>
-                        `;
-                    }).join('');
-                }
-            } catch (error) {
-                console.error('Ошибка загрузки рейтинга:', error);
-            }
         }
 
         // Магазин
