@@ -1255,6 +1255,22 @@
             transform: scale(0.95);
         }
 
+        .access-denied-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 24px;
+        }
+
+        .access-denied-btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+        }
+
+        .access-denied-btn.secondary:active {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
         @keyframes modalIn {
             from { opacity: 0; transform: scale(0.9); }
             to { opacity: 1; transform: scale(1); }
@@ -3847,7 +3863,10 @@ body {
             <div class="access-denied-icon">🔒</div>
             <h2>Доступ запрещён</h2>
             <p id="accessDeniedMessage">Для доступа к приложению необходимо авторизоваться через Telegram</p>
-            <button class="access-denied-btn" onclick="Telegram.WebApp.close()">Закрыть</button>
+            <div class="access-denied-buttons">
+                <button class="access-denied-btn" onclick="location.reload()">🔄 Попробовать еще раз</button>
+                <button class="access-denied-btn secondary" onclick="Telegram.WebApp.close()">Закрыть</button>
+            </div>
         </div>
     </div>
 
@@ -3860,30 +3879,29 @@ body {
     <script>
         // Глобальный userId
         let userId = null;
-        
+
         // Инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
-        // Получаем userId из Telegram
+        // СРАЗУ проверяем авторизацию ПОСЛЕ tg.ready()
         userId = tg.initDataUnsafe?.user?.id;
+        const initData = tg.initData;
+        
         console.log('[INIT] userId из Telegram:', userId);
+        console.log('[INIT] initData:', initData ? 'присутствует' : 'ОТСУТСТВУЕТ');
 
-        if (!userId) {
-            console.error('[INIT] ОШИБКА: userId не получен из Telegram!');
-            showAccessDenied('Требуется авторизация через Telegram');
+        if (!userId || !initData) {
+            console.error('[INIT] ОШИБКА: Авторизация не пройдена!');
+            // Показываем экран блокировки НЕМЕДЛЕННО
+            setTimeout(() => {
+                showAccessDenied('Требуется авторизация через Telegram. Откройте бота и нажмите /start');
+            }, 100);
         } else {
-            // Проверяем, что есть initData (защита от прямого доступа)
-            const initData = tg.initData;
-            if (!initData) {
-                console.error('[INIT] ОШИБКА: initData отсутствует!');
-                showAccessDenied('Неверные данные авторизации');
-            } else {
-                console.log('[INIT] Авторизация успешна, userId:', userId);
-                // Делаем userId глобально доступным для pf_script.js
-                window.userId = userId;
-            }
+            console.log('[INIT] Авторизация успешна, userId:', userId);
+            // Делаем userId глобально доступным для pf_script.js
+            window.userId = userId;
         }
 
         const user = tg.initDataUnsafe?.user;
@@ -4569,9 +4587,9 @@ body {
 
         // Загрузка данных пользователя — ТОЛЬКО ИЗ БД
         async function loadUserData() {
-            // ПРОВЕРКА: если userId не определён, не загружаем данные
-            if (!userId) {
-                console.error('[loadUserData] userId не определён! Показываем экран блокировки.');
+            // ПРОВЕРКА: если userId не определён, НЕ загружаем данные
+            if (!userId || typeof userId === 'undefined') {
+                console.error('[loadUserData] userId не определён! Блокируем доступ.');
                 showAccessDenied('Требуется авторизация через Telegram. Откройте бота и нажмите /start');
                 return;
             }

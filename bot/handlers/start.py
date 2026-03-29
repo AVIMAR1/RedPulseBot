@@ -146,8 +146,8 @@ async def cmd_start(message: types.Message, session: AsyncSession):
             telegram_id=telegram_id,
             username=message.from_user.username,
             first_name=message.from_user.first_name,
-            referrer_id=referrer_id,
-            click_coins=125  # Стартовые монеты
+            referrer_id=referrer_id
+            # Стартовые монеты НЕ даём - только daily reward
         )
         session.add(user)
 
