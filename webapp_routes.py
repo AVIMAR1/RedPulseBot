@@ -483,7 +483,8 @@ async def get_farm_state(user_id: int):
                 "crystals": row["crystals"] or 0,
                 "bankCoins": row["bank_coins"] or 0,
                 "bankCrystals": row["bank_crystals"] or 0,
-                "bankStars": row["bank_stars"] or 0
+                "bankStars": row["bank_stars"] or 0,
+                "firstPlay": bool(row["first_play"]) if row["first_play"] is not None else True
             }
 
             # Если есть farm_state_json, объединяем
@@ -533,6 +534,7 @@ async def save_farm_state(request: Request):
                 xp = ?,
                 temp = ?,
                 max_temp = ?,
+                first_play = ?,
                 last_activity = CURRENT_TIMESTAMP
             WHERE telegram_id = ?
         """, (
@@ -551,6 +553,7 @@ async def save_farm_state(request: Request):
             farm_state.get('xp', 0),
             farm_state.get('temp', 0),
             farm_state.get('maxTemp', 100),
+            1 if farm_state.get('firstPlay', True) else 0,
             user_id
         ))
         conn.commit()

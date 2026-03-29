@@ -4597,12 +4597,20 @@ body {
             setTimeout(() => toast.classList.remove('show'), 2500);
         }
 
-        // Загрузка данных пользователя — ТОЛЬКО ИЗ БД
+        // Загрузка данных пользователя — ТОЛЬКО ИЗ БД (только при первом запуске!)
+        let userDataLoaded = false;  // Флаг: загружали ли уже данные
+        
         async function loadUserData() {
             // ПРОВЕРКА: если userId не определён, НЕ загружаем данные
             if (!userId || typeof userId === 'undefined') {
                 console.error('[loadUserData] userId не определён! Блокируем доступ.');
                 showAccessDenied('Требуется авторизация через Telegram. Откройте бота и нажмите /start');
+                return;
+            }
+            
+            // ПРОВЕРКА: если уже загружали данные, НЕ загружаем снова (чтобы не перезаписать свежие данные старыми из БД)
+            if (userDataLoaded) {
+                console.log('[loadUserData] Данные уже загружены, пропускаем повторную загрузку');
                 return;
             }
 
@@ -4653,6 +4661,7 @@ body {
 
                     updateUI();
                     console.log('[loadUserData] Данные загружены из БД успешно');
+                    userDataLoaded = true;  // Помечаем, что данные загружены
 
                     // Обновляем баланс в главном меню
                     setTimeout(() => {
@@ -5885,51 +5894,38 @@ window.updateBalance = function() {
     window.isSyncing = false;
 }
 
-// Синхронизация gameState и state — БЕРЁМ МАКСИМУМ из обоих источников
+// Синхронизация gameState и state — ФЕРМА источник правды для валюты
 window.syncGameState = function() {
     if (typeof state === 'undefined' || typeof gameState === 'undefined') return;
 
-    // БЕРЁМ МАКСИМУМ — валюта из бота ИЛИ фермы
-    const maxCoins = Math.max(state.click_coins || 0, Math.floor(gameState.coins || 0));
-    const maxCrystals = Math.max(state.crystals || 0, Math.floor(gameState.crystals || 0));
-    const maxStars = Math.max(state.stars || 0, Math.floor(gameState.stars || 0));
-    const maxClicks = Math.max(state.total_clicks || 0, gameState.totalTaps || 0);
-
-    // Обновляем ОБА источника
-    state.click_coins = maxCoins;
-    gameState.coins = maxCoins;
-
-    state.crystals = maxCrystals;
-    gameState.crystals = maxCrystals;
-
-    state.stars = maxStars;
-    gameState.stars = maxStars;
-
-    state.total_clicks = maxClicks;
-    gameState.totalTaps = maxClicks;
-
-    // XP и уровень — берём максимум
+    // ФЕРМА → STATE (валюта из фермы всегда приоритетнее)
+    state.click_coins = Math.floor(gameState.coins || 0);
+    state.crystals = Math.floor(gameState.crystals || 0);
+    state.stars = Math.floor(gameState.stars || 0);
+    
+    // XP и уровень — берём максимум (чтобы не потерять прогресс)
     const maxLevel = Math.max(state.level || 1, gameState.level || 1);
     const maxXp = Math.max(state.xp || 0, gameState.xp || 0);
-
     state.level = maxLevel;
     gameState.level = maxLevel;
-
     state.xp = maxXp;
     gameState.xp = maxXp;
-
-    // xpToNext рассчитывается динамически: level * 100
     state.xpToNext = maxLevel * CONFIG.XP.BASE_PER_LEVEL;
     gameState.xpToNext = maxLevel * CONFIG.XP.BASE_PER_LEVEL;
 
+    // total_clicks — берём максимум
+    state.total_clicks = Math.max(state.total_clicks || 0, gameState.totalTaps || 0);
+    gameState.totalTaps = state.total_clicks;
+
+    // click_power из фермы
     state.click_power = Math.floor(gameState.chargePower) || 1;
 
-    // state ← gameState (банк из фермы)
+    // Банк из фермы → state
     state.bank_coins = gameState.bankCoins || 0;
     state.bank_crystals = gameState.bankCrystals || 0;
     state.bank_stars = gameState.bankStars || 0;
 
-    console.log('[syncGameState] Синхронизация:', maxCoins, maxCrystals, maxStars, maxLevel, maxXp);
+    console.log('[syncGameState] Синхронизация:', state.click_coins, state.stars, state.crystals, state.level, state.xp);
 }
 
 // Функции для изменения баланса (автоматически вызывают updateBalance)
@@ -6097,12 +6093,14 @@ window.loadGame = async function() {
                     gameState.reactor_level = dbData.reactor_level || 1;
                     gameState.blocks_placed = dbData.blocks_placed || 0;
                     gameState.reactions_triggered = dbData.reactions_triggered || 0;
+                    gameState.firstPlay = dbData.firstPlay !== undefined ? dbData.firstPlay : true;
 
                     console.log('[loadGame] Данные из БД:', {
                         coins: gameState.coins,
                         bankCoins: gameState.bankCoins,
                         level: gameState.level,
-                        xp: gameState.xp
+                        xp: gameState.xp,
+                        firstPlay: gameState.firstPlay
                     });
 
                     // Загружаем grid и shopItems из farm_state_json
@@ -6314,7 +6312,8 @@ async function saveFarmState() {
             // Статистика фермы
             blocks_placed: blocksCount,
             reactions_triggered: gameState.reactions_triggered || 0,
-            reactor_level: maxBlockLevel
+            reactor_level: maxBlockLevel,
+            firstPlay: gameState.firstPlay || false
         };
 
         console.log('[saveFarmState] Сохранение:', {
