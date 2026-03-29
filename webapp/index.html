@@ -2671,6 +2671,7 @@ body {
     border-radius: 3px;
     transition: width 0.3s ease;
     position: relative;
+    overflow: hidden;
 }
 
 @keyframes temp-bar-critical-pulse {
@@ -2690,13 +2691,8 @@ body {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
-    animation: heat-shimmer 2s infinite;
-}
-
-@keyframes heat-shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: shimmer 2s infinite linear;
 }
 
 .core-btn-wrapper { position: relative; }
@@ -6083,25 +6079,37 @@ window.loadGame = async function() {
                         level: gameState.level,
                         xp: gameState.xp
                     });
+
+                    // Загружаем grid и shopItems из farm_state_json
+                    if (dbData.grid && Array.isArray(dbData.grid) && dbData.grid.length > 0) {
+                        console.log('[loadGame] Загружаем grid из БД:', dbData.grid.length, 'строк');
+                        gameState.grid = dbData.grid;
+                        gameState.fieldRows = dbData.grid.length;
+                    }
                     
+                    if (dbData.shopItems && Array.isArray(dbData.shopItems) && dbData.shopItems.length > 0) {
+                        console.log('[loadGame] Загружаем shopItems из БД:', dbData.shopItems.length, 'предметов');
+                        gameState.shopItems = dbData.shopItems;
+                    }
+
                     // Пересчитываем chargePower
                     gameState.chargePower = CONFIG.BASE_CHARGE_POWER + (gameState.level - 1) * CONFIG.CHARGE_PER_LEVEL;
-                    gameState.fieldRows = 7;
-                    
+
+                    // Если grid всё ещё пустой — создаём новый
                     if (!gameState.grid || gameState.grid.length === 0 || !gameState.grid[0]) {
                         console.log('[loadGame] Grid отсутствует, создаём...');
                         initGrid();
                     }
-                    
+
                     // Синхронизация с state (БД → state)
                     syncGameState();
                     updateUI();
-                    
+
                     // Ждём завершения рендера
                     await new Promise(resolve => setTimeout(resolve, 100));
                     renderGrid();
                     console.log('[loadGame] Grid отрисован');
-                    
+
                     startPassiveEffects();
                     console.log('[loadGame] Загружено из БД успешно');
                     return;
@@ -6117,10 +6125,15 @@ window.loadGame = async function() {
     console.log('[loadGame] Нет данных в БД, создаём новую игру');
     initGrid();
     generateShopItems();
-    // Показываем инструкцию только при первом запуске (нет данных в БД)
-    showFirstTimeHelp();
-    syncGameState();
     
+    // Показываем инструкцию только ОДИН раз (при первом запуске)
+    if (gameState.firstPlay) {
+        setTimeout(() => showFirstTimeHelp(), 500);
+        gameState.firstPlay = false;
+    }
+    
+    syncGameState();
+
     updateUI();
     setTimeout(() => renderGrid(), 100);
     startPassiveEffects();
@@ -6202,10 +6215,52 @@ async function saveFarmState() {
         // Синхронизируем валюту перед сохранением
         syncGameState();
 
+        // Подсчитываем уровень реактора и блоки
+        let maxBlockLevel = 1;
+        let blocksCount = 0;
+        if (gameState.grid) {
+            gameState.grid.flat().forEach(block => {
+                if (block) {
+                    blocksCount++;
+                    if (block.level > maxBlockLevel) maxBlockLevel = block.level;
+                }
+            });
+        }
+
+        // Очищаем grid для JSON (убираем лишние свойства)
+        const cleanGrid = gameState.grid ? gameState.grid.map(row => 
+            row.map(block => {
+                if (!block) return null;
+                // Сохраняем только простые свойства
+                return {
+                    type: block.type,
+                    level: block.level,
+                    value: block.value,
+                    id: block.id,
+                    routerConfig: block.routerConfig ? {...block.routerConfig} : null,
+                    routerType: block.routerType || null
+                };
+            })
+        ) : [];
+
+        // Очищаем shopItems для JSON
+        const cleanShopItems = gameState.shopItems ? gameState.shopItems.map(item => {
+            if (!item) return null;
+            return {
+                type: item.type,
+                level: item.level,
+                value: item.value,
+                price: item.price,
+                id: item.id,
+                routerConfig: item.routerConfig ? {...item.routerConfig} : null,
+                routerType: item.routerType || null
+            };
+        }) : [];
+
         // Сохраняем только важные данные
         const farmStateToSave = {
-            grid: gameState.grid,
-            shopItems: gameState.shopItems,
+            grid: cleanGrid,
+            shopItems: cleanShopItems,
             level: gameState.level,
             xp: gameState.xp,
             xpToNext: gameState.xpToNext,
@@ -6217,21 +6272,28 @@ async function saveFarmState() {
             bankCoins: gameState.bankCoins,
             bankCrystals: gameState.bankCrystals,
             bankStars: gameState.bankStars,
-            totalTaps: gameState.totalTaps,
-            totalEarned: gameState.totalEarned,
-            rerollCost: gameState.rerollCost,
-            expandCost: gameState.expandCost,
-            lastSaveTime: gameState.lastSaveTime,
+            totalTaps: gameState.totalTaps || 0,
+            totalEarned: gameState.totalEarned || 0,
+            rerollCost: gameState.rerollCost || CONFIG.PRICES.REROLL_BASE,
+            expandCost: gameState.expandCost || CONFIG.PRICES.EXPAND_BASE,
+            lastSaveTime: gameState.lastSaveTime || Date.now(),
             // Температура
             temp: gameState.temp || 0,
             maxTemp: gameState.maxTemp || 100,
-            // Статистика фермы (НЕ пересчитываем, а берём из gameState)
-            blocks_placed: gameState.blocks_placed || 0,
+            // Статистика фермы
+            blocks_placed: blocksCount,
             reactions_triggered: gameState.reactions_triggered || 0,
-            reactor_level: gameState.reactor_level || 1
+            reactor_level: maxBlockLevel
         };
 
-        console.log('[saveFarmState] Сохранение:', farmStateToSave);
+        console.log('[saveFarmState] Сохранение:', {
+            level: farmStateToSave.level,
+            xp: farmStateToSave.xp,
+            coins: farmStateToSave.coins,
+            blocks: blocksCount,
+            reactor_level: maxBlockLevel,
+            gridRows: cleanGrid.length
+        });
 
         await fetch('/api/save-farm-state', {
             method: 'POST',
@@ -6244,6 +6306,7 @@ async function saveFarmState() {
         console.log('[saveFarmState] Сохранено в БД');
     } catch (e) {
         console.error('[saveFarmState] Ошибка сохранения:', e);
+        console.error('[saveFarmState] Stack:', e.stack);
     }
 }
 
