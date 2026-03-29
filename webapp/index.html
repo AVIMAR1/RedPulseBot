@@ -4642,15 +4642,16 @@ body {
         document.addEventListener('DOMContentLoaded', () => {
             console.log('[DOMContentLoaded] Страница загружена, userId:', userId);
             
-            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 1.3 ===
-            const currentVersion = '1.3';
+            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 1.4 ===
+            const currentVersion = '1.4';
             const savedVersion = localStorage.getItem('appVersion');
             
             if (savedVersion !== currentVersion) {
                 console.log('[MIGRATION] Очистка localStorage (версия:', savedVersion, '->', currentVersion, ')');
-                localStorage.removeItem('pulseFarmSave_v2');
-                localStorage.removeItem('redpulse_state');
+                // Очищаем ВСЁ
+                localStorage.clear();
                 localStorage.setItem('appVersion', currentVersion);
+                console.log('[MIGRATION] localStorage полностью очищен');
             }
             // ============================================================
 
@@ -6934,6 +6935,7 @@ window.buyShopItem = function(index) {
     const item = gameState.shopItems[index];
     if (!item) return;
 
+    // Проверяем монеты в gameState (основной источник для фермы)
     if ((gameState.coins || 0) < item.price) {
         showToast('Недостаточно монет!', 'error');
         return;
@@ -6965,8 +6967,11 @@ window.buyShopItem = function(index) {
     };
 
     gameState.grid[emptyCell.row][emptyCell.col] = newBlock;
-    // Покупка за монеты из основного баланса
-    state.click_coins -= item.price;
+    
+    // Тратим монеты из ОБЕИХ источников (синхронизация)
+    gameState.coins -= item.price;
+    state.click_coins = gameState.coins;
+    
     gameState.baseBlockPrice = Math.floor(gameState.baseBlockPrice * 1.1);
 
     gameState.shopItems.forEach(i => {
@@ -6982,30 +6987,36 @@ window.buyShopItem = function(index) {
 
     showToast('Блок куплен! Цены +10%', 'success');
     if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+    
+    // Сохраняем сразу после покупки
     updateBalance();
+    saveGame();
     renderGrid();
 }
 
 // Глобальная функция для обновления магазина
 window.rerollShop = function() {
-    if ((state.click_coins || 0) < (gameState.rerollCost || CONFIG.PRICES.REROLL_BASE)) {
+    if ((gameState.coins || 0) < (gameState.rerollCost || CONFIG.PRICES.REROLL_BASE)) {
         showToast('Недостаточно монет!', 'error');
         return;
     }
-    state.click_coins -= gameState.rerollCost;
+    gameState.coins -= gameState.rerollCost;
+    state.click_coins = gameState.coins;
     generateShopItems();
     gameState.rerollCost = Math.floor(gameState.rerollCost * CONFIG.PRICES.REROLL_GROWTH + CONFIG.PRICES.REROLL_ADD);
     showToast('Ассортимент обновлён!', 'success');
     updateBalance();
+    saveGame();
 }
 
 // Глобальная функция для расширения поля
 window.expandField = function() {
-    if ((state.click_coins || 0) < (gameState.expandCost || CONFIG.PRICES.EXPAND_BASE)) {
+    if ((gameState.coins || 0) < (gameState.expandCost || CONFIG.PRICES.EXPAND_BASE)) {
         showToast('Недостаточно монет!', 'error');
         return;
     }
-    state.click_coins -= gameState.expandCost;
+    gameState.coins -= gameState.expandCost;
+    state.click_coins = gameState.coins;
     gameState.fieldRows++;
     gameState.grid.push([]);
     for (let col = 0; col < FIELD_COLS; col++) {
@@ -7015,6 +7026,7 @@ window.expandField = function() {
     showToast('Поле расширено!', 'success');
     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
     updateBalance();
+    saveGame();
     renderGrid();
 }
 
