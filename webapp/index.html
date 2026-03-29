@@ -3511,7 +3511,7 @@ body {
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <button class="help-btn-small" onclick="showHelp()" title="Справка">?</button>
-                    <div class="version">v0.1.7</div>
+                    <div class="version">v0.1.4</div>
                 </div>
             </header>
 
@@ -4569,7 +4569,12 @@ body {
 
         // Загрузка данных пользователя — ТОЛЬКО ИЗ БД
         async function loadUserData() {
-            if (!userId) return;
+            // ПРОВЕРКА: если userId не определён, не загружаем данные
+            if (!userId) {
+                console.error('[loadUserData] userId не определён! Показываем экран блокировки.');
+                showAccessDenied('Требуется авторизация через Telegram. Откройте бота и нажмите /start');
+                return;
+            }
 
             console.log('[loadUserData] Начало загрузки для userId:', userId);
 
@@ -4642,8 +4647,8 @@ body {
         document.addEventListener('DOMContentLoaded', () => {
             console.log('[DOMContentLoaded] Страница загружена, userId:', userId);
             
-            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 1.4 ===
-            const currentVersion = '1.4';
+            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 0.1.4 ===
+            const currentVersion = '0.1.4';
             const savedVersion = localStorage.getItem('appVersion');
             
             if (savedVersion !== currentVersion) {
@@ -6042,6 +6047,9 @@ window.loadGame = async function() {
                     gameState.coins = dbData.coins || 0;
                     gameState.crystals = dbData.crystals || 0;
                     gameState.stars = dbData.stars || 0;
+                    gameState.bankCoins = dbData.bankCoins || 0;
+                    gameState.bankCrystals = dbData.bankCrystals || 0;
+                    gameState.bankStars = dbData.bankStars || 0;
                     gameState.level = dbData.level || 1;
                     gameState.xp = dbData.xp || 0;
                     gameState.xpToNext = gameState.level * CONFIG.XP.BASE_PER_LEVEL;  // Динамический XP
@@ -6050,8 +6058,13 @@ window.loadGame = async function() {
                     gameState.reactor_level = dbData.reactor_level || 1;
                     gameState.blocks_placed = dbData.blocks_placed || 0;
                     gameState.reactions_triggered = dbData.reactions_triggered || 0;
-                    
-                    console.log('[loadGame] Данные из БД:', gameState.coins, gameState.level, gameState.xp, gameState.temp, gameState.maxTemp);
+
+                    console.log('[loadGame] Данные из БД:', {
+                        coins: gameState.coins,
+                        bankCoins: gameState.bankCoins,
+                        level: gameState.level,
+                        xp: gameState.xp
+                    });
                     
                     // Пересчитываем chargePower
                     gameState.chargePower = CONFIG.BASE_CHARGE_POWER + (gameState.level - 1) * CONFIG.CHARGE_PER_LEVEL;

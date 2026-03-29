@@ -10,7 +10,7 @@ from datetime import datetime
 
 DB_PATH = 'redpulse.db'
 BACKUP_PATH = f'redpulse_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.db'
-VERSION = '1.3'
+VERSION = '0.1.4'
 
 def reset_database():
     # Бэкап

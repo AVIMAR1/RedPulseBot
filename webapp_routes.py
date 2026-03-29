@@ -462,7 +462,8 @@ async def get_farm_state(user_id: int):
         print(f'[get_farm_state] Запрос для userId={user_id}')
         cursor.execute("""
             SELECT farm_state_json, reactor_level, blocks_placed, reactions_triggered,
-                   temp, max_temp, level, xp, click_coins, stars, crystals
+                   temp, max_temp, level, xp, click_coins, stars, crystals,
+                   bank_coins, bank_stars, bank_crystals
             FROM users WHERE telegram_id = ?
         """, (user_id,))
         row = cursor.fetchone()
@@ -479,15 +480,18 @@ async def get_farm_state(user_id: int):
                 "xp": row["xp"] or 0,
                 "coins": row["click_coins"] or 0,
                 "stars": row["stars"] or 0,
-                "crystals": row["crystals"] or 0
+                "crystals": row["crystals"] or 0,
+                "bankCoins": row["bank_coins"] or 0,
+                "bankCrystals": row["bank_crystals"] or 0,
+                "bankStars": row["bank_stars"] or 0
             }
-            
+
             # Если есть farm_state_json, объединяем
             if row["farm_state_json"]:
                 import json
                 farm_state = json.loads(row["farm_state_json"])
                 result = { **result, **farm_state }
-            
+
             print(f'[get_farm_state] userId={user_id}, данные:', result)
             return result
         else:
