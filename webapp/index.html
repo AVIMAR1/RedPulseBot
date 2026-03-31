@@ -7509,16 +7509,39 @@ let gameInitialized = false;
 window.initGame = function() {
     if (gameInitialized) return;
 
-    loadGame();
-    updateUI();
-    startPassiveEffects();
+    console.log('[initGame] Начало инициализации, state.click_coins:', state.click_coins);
 
-    if (gameState.firstPlay) {
-        setTimeout(() => showHelp(), 500);
-        gameState.firstPlay = false;
-    }
+    // ВАЖНО: Сначала загружаем данные из БД фермы
+    loadGame().then(() => {
+        // После загрузки из БД синхронизируем с state (берём БОЛЬШЕЕ значение)
+        console.log('[initGame] После loadGame: gameState.coins=', gameState.coins, 'state.click_coins=', state.click_coins);
+        
+        // loadGame() уже синхронизировал state с gameState, но state мог быть загружен из БД бота
+        // Поэтому берём максимальное значение между state (бот) и gameState (ферма)
+        const maxCoins = Math.max(state.click_coins || 0, Math.floor(gameState.coins || 0));
+        const maxCrystals = Math.max(state.crystals || 0, Math.floor(gameState.crystals || 0));
+        const maxStars = Math.max(state.stars || 0, Math.floor(gameState.stars || 0));
+        
+        // Обновляем оба значения
+        state.click_coins = maxCoins;
+        state.crystals = maxCrystals;
+        state.stars = maxStars;
+        gameState.coins = maxCoins;
+        gameState.crystals = maxCrystals;
+        gameState.stars = maxStars;
+        
+        console.log('[initGame] После синхронизации: state.click_coins=', state.click_coins, 'gameState.coins=', gameState.coins);
+        
+        updateUI();
+        startPassiveEffects();
 
-    gameInitialized = true;
+        if (gameState.firstPlay) {
+            setTimeout(() => showHelp(), 500);
+            gameState.firstPlay = false;
+        }
+
+        gameInitialized = true;
+    });
 }
 
 // ==========================================
