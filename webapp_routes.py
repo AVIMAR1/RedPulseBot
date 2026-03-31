@@ -397,11 +397,13 @@ async def save_farm_stats(request: Request):
     click_coins = int(data.get("click_coins", 0))
     stars = int(data.get("stars", 0))
     crystals = int(data.get("crystals", 0))
-    
+
     # Банк фермы (виртуальный)
     bank_coins = int(data.get("bank_coins", 0))
     bank_stars = int(data.get("bank_stars", 0))
     bank_crystals = int(data.get("bank_crystals", 0))
+
+    print(f'[save-farm-stats] userId={user_id}, банк={bank_coins}🪙/{bank_stars}⭐/{bank_crystals}💎, монеты={click_coins}')
 
     conn = get_db()
     cursor = conn.cursor()
@@ -426,6 +428,8 @@ async def save_farm_stats(request: Request):
             final_bank_coins = max(db_bank_coins, bank_coins)
             final_bank_stars = max(db_bank_stars, bank_stars)
             final_bank_crystals = max(db_bank_crystals, bank_crystals)
+            
+            print(f'[save-farm-stats] БД: было банк={db_bank_coins}🪙, стало={final_bank_coins}🪙')
         else:
             final_coins = click_coins
             final_stars = stars
@@ -433,6 +437,7 @@ async def save_farm_stats(request: Request):
             final_bank_coins = bank_coins
             final_bank_stars = bank_stars
             final_bank_crystals = bank_crystals
+            print(f'[save-farm-stats] Пользователь не найден, создаём новые значения')
 
         cursor.execute("""
             UPDATE users SET
@@ -454,9 +459,10 @@ async def save_farm_stats(request: Request):
               user_id))
         conn.commit()
         conn.close()
-        return {"status": "ok", "click_coins": final_coins, "stars": final_stars, "crystals": final_crystals}
+        print(f'[save-farm-stats] ✅ Успешно сохранено в БД')
+        return {"status": "ok", "click_coins": final_coins, "stars": final_stars, "crystals": final_crystals, "bank_coins": final_bank_coins}
     except Exception as e:
-        print(f"Error saving farm stats: {e}")
+        print(f"[save-farm-stats] ❌ Ошибка: {e}")
         conn.close()
         return {"status": "error", "message": str(e)}
 

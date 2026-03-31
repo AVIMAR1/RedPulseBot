@@ -6170,12 +6170,12 @@ window.loadGame = async function() {
 
 // Глобальная функция сохранения игры
 window.saveGame = async function() {
-    // НЕ сохраняем если нет авторизации
-    if (!isAuthorized || !userId) {
-        console.warn('[saveGame] Отмена сохранения: нет авторизации');
+    // НЕ сохраняем если нет userId
+    if (!userId || typeof userId === 'undefined') {
+        console.warn('[saveGame] Отмена сохранения: нет userId');
         return;
     }
-    
+
     gameState.playTime = Math.floor((Date.now() - (gameState.lastSaveTime || Date.now())) / 1000) + (gameState.playTime || 0);
     gameState.lastSaveTime = Date.now();
 
@@ -6226,6 +6226,7 @@ async function saveFarmStats() {
         };
 
         console.log('[saveFarmStats] ОТПРАВКА в БД:', farmStats);
+        console.log('[saveFarmStats] Банк:', farmStats.bank_coins, '🪙,', farmStats.bank_stars, '⭐,', farmStats.bank_crystals, '💎');
 
         // Отправляем на сервер
         const response = await fetch('/api/save-farm-stats', {
@@ -6778,8 +6779,10 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
         case BLOCK_TYPES.COIN:
             const coins = charge * CONFIG.CONVERSION.COIN * block.level;
             // Начисляем В БАНК фермы
-            gameState.bankCoins = (gameState.bankCoins || 0) + coins;
+            const oldBankCoins = gameState.bankCoins || 0;
+            gameState.bankCoins = oldBankCoins + coins;
             gameState.totalEarned += coins;
+            console.log('[handleBlock] COIN: +'+coins+' 🪙, банк:', oldBankCoins, '→', gameState.bankCoins);
             showFloatingEarn(row, col, `+${Math.floor(coins * 100) / 100} 🪙`, 'coin');
             spawnCharge(x, y, dir, charge, processed, 5);
             updateBalance();
@@ -6788,7 +6791,9 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
         case BLOCK_TYPES.DIAMOND:
             const diamonds = (charge * block.level) / CONFIG.CONVERSION.DIAMOND;
             // Начисляем В БАНК фермы
-            gameState.bankCrystals = (gameState.bankCrystals || 0) + diamonds;
+            const oldBankCrystals = gameState.bankCrystals || 0;
+            gameState.bankCrystals = oldBankCrystals + diamonds;
+            console.log('[handleBlock] DIAMOND: +'+diamonds+' 💎, банк:', oldBankCrystals, '→', gameState.bankCrystals);
             showFloatingEarn(row, col, `+${Math.floor(diamonds * 10000) / 10000} 💎`, 'diamond');
             spawnCharge(x, y, dir, charge, processed, 5);
             updateBalance();
@@ -6797,7 +6802,9 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
         case BLOCK_TYPES.STAR:
             const stars = (charge * block.level) / CONFIG.CONVERSION.STAR;
             // Начисляем В БАНК фермы
-            gameState.bankStars = (gameState.bankStars || 0) + stars;
+            const oldBankStars = gameState.bankStars || 0;
+            gameState.bankStars = oldBankStars + stars;
+            console.log('[handleBlock] STAR: +'+stars+' ⭐, банк:', oldBankStars, '→', gameState.bankStars);
             showFloatingEarn(row, col, `+${Math.floor(stars * 1000000) / 1000000} ⭐`, 'star');
             spawnCharge(x, y, dir, charge, processed, 5);
             updateBalance();
