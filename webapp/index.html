@@ -6153,7 +6153,7 @@ window.loadGame = async function() {
                     renderGrid();
                     console.log('[loadGame] Grid отрисован');
 
-                    startPassiveEffects();
+                    // startPassiveEffects() вызывается в initGame() после loadGame()
                     console.log('[loadGame] Загружено из БД успешно');
                     return;
                 }
@@ -6179,7 +6179,7 @@ window.loadGame = async function() {
 
     updateUI();
     setTimeout(() => renderGrid(), 100);
-    startPassiveEffects();
+    // startPassiveEffects() вызывается в initGame() после loadGame()
 }
 
 // Глобальная функция сохранения игры
@@ -7507,14 +7507,22 @@ function showFloatingEarn(row, col, text, type) {
 
 // Функция инициализации игры
 let gameInitialized = false;
+let initAttempts = 0;
 window.initGame = function() {
     if (gameInitialized) return;
+    
+    initAttempts++;
+    console.log('[initGame] Попытка #' + initAttempts + ', window.userDataLoaded:', window.userDataLoaded);
 
-    // Ждём завершения loadUserData() перед инициализацией
+    // Ждём завершения loadUserData() перед инициализацией (максимум 50 попыток = 5 секунд)
     if (!window.userDataLoaded) {
-        console.log('[initGame] Ожидание завершения loadUserData()...');
-        setTimeout(() => initGame(), 100);
-        return;
+        if (initAttempts > 50) {
+            console.error('[initGame] Превышено время ожидания loadUserData(), инициализируем без данных');
+            // Инициализируем даже без данных чтобы поле отображалось
+        } else {
+            setTimeout(() => initGame(), 100);
+            return;
+        }
     }
 
     console.log('[initGame] Начало инициализации, state.click_coins:', state.click_coins);
