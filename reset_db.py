@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-RedPulseBot - Полный сброс БД к чистой структуре v1.3
+RedPulseBot - Полный сброс БД к чистой структуре v0.1.4
 Удаляет ВСЕ данные и создаёт новую структуру с нуля
 """
 
@@ -267,6 +267,7 @@ def reset_database():
     cursor.execute("CREATE INDEX ix_users_telegram_id ON users(telegram_id)")
     cursor.execute("CREATE INDEX ix_users_level ON users(level)")
     cursor.execute("CREATE INDEX ix_users_reactor ON users(reactor_level)")
+    cursor.execute("CREATE INDEX ix_users_bank_coins ON users(bank_coins)")
     cursor.execute("CREATE INDEX ix_support_tickets_status ON support_tickets(status)")
     print("   └─ Индексы ✓")
 

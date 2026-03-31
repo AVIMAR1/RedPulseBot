@@ -37,11 +37,11 @@ function updateBalance() {
     window.isSyncing = false;
 }
 
-// Синхронизация gameState и state
+// Синхронизация gameState и state (ДВУСТОРОННЯЯ)
 function syncGameState() {
     if (typeof state === 'undefined' || typeof gameState === 'undefined') return;
 
-    // state → gameState (валюта из state)
+    // state → gameState (валюта из state для отображения в ферме)
     gameState.coins = state.click_coins || 0;
     gameState.crystals = state.crystals || 0;
     gameState.stars = state.stars || 0;
@@ -52,6 +52,18 @@ function syncGameState() {
     state.xp = gameState.xp || 0;
     state.xpToNext = gameState.xpToNext || 100;
     state.click_power = Math.floor(gameState.chargePower) || 1;
+    
+    // ВАЖНО: gameState.coins/crystals/stars → state (обратная синхронизация валюты)
+    // Это нужно чтобы валюта заработанная в ферме попадала в главное состояние
+    if (gameState.coins > (state.click_coins || 0)) {
+        state.click_coins = gameState.coins;
+    }
+    if (gameState.crystals > (state.crystals || 0)) {
+        state.crystals = gameState.crystals;
+    }
+    if (gameState.stars > (state.stars || 0)) {
+        state.stars = gameState.stars;
+    }
 }
 
 // Функции для изменения баланса (автоматически вызывают updateBalance)
@@ -1121,7 +1133,7 @@ function withdraw() {
         showToast('Выведено!', 'success');
         if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
 
-        // Сначала синхронизируем gameState с обновлённым state
+        // Синхронизируем gameState с обновлённым state
         gameState.coins = state.click_coins || 0;
         gameState.crystals = state.crystals || 0;
         gameState.stars = state.stars || 0;
@@ -1129,12 +1141,59 @@ function withdraw() {
         // Сохраняем state в localStorage
         localStorage.setItem('redpulse_state', JSON.stringify(state));
 
-        // Синхронизация и сохранение
+        // Синхронизация и сохранение в БД
         syncGameState();
         saveGame();
         updateUI();
+        
+        // НЕМЕДЛЕННОЕ сохранение в БД после вывода
+        saveFarmStatsImmediate();
     } else {
         showToast('Минимум: 1🪙, 1💎 или 0.01⭐', 'warning');
+    }
+}
+
+// Функция для немедленного сохранения валюты в БД (после вывода из банка)
+async function saveFarmStatsImmediate() {
+    if (typeof userId === 'undefined' || !userId) {
+        console.warn('[saveFarmStatsImmediate] userId не определён!');
+        return;
+    }
+
+    try {
+        syncGameState();
+        
+        const farmStats = {
+            userId: userId,
+            reactor_level: gameState.reactor_level || 1,
+            blocks_placed: gameState.blocks_placed || 0,
+            reactions_triggered: gameState.totalTaps || 0,
+            total_energy_produced: gameState.totalEarned || 0,
+            click_coins: Math.floor(state.click_coins || 0),
+            stars: Math.floor(state.stars || 0),
+            crystals: Math.floor(state.crystals || 0),
+            // Банк фермы
+            bank_coins: Math.floor(gameState.bankCoins || 0),
+            bank_stars: Math.floor(gameState.bankStars || 0),
+            bank_crystals: Math.floor(gameState.bankCrystals || 0)
+        };
+
+        console.log('[saveFarmStatsImmediate] Сохранение в БД:', farmStats);
+
+        const response = await fetch('/api/save-farm-stats', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(farmStats)
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            console.log('[saveFarmStatsImmediate] УСПЕХ:', result);
+        } else {
+            console.error('[saveFarmStatsImmediate] Ошибка HTTP:', response.status);
+        }
+    } catch (e) {
+        console.error('[saveFarmStatsImmediate] Ошибка:', e);
     }
 }
 
@@ -1266,8 +1325,17 @@ function startPassiveEffects() {
         }
     }, 1000);
 
-    // Auto-save
+    // Auto-save to localStorage
     setInterval(() => { saveGame(); }, 15000);
+    
+    // Auto-save to DB every 30 seconds
+    setInterval(() => { 
+        if (userId && typeof userId !== 'undefined') {
+            console.log('[AutoSave] Сохранение в БД...');
+            saveFarmStats();
+            saveFarmState();
+        }
+    }, 30000);
 }
 
 function showFirstTimeHelp() {

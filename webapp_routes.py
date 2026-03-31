@@ -10,6 +10,9 @@ from core.progression import progress_for_xp
 router = APIRouter()
 WEBAPP_DIR = Path(__file__).parent / "webapp"
 
+# Версия кэша - увеличивайте при изменениях в JS/CSS
+CACHE_VERSION = "0.1.5"
+
 # ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 def get_db():
     conn = sqlite3.connect('redpulse.db')
@@ -28,9 +31,25 @@ def to_int(v, default=0):
 # ========== МАРШРУТЫ ==========
 @router.get("/webapp", response_class=HTMLResponse)
 async def get_webapp():
-    """Отдаёт index.html с заголовками для отключения кэширования"""
+    """Отдаёт index.html с заголовками для отключения кэширования и версией"""
     from fastapi.responses import FileResponse
     response = FileResponse(WEBAPP_DIR / "index.html")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    response.headers["X-Cache-Version"] = CACHE_VERSION
+    return response
+
+@router.get("/webapp/version")
+async def get_cache_version():
+    """Возвращает текущую версию кэша для проверки обновлений"""
+    return {"version": CACHE_VERSION, "timestamp": datetime.now().isoformat()}
+
+@router.get("/sw.js")
+async def get_service_worker():
+    """Отдаёт Service Worker с заголовками без кэширования"""
+    from fastapi.responses import FileResponse
+    response = FileResponse(WEBAPP_DIR / "sw.js")
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
@@ -373,34 +392,48 @@ async def save_farm_stats(request: Request):
     blocks_placed = int(data.get("blocks_placed", 0))
     reactions_triggered = int(data.get("reactions_triggered", 0))
     total_energy_produced = int(data.get("total_energy_produced", 0))
-    
-    # Валюта из фермы
+
+    # Валюта из фермы (основной баланс)
     click_coins = int(data.get("click_coins", 0))
     stars = int(data.get("stars", 0))
     crystals = int(data.get("crystals", 0))
+    
+    # Банк фермы (виртуальный)
+    bank_coins = int(data.get("bank_coins", 0))
+    bank_stars = int(data.get("bank_stars", 0))
+    bank_crystals = int(data.get("bank_crystals", 0))
 
     conn = get_db()
     cursor = conn.cursor()
 
     try:
         # Получаем текущие значения из БД
-        cursor.execute("SELECT click_coins, stars, crystals FROM users WHERE telegram_id = ?", (user_id,))
+        cursor.execute("SELECT click_coins, stars, crystals, bank_coins, bank_stars, bank_crystals FROM users WHERE telegram_id = ?", (user_id,))
         row = cursor.fetchone()
-        
+
         if row:
-            # Берём БОЛЬШЕЕ значение (чтобы не потерять данные)
+            # Берём БОЛЬШЕЕ значение для валюты (чтобы не потерять данные)
             db_coins = int(row["click_coins"] or 0)
             db_stars = int(row["stars"] or 0)
             db_crystals = int(row["crystals"] or 0)
-            
+            db_bank_coins = int(row["bank_coins"] or 0)
+            db_bank_stars = int(row["bank_stars"] or 0)
+            db_bank_crystals = int(row["bank_crystals"] or 0)
+
             final_coins = max(db_coins, click_coins)
             final_stars = max(db_stars, stars)
             final_crystals = max(db_crystals, crystals)
+            final_bank_coins = max(db_bank_coins, bank_coins)
+            final_bank_stars = max(db_bank_stars, bank_stars)
+            final_bank_crystals = max(db_bank_crystals, bank_crystals)
         else:
             final_coins = click_coins
             final_stars = stars
             final_crystals = crystals
-        
+            final_bank_coins = bank_coins
+            final_bank_stars = bank_stars
+            final_bank_crystals = bank_crystals
+
         cursor.execute("""
             UPDATE users SET
                 reactor_level = ?,
@@ -410,10 +443,15 @@ async def save_farm_stats(request: Request):
                 click_coins = ?,
                 stars = ?,
                 crystals = ?,
+                bank_coins = ?,
+                bank_stars = ?,
+                bank_crystals = ?,
                 last_activity = CURRENT_TIMESTAMP
             WHERE telegram_id = ?
-        """, (reactor_level, blocks_placed, reactions_triggered, total_energy_produced, 
-              final_coins, final_stars, final_crystals, user_id))
+        """, (reactor_level, blocks_placed, reactions_triggered, total_energy_produced,
+              final_coins, final_stars, final_crystals,
+              final_bank_coins, final_bank_stars, final_bank_crystals,
+              user_id))
         conn.commit()
         conn.close()
         return {"status": "ok", "click_coins": final_coins, "stars": final_stars, "crystals": final_crystals}

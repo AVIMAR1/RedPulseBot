@@ -184,6 +184,10 @@ async def on_startup():
         add_col("xp", "INTEGER DEFAULT 0")
         add_col("streak_days", "INTEGER DEFAULT 0")
         add_col("click_power", "INTEGER DEFAULT 1")
+        add_col("bank_coins", "INTEGER DEFAULT 0")
+        add_col("bank_stars", "INTEGER DEFAULT 0")
+        add_col("bank_crystals", "INTEGER DEFAULT 0")
+        add_col("first_play", "BOOLEAN DEFAULT 1")
         
         conn.commit()
         conn.close()

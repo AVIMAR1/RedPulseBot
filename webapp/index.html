@@ -6109,7 +6109,7 @@ window.loadGame = async function() {
                         gameState.grid = dbData.grid;
                         gameState.fieldRows = dbData.grid.length;
                     }
-                    
+
                     if (dbData.shopItems && Array.isArray(dbData.shopItems) && dbData.shopItems.length > 0) {
                         console.log('[loadGame] Загружаем shopItems из БД:', dbData.shopItems.length, 'предметов');
                         gameState.shopItems = dbData.shopItems;
@@ -6124,7 +6124,13 @@ window.loadGame = async function() {
                         initGrid();
                     }
 
-                    // Синхронизация с state (БД → state)
+                    // ВАЖНО: Синхронизация с state (БД → gameState → state)
+                    // Сначала загружаем валюту из БД в state
+                    state.click_coins = gameState.coins || 0;
+                    state.crystals = gameState.crystals || 0;
+                    state.stars = gameState.stars || 0;
+                    
+                    // Затем вызываем syncGameState для полной синхронизации
                     syncGameState();
                     updateUI();
 
@@ -6143,18 +6149,18 @@ window.loadGame = async function() {
             console.error('[loadGame] Stack:', e.stack);
         }
     }
-    
+
     // Если нет данных в БД — создаём новую игру
     console.log('[loadGame] Нет данных в БД, создаём новую игру');
     initGrid();
     generateShopItems();
-    
+
     // Показываем инструкцию только ОДИН раз (при первом запуске)
     if (gameState.firstPlay) {
         setTimeout(() => showFirstTimeHelp(), 500);
         gameState.firstPlay = false;
     }
-    
+
     syncGameState();
 
     updateUI();
@@ -6200,7 +6206,7 @@ async function saveFarmStats() {
             });
         }
 
-        // Синхронизируем валюту перед сохранением
+        // ВАЖНО: Синхронизируем валюту перед сохранением
         syncGameState();
 
         const farmStats = {
@@ -6209,10 +6215,14 @@ async function saveFarmStats() {
             blocks_placed: blocksCount,
             reactions_triggered: gameState.totalTaps || 0,
             total_energy_produced: gameState.totalEarned || 0,
-            // ВАЖНО: сохраняем валюту из фермы в БД
-            click_coins: Math.floor(gameState.coins || 0),
-            stars: Math.floor(gameState.stars || 0),
-            crystals: Math.floor(gameState.crystals || 0)
+            // ВАЖНО: сохраняем валюту из state (главное состояние бота)
+            click_coins: Math.floor(state.click_coins || 0),
+            stars: Math.floor(state.stars || 0),
+            crystals: Math.floor(state.crystals || 0),
+            // Банк фермы
+            bank_coins: Math.floor(gameState.bankCoins || 0),
+            bank_stars: Math.floor(gameState.bankStars || 0),
+            bank_crystals: Math.floor(gameState.bankCrystals || 0)
         };
 
         console.log('[saveFarmStats] ОТПРАВКА в БД:', farmStats);
@@ -6223,7 +6233,7 @@ async function saveFarmStats() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(farmStats)
         });
-        
+
         if (response.ok) {
             const result = await response.json();
             console.log('[saveFarmStats] УСПЕХ:', result);
@@ -6241,7 +6251,7 @@ async function saveFarmState() {
     if (typeof userId === 'undefined' || !userId) return;
 
     try {
-        // Синхронизируем валюту перед сохранением
+        // ВАЖНО: Синхронизируем валюту перед сохранением
         syncGameState();
 
         // Подсчитываем уровень реактора и блоки
@@ -6257,7 +6267,7 @@ async function saveFarmState() {
         }
 
         // Очищаем grid для JSON (убираем лишние свойства)
-        const cleanGrid = gameState.grid ? gameState.grid.map(row => 
+        const cleanGrid = gameState.grid ? gameState.grid.map(row =>
             row.map(block => {
                 if (!block) return null;
                 // Сохраняем только простые свойства
@@ -6286,7 +6296,7 @@ async function saveFarmState() {
             };
         }) : [];
 
-        // Сохраняем только важные данные
+        // Сохраняем только важные данные с ИСПОЛЬЗОВАНИЕМ state для валюты
         const farmStateToSave = {
             grid: cleanGrid,
             shopItems: cleanShopItems,
@@ -6295,9 +6305,10 @@ async function saveFarmState() {
             xpToNext: gameState.xpToNext,
             chargePower: gameState.chargePower,
             fieldRows: gameState.fieldRows,
-            coins: gameState.coins,
-            crystals: gameState.crystals,
-            stars: gameState.stars,
+            // ВАЖНО: используем state для валюты (главное состояние бота)
+            coins: state.click_coins || 0,
+            crystals: state.crystals || 0,
+            stars: state.stars || 0,
             bankCoins: gameState.bankCoins,
             bankCrystals: gameState.bankCrystals,
             bankStars: gameState.bankStars,
@@ -7401,9 +7412,12 @@ window.startPassiveEffects = function() {
 
     // Auto-save game state
     setInterval(() => { saveGame(); }, 15000);
-    
+
     // Auto-save farm stats to DB every 5 seconds
-    setInterval(() => { saveFarmStats(); }, 5000);
+    setInterval(() => { 
+        saveFarmStats();
+        saveFarmState();
+    }, 5000);
 }
 
 function showFirstTimeHelp() {
@@ -7487,8 +7501,83 @@ window.initGame = function() {
     gameInitialized = true;
 }
 
-// loadGame() вызывается из initGame() когда страница готова
-// loadGame();
+// ==========================================
+// АВТОМАТИЧЕСКАЯ ПРОВЕРКА ВЕРСИИ И ОЧИСТКА КЭША
+// ==========================================
+const APP_VERSION = '0.1.5';  // Увеличивайте при изменениях
+
+// Регистрация Service Worker для управления кэшем
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+                console.log('[SW] Service Worker зарегистрирован:', registration.scope);
+                
+                // Проверяем обновления Service Worker
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    console.log('[SW] Найдено обновление...');
+                    
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // Новое обновление готово
+                            console.log('[SW] Обновление готово к установке');
+                            showToast('🔄 Доступно обновление! Перезагрузите страницу', 'info');
+                        }
+                    });
+                });
+            })
+            .catch((error) => {
+                console.error('[SW] Ошибка регистрации Service Worker:', error);
+            });
+    });
+}
+
+async function checkCacheVersion() {
+    try {
+        const savedVersion = localStorage.getItem('appVersion');
+        console.log('[CacheCheck] Текущая версия:', APP_VERSION, 'Сохранённая:', savedVersion);
+        
+        if (savedVersion !== APP_VERSION) {
+            console.log('[CacheCheck] Версия изменилась, очистка кэша...');
+            
+            // Очищаем localStorage (кроме важных данных)
+            const importantKeys = ['redpulse_state', 'pulseFarmSave_v2'];
+            const importantData = {};
+            
+            // Сохраняем важные данные
+            importantKeys.forEach(key => {
+                const data = localStorage.getItem(key);
+                if (data) importantData[key] = data;
+            });
+            
+            // Очищаем всё
+            localStorage.clear();
+            
+            // Восстанавливаем важные данные
+            importantKeys.forEach(key => {
+                if (importantData[key]) localStorage.setItem(key, importantData[key]);
+            });
+            
+            // Сохраняем новую версию
+            localStorage.setItem('appVersion', APP_VERSION);
+            
+            console.log('[CacheCheck] Кэш очищен, версия обновлена до', APP_VERSION);
+            
+            // Показываем уведомление
+            showToast('🔄 Приложение обновлено!', 'info');
+            
+            // Если есть Service Worker - уведомляем об обновлении
+            if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.ready.then((registration) => {
+                    console.log('[SW] Запрос обновления у Service Worker');
+                });
+            }
+        }
+    } catch (e) {
+        console.error('[CacheCheck] Ошибка:', e);
+    }
+}
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
@@ -7499,7 +7588,10 @@ document.addEventListener('DOMContentLoaded', () => {
         coreBtn.offsetHeight; // trigger reflow
         coreBtn.style.animation = 'core-pulse 2s ease-in-out infinite';
     }
-    
+
+    // Проверяем версию и очищаем кэш при необходимости
+    checkCacheVersion();
+
     if (typeof initGame === 'function') {
         initGame();
     }

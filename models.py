@@ -44,6 +44,18 @@ class User(Base):
     reactor_level = Column(Integer, default=1)
     total_energy_produced = Column(Integer, default=0)
     farm_state_json = Column(Text, nullable=True)  # Полное состояние фермы (JSON)
+    
+    # Банк фермы (виртуальный)
+    bank_coins = Column(Integer, default=0)
+    bank_stars = Column(Integer, default=0)
+    bank_crystals = Column(Integer, default=0)
+    
+    # Температура ядра
+    temp = Column(Integer, default=0)
+    max_temp = Column(Integer, default=100)
+    
+    # Первый запуск
+    first_play = Column(Boolean, default=True)
 
     # Бусты
     click_power = Column(Integer, default=1)
@@ -173,8 +185,21 @@ class BroadcastMessage(Base):
     message_id = Column(Integer, nullable=False)
 
 
+class Reward(Base):
+    """Награды пользователей"""
+    __tablename__ = "rewards"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(BigInteger, ForeignKey("users.telegram_id"), nullable=False, index=True)
+    reward_type = Column(String, nullable=False)
+    amount = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 # Индексы
 Index("ix_users_stars", User.stars)
 Index("ix_users_telegram_id", User.telegram_id)
 Index("ix_users_level", User.level)
+Index("ix_users_reactor_level", User.reactor_level)
+Index("ix_users_bank_coins", User.bank_coins)
 Index("ix_support_tickets_status", SupportTicket.status)
