@@ -5898,15 +5898,15 @@ window.updateBalance = function() {
     window.isSyncing = false;
 }
 
-// Синхронизация gameState и state — ФЕРМА источник правды для валюты
+// Синхронизация gameState и state — берём БОЛЬШЕЕ значение
 window.syncGameState = function() {
     if (typeof state === 'undefined' || typeof gameState === 'undefined') return;
 
-    // ФЕРМА → STATE (валюта из фермы всегда приоритетнее)
-    state.click_coins = Math.floor(gameState.coins || 0);
-    state.crystals = Math.floor(gameState.crystals || 0);
-    state.stars = Math.floor(gameState.stars || 0);
-    
+    // ВАЖНО: Берём БОЛЬШЕЕ значение для валюты (чтобы не потерять данные)
+    state.click_coins = Math.max(state.click_coins || 0, Math.floor(gameState.coins || 0));
+    state.crystals = Math.max(state.crystals || 0, Math.floor(gameState.crystals || 0));
+    state.stars = Math.max(state.stars || 0, Math.floor(gameState.stars || 0));
+
     // XP и уровень — берём максимум (чтобы не потерять прогресс)
     const maxLevel = Math.max(state.level || 1, gameState.level || 1);
     const maxXp = Math.max(state.xp || 0, gameState.xp || 0);
@@ -5924,12 +5924,19 @@ window.syncGameState = function() {
     // click_power из фермы
     state.click_power = Math.floor(gameState.chargePower) || 1;
 
-    // Банк из фермы → state
-    state.bank_coins = gameState.bankCoins || 0;
-    state.bank_crystals = gameState.bankCrystals || 0;
-    state.bank_stars = gameState.bankStars || 0;
+    // Банк из фермы → state (берём большее)
+    state.bank_coins = Math.max(state.bank_coins || 0, gameState.bankCoins || 0);
+    state.bank_crystals = Math.max(state.bank_crystals || 0, gameState.bankCrystals || 0);
+    state.bank_stars = Math.max(state.bank_stars || 0, gameState.bankStars || 0);
 
-    console.log('[syncGameState] Синхронизация:', state.click_coins, state.stars, state.crystals, state.level, state.xp);
+    console.log('[syncGameState] Синхронизация:', {
+        coins: state.click_coins,
+        stars: state.stars,
+        crystals: state.crystals,
+        bank_coins: state.bank_coins,
+        level: state.level,
+        xp: state.xp
+    });
 }
 
 // Функции для изменения баланса (автоматически вызывают updateBalance)
@@ -6128,12 +6135,14 @@ window.loadGame = async function() {
                         initGrid();
                     }
 
-                    // ВАЖНО: Синхронизация с state (БД → gameState → state)
-                    // Сначала загружаем валюту из БД в state
-                    state.click_coins = gameState.coins || 0;
-                    state.crystals = gameState.crystals || 0;
-                    state.stars = gameState.stars || 0;
-                    
+                    // ВАЖНО: Синхронизация с state - берём БОЛЬШЕЕ значение (БД или state)
+                    state.click_coins = Math.max(state.click_coins || 0, gameState.coins || 0);
+                    state.crystals = Math.max(state.crystals || 0, gameState.crystals || 0);
+                    state.stars = Math.max(state.stars || 0, gameState.stars || 0);
+                    state.bank_coins = Math.max(state.bank_coins || 0, gameState.bankCoins || 0);
+                    state.bank_crystals = Math.max(state.bank_crystals || 0, gameState.bankCrystals || 0);
+                    state.bank_stars = Math.max(state.bank_stars || 0, gameState.bankStars || 0);
+
                     // Затем вызываем syncGameState для полной синхронизации
                     syncGameState();
                     updateUI();
