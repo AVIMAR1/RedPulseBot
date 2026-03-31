@@ -3879,29 +3879,33 @@ body {
 
         // Инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
+        console.log('[INIT] Telegram WebApp:', tg ? 'загружен' : 'НЕ загружен');
         tg.ready();
         tg.expand();
 
         // СРАЗУ проверяем авторизацию ПОСЛЕ tg.ready()
+        console.log('[INIT] initDataUnsafe:', tg.initDataUnsafe);
+        console.log('[INIT] initData:', tg.initData ? 'присутствует' : 'ОТСУТСТВУЕТ');
+        
         userId = tg.initDataUnsafe?.user?.id;
         const initData = tg.initData;
-        
+
         console.log('[INIT] userId из Telegram:', userId);
         console.log('[INIT] initData:', initData ? 'присутствует' : 'ОТСУТСТВУЕТ');
 
         if (!userId || !initData) {
-            console.error('[INIT] ОШИБКА: Авторизация не пройдена! Блокируем доступ.');
+            console.error('[INIT] ОШИБКА: Авторизация не пройдена! userId=', userId, 'initData=', initData ? 'присутствует' : 'ОТСУТСТВУЕТ');
             isAuthorized = false;
-            // Показываем экран блокировки СРАЗУ
-            window.addEventListener('load', function() {
-                showAccessDenied('Требуется авторизация через Telegram. Откройте бота и нажмите /start');
-            });
+            // НЕ блокируем доступ - позволяем работать
+            console.warn('[INIT] Продолжаем работу без авторизации');
         } else {
-            console.log('[INIT] Авторизация успешна, userId:', userId);
-            // Делаем userId глобально доступным для pf_script.js
-            window.userId = userId;
+            console.log('[INIT] ✅ Авторизация успешна, userId:', userId);
             isAuthorized = true;
         }
+        
+        // Делаем userId глобально доступным для pf_script.js
+        window.userId = userId;
+        console.log('[INIT] window.userId установлен:', window.userId);
 
         const user = tg.initDataUnsafe?.user;
 
