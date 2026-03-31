@@ -4601,9 +4601,10 @@ body {
             setTimeout(() => toast.classList.remove('show'), 2500);
         }
 
+        // Глобальный флаг: загружали ли уже данные
+        window.userDataLoaded = false;
+
         // Загрузка данных пользователя — ТОЛЬКО ИЗ БД (только при первом запуске!)
-        let userDataLoaded = false;  // Флаг: загружали ли уже данные
-        
         async function loadUserData() {
             // ПРОВЕРКА: если userId не определён, НЕ загружаем данные
             if (!userId || typeof userId === 'undefined') {
@@ -4611,9 +4612,9 @@ body {
                 showAccessDenied('Требуется авторизация через Telegram. Откройте бота и нажмите /start');
                 return;
             }
-            
+
             // ПРОВЕРКА: если уже загружали данные, НЕ загружаем снова (чтобы не перезаписать свежие данные старыми из БД)
-            if (userDataLoaded) {
+            if (window.userDataLoaded) {
                 console.log('[loadUserData] Данные уже загружены, пропускаем повторную загрузку');
                 return;
             }
@@ -4665,7 +4666,7 @@ body {
 
                     updateUI();
                     console.log('[loadUserData] Данные загружены из БД успешно');
-                    userDataLoaded = true;  // Помечаем, что данные загружены
+                    window.userDataLoaded = true;  // Помечаем, что данные загружены
 
                     // Обновляем баланс в главном меню
                     setTimeout(() => {
@@ -7509,6 +7510,13 @@ let gameInitialized = false;
 window.initGame = function() {
     if (gameInitialized) return;
 
+    // Ждём завершения loadUserData() перед инициализацией
+    if (!window.userDataLoaded) {
+        console.log('[initGame] Ожидание завершения loadUserData()...');
+        setTimeout(() => initGame(), 100);
+        return;
+    }
+
     console.log('[initGame] Начало инициализации, state.click_coins:', state.click_coins);
 
     // ВАЖНО: Сначала загружаем данные из БД фермы
@@ -7635,9 +7643,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Проверяем версию и очищаем кэш при необходимости
     checkCacheVersion();
 
-    if (typeof initGame === 'function') {
-        initGame();
-    }
+    // НЕ вызываем initGame() здесь - он вызывается только при переключении на ферму
+    console.log('[DOMContentLoaded] Страница загружена, initGame() будет вызван при открытии фермы');
 });
 
 </script>
