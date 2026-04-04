@@ -4728,6 +4728,9 @@ body {
                     console.log('[loadUserData] updateUI() вызван');
                     window.userDataLoaded = true;  // Помечаем, что данные загружены
 
+                    // ОТЛАДКА: alert с данными
+                    alert('[loadUserData] state.click_coins=' + state.click_coins + '\nstate.stars=' + state.stars + '\nstate.crystals=' + state.crystals);
+
                     // Обновляем баланс на главной странице
                     setTimeout(() => {
                         const balanceCoins = document.getElementById('balance-coins');
