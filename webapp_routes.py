@@ -368,10 +368,14 @@ async def get_profile(user_id: int):
     conn.close()
 
     if user:
+        reactions = int(user["reactions_triggered"] or 0)
+        # Уровень игрока: каждые 200 реакций = +1 (медленнее, не сбрасывается)
+        player_level = (reactions // 200) + 1
+
         return {
             "first_name": user["first_name"] or "Игрок",
             "username": user["username"],
-            "level": user["level"] or 1,
+            "level": player_level,
             "total_clicks": user["total_clicks"] or 0,
             "tasks_completed": user["tasks_completed"] or 0,
             "streak_days": user["streak_days"] or 0,
@@ -380,7 +384,7 @@ async def get_profile(user_id: int):
             "created_at": user["created_at"] or "",
             "core_level": user["reactor_level"] or 1,
             "blocks_placed": user["blocks_placed"] or 0,
-            "reactions_triggered": user["reactions_triggered"] or 0,
+            "reactions_triggered": reactions,
             "click_coins": user["click_coins"] or 0,
             "stars": user["stars"] or 0,
             "crystals": user["crystals"] or 0,
