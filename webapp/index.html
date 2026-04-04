@@ -7133,6 +7133,7 @@ function spawnCharge(x, y, dir, charge, processed, skipFrames) {
     const fieldHeight = gameState.fieldRows * (CELL_SIZE + GAP) + padding * 2;
     const BASE_SPEED = 3.5;
 
+    // Упрощённая анимация — БЕЗ trail элементов (убираем лишние DOM)
     const chargeEl = document.createElement('div');
     chargeEl.className = 'charge-particle';
     chargeEl.style.left = `${x - 9}px`;
@@ -7140,7 +7141,6 @@ function spawnCharge(x, y, dir, charge, processed, skipFrames) {
     fieldGrid.appendChild(chargeEl);
 
     let frames = 0;
-    let lastTrail = 0;
     let lastTime = 0;
 
     function move(timestamp) {
@@ -7152,18 +7152,11 @@ function spawnCharge(x, y, dir, charge, processed, skipFrames) {
         y += dir.y * BASE_SPEED * deltaTime;
         frames++;
 
-        if (timestamp - lastTrail > 100) {
-            const trail = document.createElement('div');
-            trail.className = 'charge-trail';
-            trail.style.left = `${x - 4}px`;
-            trail.style.top = `${y - 4}px`;
-            fieldGrid.appendChild(trail);
-            setTimeout(() => trail.remove(), 400);
-            lastTrail = timestamp;
+        // Обновляем позицию реже (каждые 2 кадра)
+        if (frames % 2 === 0) {
+            chargeEl.style.left = `${x - 9}px`;
+            chargeEl.style.top = `${y - 9}px`;
         }
-
-        chargeEl.style.left = `${x - 9}px`;
-        chargeEl.style.top = `${y - 9}px`;
 
         // Пропуск первых кадров для выхода из блока
         if (frames < skipFrames) {
@@ -7171,14 +7164,14 @@ function spawnCharge(x, y, dir, charge, processed, skipFrames) {
             return;
         }
 
-        // Bounds check
+        // Bounds check — упрощённая проверка
         if (x < padding - 10 || x > fieldWidth - padding + 10 || y < padding - 10 || y > fieldHeight - padding + 10) {
             chargeEl.remove();
-            setTimeout(finishCharging, 300);
+            finishCharging();
             return;
         }
 
-        // Block collision - ПРЯМОУГОЛЬНАЯ коллизия
+        // Block collision
         const col = Math.floor((x - padding) / (CELL_SIZE + GAP));
         const row = Math.floor((y - padding) / (CELL_SIZE + GAP));
         const blockKey = `${row}-${col}`;
@@ -7188,13 +7181,14 @@ function spawnCharge(x, y, dir, charge, processed, skipFrames) {
             if (block && !processed.has(blockKey)) {
                 const cellX = padding + col * (CELL_SIZE + GAP);
                 const cellY = padding + row * (CELL_SIZE + GAP);
-                
+
                 const hitBox = CELL_SIZE * 0.6;
                 const dx = Math.abs(x - (cellX + CELL_SIZE/2));
                 const dy = Math.abs(y - (cellY + CELL_SIZE/2));
-                
+
                 if (dx < hitBox && dy < hitBox) {
                     processed.add(blockKey);
+                    chargeEl.remove();
                     handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y);
                     return;
                 }
@@ -7216,22 +7210,15 @@ function getHitPort(dir) {
 }
 
 function finishCharging() {
-    setTimeout(() => {
-        if (document.querySelectorAll('.charge-particle').length === 0) {
-            gameState.isCharging = false;
-            saveGame();
-            updateUI();
-        } else {
-            finishCharging();
-        }
-    }, 300);
+    gameState.isCharging = false;
+    updateUI();
+    saveGame();
 }
 
 function addXP(amount) {
     const xpMultiplier = gameState.level >= 20 ? 2 : 1;
     const xpGained = amount * xpMultiplier;
     gameState.xp = (gameState.xp || 0) + xpGained;
-    console.log('[XP] +'+xpGained+' XP, текущий: '+gameState.xp+'/'+gameState.xpToNext+', уровень: '+gameState.level);
     while (gameState.xp >= gameState.xpToNext) levelUp();
     updateBalance();
 }
