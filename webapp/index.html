@@ -7598,7 +7598,7 @@ window.startPassiveEffects = function() {
     }, 1000);
 
     // Auto-save game state (реже на телефоне)
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    // isMobile уже объявлен выше (строка ~7577)
     const saveInterval = isMobile ? 30000 : 15000;  // 30с на телефоне, 15с на ПК
     setInterval(() => { saveGame(); }, saveInterval);
 
