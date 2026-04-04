@@ -3046,6 +3046,24 @@ body {
     50% { transform: scale(1.3); opacity: 0.8; }
 }
 
+/* Laser segment */
+.laser-segment {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: radial-gradient(circle, #fff 0%, #e74c3c 40%, #c0392b 70%);
+    border-radius: 50%;
+    box-shadow: 0 0 15px rgba(231, 76, 60, 0.9), 0 0 30px rgba(231, 76, 60, 0.4);
+    pointer-events: none;
+    z-index: 100;
+    animation: laser-glow 0.5s ease-in-out infinite;
+}
+
+@keyframes laser-glow {
+    0%, 100% { box-shadow: 0 0 15px rgba(231, 76, 60, 0.9), 0 0 30px rgba(231, 76, 60, 0.4); }
+    50% { box-shadow: 0 0 25px rgba(231, 76, 60, 1), 0 0 50px rgba(231, 76, 60, 0.6); }
+}
+
 .charge-trail {
     position: absolute;
     width: 10px;
@@ -6864,81 +6882,156 @@ function launchCharge() {
     if (!fieldGrid) { gameState.isCharging = false; return; }
     const padding = 10;
     const charge = gameState.chargePower || 1;
-    // Старт: первый ряд (row=0), колонка CHARGE_COL
     const startCol = CHARGE_COL;
     const startRow = 0;
     const x = padding + startCol * (CELL_SIZE + GAP) + CELL_SIZE / 2;
     const y = padding + startRow * (CELL_SIZE + GAP) + CELL_SIZE / 2;
     const dir = { x: 0, y: 1 };
-    spawnCharge(startRow, startCol, x, y, dir, charge, new Set());
+    // Лазер вместо снаряда
+    spawnLaser(startRow, startCol, x, y, dir, charge, new Set());
 }
 
-// Снаряд телепортируется по клеткам с задержкой (НЕ плавная анимация!)
-function spawnCharge(row, col, x, y, dir, charge, processed) {
+// Лазер — ползёт по клеткам, оставляет след, размножается, пульсирует в конце
+function spawnLaser(row, col, x, y, dir, charge, processed) {
     const fieldGrid = document.getElementById('fieldGrid');
     if (!fieldGrid) { finishCharging(); return; }
 
     const padding = 10;
     const cellStep = CELL_SIZE + GAP;
     const fieldRows = gameState.fieldRows;
-    const STEP_DELAY = 200; // мс между телепортациями
-
-    // Создаём снаряд на текущей клетке
-    const chargeEl = document.createElement('div');
-    chargeEl.className = 'charge-particle';
-    chargeEl.style.left = `${x - 9}px`;
-    chargeEl.style.top = `${y - 9}px`;
-    chargeEl.style.transition = 'none'; // БЕЗ анимации!
-    fieldGrid.appendChild(chargeEl);
+    const STEP_DELAY = 150; // мс между клетками
 
     const checked = processed || new Set();
+    let activeLasers = 0; // счётчик активных лазеров
+    let allFinished = false;
+    const allSegments = []; // все сегменты для пульсации
 
-    function step() {
-        // Двигаемся на 1 клетку
-        col += dir.x;
-        row += dir.y;
+    function step(r, c, d, ch) {
+        activeLasers++;
 
-        // Выход за границы — снаряд исчезает
-        if (row < 0 || row >= fieldRows || col < 0 || col >= FIELD_COLS) {
-            chargeEl.remove();
-            finishCharging();
+        // Проверка выхода за границы
+        if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) {
+            activeLasers--;
+            checkAllDone();
             return;
         }
 
-        // Проверка блока
-        const block = gameState.grid[row]?.[col];
-        const blockKey = `${row}-${col}`;
+        const blockKey = `${r}-${c}`;
 
-        if (block && !checked.has(blockKey)) {
-            // Попали в блок!
-            checked.add(blockKey);
-            const cellX = padding + col * cellStep + CELL_SIZE / 2;
-            const cellY = padding + row * cellStep + CELL_SIZE / 2;
-
-            // Анимация столкновения
-            chargeEl.style.transition = 'transform 0.1s ease-out, opacity 0.1s ease-out';
-            chargeEl.style.transform = 'scale(1.5)';
-            chargeEl.style.opacity = '0';
-            setTimeout(() => {
-                chargeEl.remove();
-                handleBlock(block, row, col, charge, dir, checked, cellX, cellY);
-            }, 100);
+        // Если уже обработан — останавливаемся (врезался в себя)
+        if (checked.has(blockKey)) {
+            activeLasers--;
+            checkAllDone();
             return;
         }
 
-        // Пустая клетка — телепортируемся мгновенно
-        const newX = padding + col * cellStep + CELL_SIZE / 2;
-        const newY = padding + row * cellStep + CELL_SIZE / 2;
-        chargeEl.style.transition = 'none'; // Мгновенно!
-        chargeEl.style.left = `${newX - 9}px`;
-        chargeEl.style.top = `${newY - 9}px`;
+        checked.add(blockKey);
 
-        // Ждём и продолжаем
-        setTimeout(step, STEP_DELAY);
+        // Создаём сегмент лазера
+        const segX = padding + c * cellStep + CELL_SIZE / 2;
+        const segY = padding + r * cellStep + CELL_SIZE / 2;
+        const seg = document.createElement('div');
+        seg.className = 'laser-segment';
+        seg.style.left = `${segX - 7}px`;
+        seg.style.top = `${segY - 7}px`;
+        fieldGrid.appendChild(seg);
+        allSegments.push(seg);
+
+        const block = gameState.grid[r]?.[c];
+
+        if (block) {
+            // Попали в блок — обрабатываем
+            switch (block.type) {
+                case BLOCK_TYPES.COIN:
+                    const coins = ch * CONFIG.CONVERSION.COIN * block.level;
+                    gameState.bankCoins = (gameState.bankCoins || 0) + coins;
+                    gameState.totalEarned += coins;
+                    showFloatingEarn(r, c, `+${Math.floor(coins * 100) / 100} 🪙`, 'coin');
+                    updateBalance();
+                    // Продолжаем в том же направлении
+                    setTimeout(() => step(r + d.y, c + d.x, d, ch), STEP_DELAY);
+                    break;
+
+                case BLOCK_TYPES.DIAMOND:
+                    const diamonds = (ch * block.level) / CONFIG.CONVERSION.DIAMOND;
+                    gameState.bankCrystals = (gameState.bankCrystals || 0) + diamonds;
+                    showFloatingEarn(r, c, `+${Math.floor(diamonds * 10000) / 10000} 💎`, 'diamond');
+                    updateBalance();
+                    setTimeout(() => step(r + d.y, c + d.x, d, ch), STEP_DELAY);
+                    break;
+
+                case BLOCK_TYPES.STAR:
+                    const stars = (ch * block.level) / CONFIG.CONVERSION.STAR;
+                    gameState.bankStars = (gameState.bankStars || 0) + stars;
+                    showFloatingEarn(r, c, `+${Math.floor(stars * 1000000) / 1000000} ⭐`, 'star');
+                    updateBalance();
+                    setTimeout(() => step(r + d.y, c + d.x, d, ch), STEP_DELAY);
+                    break;
+
+                case BLOCK_TYPES.MULTIPLIER:
+                    const newCharge = ch * block.value;
+                    const multDisplay = Math.round(block.value * 100) / 100;
+                    showFloatingEarn(r, c, `×${multDisplay.toFixed(2)}!`, 'multiplier');
+                    // Продолжаем с увеличенным зарядом
+                    setTimeout(() => step(r + d.y, c + d.x, d, newCharge), STEP_DELAY);
+                    break;
+
+                case BLOCK_TYPES.ROUTER:
+                    const hitPort = getHitPort(d);
+                    if (block.routerConfig && block.routerConfig.ports && block.routerConfig.ports.includes(hitPort)) {
+                        const outputPorts = block.routerConfig.ports.filter(p => p !== hitPort);
+                        const boostedCharge = ch * block.value;
+                        showFloatingEarn(r, c, `🔀 x${block.value}!`, 'router');
+
+                        const portToDir = {
+                            'top': { x: 0, y: -1 },
+                            'bottom': { x: 0, y: 1 },
+                            'left': { x: -1, y: 0 },
+                            'right': { x: 1, y: 0 }
+                        };
+
+                        // Размножаем на каждый выходной порт
+                        outputPorts.forEach(port => {
+                            const outDir = portToDir[port];
+                            setTimeout(() => step(r + outDir.y, c + outDir.x, outDir, boostedCharge), STEP_DELAY);
+                        });
+                    }
+                    // Если не попал в порт — останавливаемся
+                    break;
+
+                default:
+                    setTimeout(() => step(r + d.y, c + d.x, d, ch), STEP_DELAY);
+            }
+        } else {
+            // Пустая клетка — продолжаем
+            setTimeout(() => step(r + d.y, c + d.x, d, ch), STEP_DELAY);
+        }
+
+        activeLasers--;
+        checkAllDone();
     }
 
-    // Ждём на стартовой клетке, потом начинаем
-    setTimeout(step, STEP_DELAY);
+    function checkAllDone() {
+        if (activeLasers <= 0 && allSegments.length > 0) {
+            finishLaser();
+        }
+    }
+
+    function finishLaser() {
+        // Пульсирующая анимация исчезновения
+        allSegments.forEach((seg, i) => {
+            setTimeout(() => {
+                seg.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
+                seg.style.transform = 'scale(1.3)';
+                seg.style.opacity = '0';
+                setTimeout(() => seg.remove(), 300);
+            }, i * 20); // каскадное затухание
+        });
+        finishCharging();
+    }
+
+    // Запускаем первый шаг
+    setTimeout(() => step(row, col, dir, charge), 100);
 }
 
 function handleBlock(block, row, col, charge, dir, processed, x, y) {
