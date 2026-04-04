@@ -603,17 +603,19 @@ async def save_farm_state(request: Request):
         req_max_temp = farm_state.get('maxTemp', 100)
         
         if db_row:
-            # Берём МАКСИМУМ чтобы не потерять прогресс
+            # Берём МАКСИМУМ для статистики (реакции, блоки, энергия)
             final_blocks = max(int(db_row["blocks_placed"] or 0), req_blocks)
             final_reactions = max(int(db_row["reactions_triggered"] or 0), req_reactions)
             final_reactor = max(int(db_row["reactor_level"] or 1), req_reactor)
             final_energy = max(int(db_row["total_energy_produced"] or 0), req_energy)
-            final_coins = max(int(db_row["click_coins"] or 0), req_coins)
-            final_stars = max(int(db_row["stars"] or 0), req_stars)
-            final_crystals = max(int(db_row["crystals"] or 0), req_crystals)
-            final_bank_coins = max(int(db_row["bank_coins"] or 0), req_bank_coins)
-            final_bank_stars = max(int(db_row["bank_stars"] or 0), req_bank_stars)
-            final_bank_crystals = max(int(db_row["bank_crystals"] or 0), req_bank_crystals)
+            # ВАЖНО: для валюты берём значение из запроса напрямую (НЕ max!)
+            # чтобы потраченные монеты не перезаписывались старым значением из БД
+            final_coins = req_coins
+            final_stars = req_stars
+            final_crystals = req_crystals
+            final_bank_coins = req_bank_coins
+            final_bank_stars = req_bank_stars
+            final_bank_crystals = req_bank_crystals
             final_level = max(int(db_row["level"] or 1), req_level)
             final_xp = max(int(db_row["xp"] or 0), req_xp)
             final_temp = int(db_row["temp"] or 0) if req_temp == 0 else req_temp

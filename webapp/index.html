@@ -4005,7 +4005,7 @@ body {
         // ==========================================
         const CONFIG = {
             TEMP_PER_TAP: 15,
-            TEMP_COOLDOWN_RATE: 0.4,
+            TEMP_COOLDOWN_RATE: 0.6,
             TEMP_MAX_BASE: 100,
             TAP_COOLDOWN: 10000,
             BASE_CHARGE_POWER: 1,
@@ -4685,6 +4685,23 @@ body {
             }, 2000);
         }
 
+        // Форматирование больших чисел: 1000→1К, 1070→1,07К, 10000→10К, 1000000→1КК
+        function formatNumber(num) {
+            if (!num || num === 0) return '0';
+            num = Math.floor(num);
+            if (num >= 1000000000) return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'ККК';
+            if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'КК';
+            if (num >= 10000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'К';
+            if (num >= 1000) {
+                const k = num / 1000;
+                // Не больше 5 символов: 1,07К (5), 10,1К (5), 100К (4)
+                if (k >= 100) return Math.floor(k) + 'К'; // 100К+
+                if (k >= 10) return k.toFixed(1).replace(/\.0$/, '') + 'К'; // 10,1К
+                return k.toFixed(2).replace(/\.?0+$/, '') + 'К'; // 1,07К
+            }
+            return num.toLocaleString();
+        }
+
         // Функция обновления баланса - вызывается из ВСЕХ мест
         function updateBalanceDisplay() {
             const bc = document.getElementById('balance-coins');
@@ -4692,9 +4709,9 @@ body {
             const bcr = document.getElementById('balance-crystals');
             
             if (bc && bs && bcr) {
-                bc.innerHTML = '<span>' + (state.click_coins || 0).toLocaleString() + '</span>';
-                bs.innerHTML = '<span>' + (state.stars || 0).toLocaleString() + '</span>';
-                bcr.innerHTML = '<span>' + (state.crystals || 0).toLocaleString() + '</span>';
+                bc.innerHTML = '<span>' + formatNumber(state.click_coins || 0) + '</span>';
+                bs.innerHTML = '<span>' + formatNumber(state.stars || 0) + '</span>';
+                bcr.innerHTML = '<span>' + formatNumber(state.crystals || 0) + '</span>';
             } else {
                 // Элементы не готовы - пробуем через 500мс
                 setTimeout(updateBalanceDisplay, 500);
@@ -6079,6 +6096,9 @@ window.loadGame = async function() {
                     if (dbData.reactor_level > 1) gameState.reactor_level = dbData.reactor_level;
                     if (dbData.blocks_placed > 0) gameState.blocks_placed = dbData.blocks_placed;
                     if (dbData.reactions_triggered > 0) gameState.reactions_triggered = dbData.reactions_triggered;
+                    if (dbData.baseBlockPrice > 0) gameState.baseBlockPrice = dbData.baseBlockPrice;
+                    if (dbData.rerollCost > 0) gameState.rerollCost = dbData.rerollCost;
+                    if (dbData.expandCost > 0) gameState.expandCost = dbData.expandCost;
                     
                     // Рассчитываем остывание температуры за время пока ферма была закрыта
                     if (dbData.lastTapTime) {
@@ -6392,6 +6412,9 @@ async function saveFarmState() {
             xpToNext: gameState.xpToNext,
             chargePower: gameState.chargePower,
             fieldRows: gameState.fieldRows,
+            baseBlockPrice: gameState.baseBlockPrice || CONFIG.PRICES.BLOCK_BASE,
+            rerollCost: gameState.rerollCost || CONFIG.PRICES.REROLL_BASE,
+            expandCost: gameState.expandCost || CONFIG.PRICES.EXPAND_BASE,
             // ВАЖНО: используем state для валюты (главное состояние бота)
             coins: state.click_coins || 0,
             crystals: state.crystals || 0,
@@ -6401,8 +6424,6 @@ async function saveFarmState() {
             bankStars: gameState.bankStars,
             totalTaps: gameState.totalTaps || 0,
             totalEarned: gameState.totalEarned || 0,
-            rerollCost: gameState.rerollCost || CONFIG.PRICES.REROLL_BASE,
-            expandCost: gameState.expandCost || CONFIG.PRICES.EXPAND_BASE,
             lastSaveTime: gameState.lastSaveTime || Date.now(),
             // Температура
             temp: gameState.temp || 0,
@@ -6827,24 +6848,37 @@ function launchCharge() {
             return;
         }
 
-        // Block collision - ПРЯМОУГОЛЬНАЯ коллизия
+        // Block collision - ПРЯМОУГОЛЬНАЯ коллизия с УВЕЛИЧЕННОЙ зоной обнаружения
+        // Проверяем не только текущую клетку, но и соседние (чтобы снаряд не пропускал блоки в упор)
         const col = Math.floor((x - padding) / (CELL_SIZE + GAP));
         const row = Math.floor((y - padding) / (CELL_SIZE + GAP));
-        const blockKey = `${row}-${col}`;
+        
+        // Проверяем 3x3 область вокруг текущей позиции для надёжного обнаружения
+        const checkCells = [];
+        for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+                const r = row + dr;
+                const c = col + dc;
+                if (r >= 0 && r < gameState.fieldRows && c >= 0 && c < FIELD_COLS) {
+                    checkCells.push({ row: r, col: c });
+                }
+            }
+        }
 
-        if (row >= 0 && row < gameState.fieldRows && col >= 0 && col < FIELD_COLS) {
-            const block = gameState.grid[row][col];
+        for (const cell of checkCells) {
+            const block = gameState.grid[cell.row][cell.col];
+            const blockKey = `${cell.row}-${cell.col}`;
             if (block && !processedBlocks.has(blockKey)) {
-                const cellX = padding + col * (CELL_SIZE + GAP);
-                const cellY = padding + row * (CELL_SIZE + GAP);
+                const cellX = padding + cell.col * (CELL_SIZE + GAP);
+                const cellY = padding + cell.row * (CELL_SIZE + GAP);
 
-                const hitBox = CELL_SIZE * 0.6;
+                const hitBox = CELL_SIZE * 0.7;  // Увеличили зону попадания
                 const dx = Math.abs(x - (cellX + CELL_SIZE/2));
                 const dy = Math.abs(y - (cellY + CELL_SIZE/2));
 
                 if (dx < hitBox && dy < hitBox) {
                     processedBlocks.add(blockKey);
-                    handleBlock(block, row, col, charge, dir, processedBlocks, chargeEl, x, y);
+                    handleBlock(block, cell.row, cell.col, charge, dir, processedBlocks, chargeEl, x, y);
                     return;
                 }
             }
@@ -7305,11 +7339,13 @@ window.sellSelected = function() {
     // Продажа за монеты на основной баланс
     state.click_coins = (state.click_coins || 0) + sellPrice;
     gameState.grid[gameState.selectedCell.row][gameState.selectedCell.col] = null;
-    gameState.selectedCell = null;
+    gameState.selectedCell = null;  // Сбрасываем выбранный блок
     showToast(`+${sellPrice} 🪙`, 'success');
     if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
     updateBalance();
     renderGrid();
+    // Сохраняем в БД сразу после продажи
+    if (typeof saveGame === 'function') saveGame();
 }
 
 // Глобальная функция для вывода из банка
@@ -7484,7 +7520,9 @@ window.onCellClick = function(e, row, col) {
 
 // Глобальная функция запуска пассивных эффектов
 window.startPassiveEffects = function() {
-    // Temperature cooldown
+    // Temperature cooldown (реже на телефоне)
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const tempInterval = isMobile ? 2000 : 1000;  // 2с на телефоне, 1с на ПК
     setInterval(() => {
         if (gameState.temp > 0) {
             const cooldownRate = CONFIG.TEMP_COOLDOWN_RATE * (1 + (gameState.level - 1) * 0.05);
@@ -7492,7 +7530,7 @@ window.startPassiveEffects = function() {
             updateUI();
             saveGame();
         }
-    }, 1000);
+    }, tempInterval);
 
     // Update broken core timer every second
     setInterval(() => {
@@ -7506,8 +7544,10 @@ window.startPassiveEffects = function() {
         }
     }, 1000);
 
-    // Auto-save game state
-    setInterval(() => { saveGame(); }, 15000);
+    // Auto-save game state (реже на телефоне)
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const saveInterval = isMobile ? 30000 : 15000;  // 30с на телефоне, 15с на ПК
+    setInterval(() => { saveGame(); }, saveInterval);
 
     // Auto-save farm stats to DB every 5 seconds
     setInterval(() => { 
