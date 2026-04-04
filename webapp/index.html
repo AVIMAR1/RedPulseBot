@@ -3046,22 +3046,25 @@ body {
     50% { transform: scale(1.3); opacity: 0.8; }
 }
 
-/* Laser segment */
+/* Laser beam segment */
 .laser-segment {
     position: absolute;
-    width: 14px;
-    height: 14px;
-    background: radial-gradient(circle, #fff 0%, #e74c3c 40%, #c0392b 70%);
+    width: 6px;
+    height: 6px;
+    background: #e74c3c;
     border-radius: 50%;
-    box-shadow: 0 0 15px rgba(231, 76, 60, 0.9), 0 0 30px rgba(231, 76, 60, 0.4);
+    box-shadow: 0 0 8px rgba(231, 76, 60, 0.9), 0 0 16px rgba(231, 76, 60, 0.5);
     pointer-events: none;
     z-index: 100;
-    animation: laser-glow 0.5s ease-in-out infinite;
 }
 
-@keyframes laser-glow {
-    0%, 100% { box-shadow: 0 0 15px rgba(231, 76, 60, 0.9), 0 0 30px rgba(231, 76, 60, 0.4); }
-    50% { box-shadow: 0 0 25px rgba(231, 76, 60, 1), 0 0 50px rgba(231, 76, 60, 0.6); }
+.laser-segment.pulse {
+    animation: laser-end-pulse 0.6s ease-in-out infinite;
+}
+
+@keyframes laser-end-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 8px rgba(231, 76, 60, 0.9); }
+    50% { transform: scale(1.5); opacity: 0.7; box-shadow: 0 0 20px rgba(231, 76, 60, 1); }
 }
 
 .charge-trail {
@@ -6927,13 +6930,13 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
 
         checked.add(blockKey);
 
-        // Создаём сегмент лазера
+        // Рисуем точку лазера на клетке
         const segX = padding + c * cellStep + CELL_SIZE / 2;
         const segY = padding + r * cellStep + CELL_SIZE / 2;
         const seg = document.createElement('div');
         seg.className = 'laser-segment';
-        seg.style.left = `${segX - 7}px`;
-        seg.style.top = `${segY - 7}px`;
+        seg.style.left = `${segX - 3}px`;
+        seg.style.top = `${segY - 3}px`;
         fieldGrid.appendChild(seg);
         allSegments.push(seg);
 
@@ -7018,16 +7021,19 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     }
 
     function finishLaser() {
-        // Пульсирующая анимация исчезновения
-        allSegments.forEach((seg, i) => {
-            setTimeout(() => {
-                seg.style.transition = 'transform 0.3s ease-out, opacity 0.3s ease-out';
-                seg.style.transform = 'scale(1.3)';
-                seg.style.opacity = '0';
-                setTimeout(() => seg.remove(), 300);
-            }, i * 20); // каскадное затухание
-        });
-        finishCharging();
+        // Добавляем пульсацию на все сегменты
+        allSegments.forEach(seg => seg.classList.add('pulse'));
+        // Через 2 секунды затухаем
+        setTimeout(() => {
+            allSegments.forEach((seg, i) => {
+                setTimeout(() => {
+                    seg.style.transition = 'opacity 0.3s ease-out';
+                    seg.style.opacity = '0';
+                    setTimeout(() => seg.remove(), 300);
+                }, i * 15);
+            });
+            finishCharging();
+        }, 2000);
     }
 
     // Запускаем первый шаг
