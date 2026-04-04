@@ -1080,6 +1080,21 @@
             gap: 12px;
         }
 
+        /* Rating Avatar */
+        .rating-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
         .task-item {
             background: var(--bg-card);
             padding: 16px;
@@ -4490,11 +4505,13 @@ body {
                     container.innerHTML = rating.map((player, index) => {
                         const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
                         const isCurrentUser = player.telegram_id === userId;
+                        const initials = getInitials(player.first_name || 'И');
 
                         return `
-                            <div class="task-item" style="${isCurrentUser ? 'border-color:var(--primary)' : ''}">
+                            <div class="task-item" style="${isCurrentUser ? 'border-color:var(--primary)' : ''};cursor:pointer;" onclick="viewPlayerProfile(${player.telegram_id})">
                                 <div style="display:flex;align-items:center;gap:12px;flex:1;">
                                     <div style="font-size:20px;font-weight:700;width:30px;">${medal}</div>
+                                    <div class="rating-avatar">${initials}</div>
                                     <div>
                                         <div style="font-weight:600;">${player.first_name || 'Игрок'}</div>
                                         <div style="font-size:12px;color:var(--text-secondary);">@${player.username || 'unknown'}</div>
@@ -4507,6 +4524,50 @@ body {
                 }
             } catch (error) {
                 console.error('Ошибка загрузки рейтинга:', error);
+            }
+        }
+
+        // Просмотр профиля игрока из рейтинга
+        window.viewPlayerProfile = async function(telegramId) {
+            if (telegramId === userId) {
+                showPage('profile');
+                return;
+            }
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+            overlay.onclick = () => overlay.remove();
+
+            const modal = document.createElement('div');
+            modal.style.cssText = 'background:var(--bg-card);padding:24px;border-radius:16px;max-width:360px;width:100%;border:1px solid rgba(255,255,255,0.1);';
+            modal.onclick = e => e.stopPropagation();
+            modal.innerHTML = '<div style="text-align:center;"><div style="font-size:48px;margin-bottom:12px;">⏳</div><h3 style="margin:0 0 8px;">Загрузка...</h3></div>';
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+
+            try {
+                const resp = await fetch(`/api/profile/${telegramId}`);
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const initials = getInitials(data.first_name || 'И');
+                    modal.innerHTML = `
+                        <div style="text-align:center;">
+                            <div style="width:64px;height:64px;border-radius:50%;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;margin:0 auto 12px;">${initials}</div>
+                            <h3 style="margin:0 0 4px;">${data.first_name || 'Игрок'}</h3>
+                            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">@${data.username || 'unknown'}</div>
+                            <div style="display:flex;justify-content:center;gap:16px;margin-bottom:16px;">
+                                <div><div style="font-size:18px;font-weight:700;color:var(--gold);">${(data.click_coins || 0).toLocaleString()}</div><div style="font-size:11px;color:var(--text-secondary);">🪙</div></div>
+                                <div><div style="font-size:18px;font-weight:700;color:#ff0000;">${(data.stars || 0).toFixed(2)}</div><div style="font-size:11px;color:var(--text-secondary);">⭐</div></div>
+                                <div><div style="font-size:18px;font-weight:700;color:var(--crystal);">${(data.crystals || 0).toLocaleString()}</div><div style="font-size:11px;color:var(--text-secondary);">💎</div></div>
+                            </div>
+                            <div style="font-size:12px;color:var(--text-secondary);">Ур. ${data.level || 1} · ${(data.total_clicks || 0).toLocaleString()} кликов</div>
+                        </div>
+                    `;
+                } else {
+                    modal.innerHTML = '<div style="text-align:center;"><div style="font-size:48px;margin-bottom:12px;">❌</div><h3 style="margin:0;">Профиль не найден</h3></div>';
+                }
+            } catch (e) {
+                modal.innerHTML = '<div style="text-align:center;"><div style="font-size:48px;margin-bottom:12px;">⚠️</div><h3 style="margin:0;">Ошибка загрузки</h3></div>';
             }
         }
 
