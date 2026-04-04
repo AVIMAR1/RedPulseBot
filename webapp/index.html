@@ -4570,7 +4570,7 @@ body {
                 syncWithFarm();
                 updateUI();
 
-                // Обновляем баланс на главной странице
+                // Обновляем баланс на главной странице (ОБЯЗАТЕЛЬНО)
                 function updateBalanceOnHome() {
                     const balanceCoins = document.getElementById('balance-coins');
                     const balanceStars = document.getElementById('balance-stars');
@@ -4688,6 +4688,7 @@ body {
                         return;
                     }
 
+                    console.log('[loadUserData] Обновляем state данными из БД...');
                     // Обновляем state данными из БД
                     state.click_coins = data.click_coins || 0;
                     state.crystals = data.crystals || 0;
@@ -4707,7 +4708,15 @@ body {
                     state.first_name = data.first_name || '';
                     state.username = data.username || '';
                     state.created_at = data.created_at || '';
-                    state.first_play = data.first_play === false ? false : true;  // false только если явно false, иначе true
+                    state.first_play = data.first_play === false ? false : true;  // false только если явно false
+
+                    console.log('[loadUserData] state после обновления:', {
+                        click_coins: state.click_coins,
+                        stars: state.stars,
+                        crystals: state.crystals,
+                        level: state.level,
+                        first_play: state.first_play
+                    });
 
                     updateUI();
                     console.log('[loadUserData] Данные загружены из БД успешно, first_play:', state.first_play);
@@ -4776,6 +4785,7 @@ body {
             // ============================================================
 
             // Загружаем данные пользователя
+            console.log('[DOMContentLoaded] Вызываем loadUserData()...');
             loadUserData();
         });
 
