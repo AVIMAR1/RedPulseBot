@@ -6862,105 +6862,19 @@ window.tapCore = function tapCore() {
 function launchCharge() {
     const fieldGrid = document.getElementById('fieldGrid');
     if (!fieldGrid) { gameState.isCharging = false; return; }
-
     const padding = 10;
-    const fieldWidth = FIELD_COLS * (CELL_SIZE + GAP) + padding * 2;
-    const fieldHeight = gameState.fieldRows * (CELL_SIZE + GAP) + padding * 2;
-    const BASE_SPEED = 3.5;
-
-    let charge = gameState.chargePower || 1;
-    let x = (CHARGE_COL + 0.5) * (CELL_SIZE + GAP) + padding;
-    let y = padding - 10;
-    let dir = { x: 0, y: 1 };
-
-    const chargeEl = document.createElement('div');
-    chargeEl.className = 'charge-particle';
-    chargeEl.style.left = `${x - 9}px`;
-    chargeEl.style.top = `${y - 9}px`;
-    fieldGrid.appendChild(chargeEl);
-
-    const processedBlocks = new Set();
-    let lastTrail = 0;
-    let lastTime = 0; // Инициализируем 0 чтобы первый кадр установил время
-
-    function move(timestamp) {
-        if (!lastTime) lastTime = timestamp; // Первый кадр
-        const deltaTime = Math.min((timestamp - lastTime) / 16.67, 2);
-        lastTime = timestamp;
-
-        x += dir.x * BASE_SPEED * deltaTime;
-        y += dir.y * BASE_SPEED * deltaTime;
-
-        // Trail каждые 100ms
-        if (timestamp - lastTrail > 100) {
-            const trail = document.createElement('div');
-            trail.className = 'charge-trail';
-            trail.style.left = `${x - 4}px`;
-            trail.style.top = `${y - 4}px`;
-            fieldGrid.appendChild(trail);
-            setTimeout(() => trail.remove(), 400);
-            lastTrail = timestamp;
-        }
-
-        chargeEl.style.left = `${x - 9}px`;
-        chargeEl.style.top = `${y - 9}px`;
-
-        // Bounds check
-        if (x < padding - 10 || x > fieldWidth - padding + 10 || y < padding - 10 || y > fieldHeight - padding + 10) {
-            createExplosion(x, y, fieldGrid);
-            setTimeout(() => { gameState.isCharging = false; updateUI(); saveGame(); }, 300);
-            return;
-        }
-
-        // Block collision - ПРЯМОУГОЛЬНАЯ коллизия с УВЕЛИЧЕННОЙ зоной обнаружения
-        // Проверяем не только текущую клетку, но и соседние (чтобы снаряд не пропускал блоки в упор)
-        const col = Math.floor((x - padding) / (CELL_SIZE + GAP));
-        const row = Math.floor((y - padding) / (CELL_SIZE + GAP));
-        
-        // Проверяем 3x3 область вокруг текущей позиции для надёжного обнаружения
-        const checkCells = [];
-        for (let dr = -1; dr <= 1; dr++) {
-            for (let dc = -1; dc <= 1; dc++) {
-                const r = row + dr;
-                const c = col + dc;
-                if (r >= 0 && r < gameState.fieldRows && c >= 0 && c < FIELD_COLS) {
-                    checkCells.push({ row: r, col: c });
-                }
-            }
-        }
-
-        for (const cell of checkCells) {
-            const block = gameState.grid[cell.row][cell.col];
-            const blockKey = `${cell.row}-${cell.col}`;
-            if (block && !processedBlocks.has(blockKey)) {
-                const cellX = padding + cell.col * (CELL_SIZE + GAP);
-                const cellY = padding + cell.row * (CELL_SIZE + GAP);
-
-                const hitBox = CELL_SIZE * 0.7;  // Увеличили зону попадания
-                const dx = Math.abs(x - (cellX + CELL_SIZE/2));
-                const dy = Math.abs(y - (cellY + CELL_SIZE/2));
-
-                if (dx < hitBox && dy < hitBox) {
-                    processedBlocks.add(blockKey);
-                    handleBlock(block, cell.row, cell.col, charge, dir, processedBlocks, chargeEl, x, y);
-                    return;
-                }
-            }
-        }
-
-        requestAnimationFrame(move);
-    }
-
-    requestAnimationFrame(move);
+    const charge = gameState.chargePower || 1;
+    const x = (CHARGE_COL + 0.5) * (CELL_SIZE + GAP) + padding;
+    const y = padding - 10;
+    const dir = { x: 0, y: 1 };
+    spawnCharge(x, y, dir, charge, new Set(), 0);
 }
 
-function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
-    const padding = 10;
+function handleBlock(block, row, col, charge, dir, processed, x, y) {
     const fieldGrid = document.getElementById('fieldGrid');
+    const padding = 10;
     const cellX = padding + col * (CELL_SIZE + GAP);
     const cellY = padding + row * (CELL_SIZE + GAP);
-
-    chargeEl.remove();
 
     switch (block.type) {
         case BLOCK_TYPES.COIN:
