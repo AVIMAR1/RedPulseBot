@@ -4656,9 +4656,8 @@ body {
         async function loadUserData() {
             // ПРОВЕРКА: если userId не определён, НЕ загружаем данные
             if (!userId || typeof userId === 'undefined') {
-                console.error('[loadUserData] userId не определён! Блокируем доступ.');
-                showAccessDenied('Требуется авторизация через Telegram. Откройте бота и нажмите /start');
-                return;
+                console.warn('[loadUserData] userId не определён, данные не загружены');
+                return;  // Просто выходим, НЕ показываем access denied
             }
 
             // ПРОВЕРКА: если уже загружали данные, НЕ загружаем снова (чтобы не перезаписать свежие данные старыми из БД)
@@ -4814,28 +4813,29 @@ body {
             // Функция для обновления баланса с анимацией
             function updateBalanceElement(element, newValue, type) {
                 if (!element) return;
-                
+
                 const oldValue = prevBalance[type];
                 const formattedValue = newValue.toLocaleString();
-                
-                if (element.textContent !== formattedValue) {
-                    // Добавляем класс анимации
+
+                // ВСЕГДА обновляем текст (даже если не изменился)
+                element.textContent = formattedValue;
+
+                // Добавляем класс анимации только если значение изменилось
+                if (newValue !== oldValue) {
                     element.classList.add('updating');
-                    
+
                     // Если баланс увеличился - добавляем зелёный эффект
                     if (newValue > oldValue && oldValue > 0) {
                         element.classList.add('increased');
                     }
-                    
-                    element.textContent = formattedValue;
-                    
+
                     // Удаляем классы анимации после завершения
                     setTimeout(() => {
                         element.classList.remove('updating');
                         element.classList.remove('increased');
                     }, 600);
                 }
-                
+
                 prevBalance[type] = newValue;
             }
 
