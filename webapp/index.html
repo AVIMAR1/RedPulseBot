@@ -6907,7 +6907,7 @@ function launchCharge() {
     spawnLaser(startRow, startCol, x, y, dir, charge, new Set());
 }
 
-// Лазер — Canvas, сплошная красная линия
+// Лазер — Canvas, сплошная красная линия. Каждый ответвлённый луч — независимый.
 function spawnLaser(row, col, x, y, dir, charge, processed) {
     const fieldGrid = document.getElementById('fieldGrid');
     if (!fieldGrid) { finishCharging(); return; }
@@ -6917,74 +6917,69 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     const fieldRows = gameState.fieldRows;
     const fieldW = fieldGrid.clientWidth || FIELD_COLS * cellStep + padding * 2;
     const fieldH = fieldGrid.clientHeight || fieldRows * cellStep + padding * 2;
-    const STEP_DELAY = 150;
+    const STEP_DELAY = 200; // медленнее, плавнее
 
     const checked = processed || new Set();
     let earned = { coins: 0, diamonds: 0, stars: 0 };
 
-    const canvas = document.createElement('canvas');
-    canvas.classList.add('laser-canvas');
-    canvas.width = fieldW;
-    canvas.height = fieldH;
-    canvas.style.width = fieldW + 'px';
-    canvas.style.height = fieldH + 'px';
-    fieldGrid.appendChild(canvas);
+    // Каждый ответвлённый луч — свой Canvas
+    const allCanvases = [];
 
-    const ctx = canvas.getContext('2d');
-    ctx.strokeStyle = '#e74c3c';
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.shadowColor = '#e74c3c';
-    ctx.shadowBlur = 8;
-
-    const pts = [];
-    function addPoint(r, c) {
-        const px = padding + c * cellStep + CELL_SIZE / 2;
-        const py = padding + r * cellStep + CELL_SIZE / 2;
-        pts.push({ x: px, y: py });
-
-        // Перерисовываем ВЕСЬ путь каждый раз — одинаковая ширина без утолщений на стыках
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
-        for (let i = 1; i < pts.length; i++) {
-            ctx.lineTo(pts[i].x, pts[i].y);
-        }
-        ctx.stroke();
+    function createCanvas() {
+        const canvas = document.createElement('canvas');
+        canvas.classList.add('laser-canvas');
+        canvas.width = fieldW;
+        canvas.height = fieldH;
+        canvas.style.width = fieldW + 'px';
+        canvas.style.height = fieldH + 'px';
+        fieldGrid.appendChild(canvas);
+        allCanvases.push(canvas);
+        return canvas;
     }
 
-    addPoint(row, col);
-
-    function step(r, c, d, ch) {
+    // Одна ветка лазера — возвращает Promise
+    function step(r, c, d, ch, canvas, ctx) {
         return new Promise((resolve) => {
             if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) { resolve(); return; }
             const blockKey = `${r}-${c}`;
             if (checked.has(blockKey)) { resolve(); return; }
 
             checked.add(blockKey);
-            addPoint(r, c);
+
+            const px = padding + c * cellStep + CELL_SIZE / 2;
+            const py = padding + r * cellStep + CELL_SIZE / 2;
+
+            // Рисуем новый сегмент
+            const pts = ctx._pts || [];
+            if (pts.length > 0) {
+                ctx.beginPath();
+                ctx.moveTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+                ctx.lineTo(px, py);
+                ctx.stroke();
+            }
+            pts.push({ x: px, y: py });
+            ctx._pts = pts;
 
             const block = gameState.grid[r]?.[c];
 
             if (!block) {
-                setTimeout(() => step(r + d.y, c + d.x, d, ch).then(resolve), STEP_DELAY);
+                setTimeout(() => step(r + d.y, c + d.x, d, ch, canvas, ctx).then(resolve), STEP_DELAY);
             } else {
                 switch (block.type) {
                     case BLOCK_TYPES.COIN:
                         earned.coins += ch * CONFIG.CONVERSION.COIN * block.level;
-                        setTimeout(() => step(r + d.y, c + d.x, d, ch).then(resolve), STEP_DELAY);
+                        setTimeout(() => step(r + d.y, c + d.x, d, ch, canvas, ctx).then(resolve), STEP_DELAY);
                         break;
                     case BLOCK_TYPES.DIAMOND:
                         earned.diamonds += (ch * block.level) / CONFIG.CONVERSION.DIAMOND;
-                        setTimeout(() => step(r + d.y, c + d.x, d, ch).then(resolve), STEP_DELAY);
+                        setTimeout(() => step(r + d.y, c + d.x, d, ch, canvas, ctx).then(resolve), STEP_DELAY);
                         break;
                     case BLOCK_TYPES.STAR:
                         earned.stars += (ch * block.level) / CONFIG.CONVERSION.STAR;
-                        setTimeout(() => step(r + d.y, c + d.x, d, ch).then(resolve), STEP_DELAY);
+                        setTimeout(() => step(r + d.y, c + d.x, d, ch, canvas, ctx).then(resolve), STEP_DELAY);
                         break;
                     case BLOCK_TYPES.MULTIPLIER:
-                        setTimeout(() => step(r + d.y, c + d.x, d, ch * block.value).then(resolve), STEP_DELAY);
+                        setTimeout(() => step(r + d.y, c + d.x, d, ch * block.value, canvas, ctx).then(resolve), STEP_DELAY);
                         break;
                     case BLOCK_TYPES.ROUTER: {
                         const hitPort = getHitPort(d);
@@ -6993,25 +6988,47 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
                             const outPorts = ports.filter(p => p !== hitPort);
                             const boosted = ch * block.value;
                             const pDir = { 'top': {x:0,y:-1}, 'bottom': {x:0,y:1}, 'left': {x:-1,y:0}, 'right': {x:1,y:0} };
-                            const promises = outPorts.map(port =>
-                                new Promise(res => setTimeout(() => step(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted).then(res), STEP_DELAY))
-                            );
+                            // Каждый ответвлённый луч — СВОЙ Canvas
+                            const promises = outPorts.map(port => {
+                                const newCanvas = createCanvas();
+                                const newCtx = newCanvas.getContext('2d');
+                                newCtx.strokeStyle = '#e74c3c';
+                                newCtx.lineWidth = 3;
+                                newCtx.lineCap = 'round';
+                                newCtx.lineJoin = 'round';
+                                newCtx.shadowColor = '#e74c3c';
+                                newCtx.shadowBlur = 6;
+                                newCtx._pts = []; // свой набор точек
+                                return new Promise(res =>
+                                    setTimeout(() => step(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted, newCanvas, newCtx).then(res), STEP_DELAY)
+                                );
+                            });
                             Promise.all(promises).then(resolve);
                         } else { resolve(); }
                         break;
                     }
                     default:
-                        setTimeout(() => step(r + d.y, c + d.x, d, ch).then(resolve), STEP_DELAY);
+                        setTimeout(() => step(r + d.y, c + d.x, d, ch, canvas, ctx).then(resolve), STEP_DELAY);
                 }
             }
         });
     }
 
+    // Первый луч
+    const firstCanvas = createCanvas();
+    const firstCtx = firstCanvas.getContext('2d');
+    firstCtx.strokeStyle = '#e74c3c';
+    firstCtx.lineWidth = 3;
+    firstCtx.lineCap = 'round';
+    firstCtx.lineJoin = 'round';
+    firstCtx.shadowColor = '#e74c3c';
+    firstCtx.shadowBlur = 6;
+
     setTimeout(() => {
-        step(row, col, dir, charge).then(() => finishLaser(canvas));
+        step(row, col, dir, charge, firstCanvas, firstCtx).then(() => finishLaser());
     }, 100);
 
-    function finishLaser(canvas) {
+    function finishLaser() {
         gameState.bankCoins = (gameState.bankCoins || 0) + earned.coins;
         gameState.bankCrystals = (gameState.bankCrystals || 0) + earned.diamonds;
         gameState.bankStars = (gameState.bankStars || 0) + earned.stars;
@@ -7026,10 +7043,12 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
         fieldGrid.appendChild(summaryEl);
 
         setTimeout(() => {
-            canvas.style.opacity = '0';
+            allCanvases.forEach((c, i) => {
+                setTimeout(() => { c.style.opacity = '0'; setTimeout(() => c.remove(), 600); }, i * 80);
+            });
             summaryEl.style.transition = 'opacity 0.5s';
             summaryEl.style.opacity = '0';
-            setTimeout(() => { canvas.remove(); summaryEl.remove(); updateBalance(); finishCharging(); }, 600);
+            setTimeout(() => { summaryEl.remove(); updateBalance(); finishCharging(); }, 600);
         }, 2500);
     }
 }
