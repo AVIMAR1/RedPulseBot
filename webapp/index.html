@@ -582,7 +582,44 @@
             font-weight: 700;
         }
 
-        /* Casino Games */
+        /* Coming Soon Placeholder */
+.coming-soon-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    background: var(--bg-card);
+    border-radius: var(--border-radius-lg);
+    border: 2px dashed rgba(231, 76, 60, 0.3);
+    margin: 16px 0;
+}
+
+.coming-soon-icon {
+    font-size: 64px;
+    margin-bottom: 16px;
+    animation: comingSoonPulse 2s ease-in-out infinite;
+}
+
+@keyframes comingSoonPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.coming-soon-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.coming-soon-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+/* Casino Games */
         .casino-games {
             display: grid;
             grid-template-columns: 1fr;
@@ -3728,51 +3765,12 @@ body {
         <div id="casino" class="page">
             <div class="section-title">
                 <i class="fas fa-dice"></i>
-                Казино RedPulse
+                Казино
             </div>
-            <div class="casino-games">
-                <div class="game-card" onclick="if(typeof openCoinGame==='function')openCoinGame();else console.error('openCoinGame not defined')">
-                    <div class="game-card-header">
-                        <div class="game-card-icon coin">🪙</div>
-                        <div>
-                            <div class="game-card-title">Монетка</div>
-                            <div class="game-card-desc">Орёл или Решка - x2</div>
-                        </div>
-                    </div>
-                    <button class="game-card-btn">Играть</button>
-                </div>
-            </div>
-
-            <!-- Coin Game Modal -->
-            <div id="coin-modal" class="modal-overlay">
-                <div class="modal">
-                    <div class="modal-title">🪙 Монетка</div>
-                    <div class="modal-body">
-                        <div class="casino-balance">Баланс: <span id="coinBalance">0</span> 🪙</div>
-                        <div class="bet-input">
-                            <label>Ставка:</label>
-                            <input type="number" id="coinBet" value="100" min="10">
-                        </div>
-                        <div class="coin-choice">
-                            <button class="coin-btn" id="coinHeads" onclick="selectCoinSide('heads')">
-                                <span class="coin-icon">🦅</span>
-                                <span>Орёл</span>
-                            </button>
-                            <button class="coin-btn" id="coinTails" onclick="selectCoinSide('tails')">
-                                <span class="coin-icon">🪙</span>
-                                <span>Решка</span>
-                            </button>
-                        </div>
-                        <div class="coin-display" id="coinDisplay">
-                            <div class="coin-inner">?</div>
-                        </div>
-                        <div id="coinResult"></div>
-                        <button class="game-action-btn" onclick="flipCoin()" id="coinFlipBtn">Подбросить!</button>
-                    </div>
-                    <div class="modal-buttons">
-                        <button class="modal-btn modal-btn-secondary" onclick="closeCoinModal()">Закрыть</button>
-                    </div>
-                </div>
+            <div class="coming-soon-placeholder">
+                <div class="coming-soon-icon">🚧</div>
+                <div class="coming-soon-title">Раздел в разработке</div>
+                <div class="coming-soon-desc">Скоро здесь появятся игры казино</div>
             </div>
         </div>
 
@@ -3782,13 +3780,11 @@ body {
                 <i class="fas fa-shopping-cart"></i>
                 Магазин
             </div>
-            <div class="shop-categories">
-                <div class="shop-category active" onclick="showShopCategory('cases', this)">Кейсы</div>
-                <div class="shop-category" onclick="showShopCategory('boosts', this)">Бусты</div>
-                <div class="shop-category" onclick="showShopCategory('skins', this)">Скины</div>
-                <div class="shop-category" onclick="showShopCategory('avatars', this)">Аватары</div>
+            <div class="coming-soon-placeholder">
+                <div class="coming-soon-icon">🚧</div>
+                <div class="coming-soon-title">Раздел в разработке</div>
+                <div class="coming-soon-desc">Скоро здесь появится магазин</div>
             </div>
-            <div id="shop-content" class="shop-items-grid"></div>
         </div>
 
         <!-- Tasks Page -->
@@ -3797,7 +3793,11 @@ body {
                 <i class="fas fa-list-check"></i>
                 Задания
             </div>
-            <div id="tasks-list" class="tasks-list"></div>
+            <div class="coming-soon-placeholder">
+                <div class="coming-soon-icon">🚧</div>
+                <div class="coming-soon-title">Раздел в разработке</div>
+                <div class="coming-soon-desc">Скоро здесь появятся задания</div>
+            </div>
         </div>
 
         <!-- Profile Page -->
@@ -4095,89 +4095,6 @@ body {
             wheelSpinning: false
         };
         const casinoState = window.casinoState;
-
-        // ==========================================
-        // Casino Functions (глобально для доступа из onclick)
-        // ==========================================
-        window.openCoinGame = function() {
-            const coinModal = document.getElementById('coin-modal');
-            if (coinModal) {
-                casinoState.selectedCoinSide = null;
-                casinoState.isFlipping = false;
-                const headsBtn = document.getElementById('coinHeads');
-                const tailsBtn = document.getElementById('coinTails');
-                if (headsBtn) headsBtn.classList.remove('selected');
-                if (tailsBtn) tailsBtn.classList.remove('selected');
-                const coinDisplay = document.getElementById('coinDisplay');
-                if (coinDisplay) coinDisplay.querySelector('.coin-inner').textContent = '?';
-                const coinResult = document.getElementById('coinResult');
-                if (coinResult) coinResult.innerHTML = '';
-                const coinFlipBtn = document.getElementById('coinFlipBtn');
-                if (coinFlipBtn) coinFlipBtn.disabled = false;
-                if (typeof updateCasinoBalance === 'function') updateCasinoBalance();
-                if (typeof updateUI === 'function') updateUI();
-                coinModal.classList.add('active');
-            }
-        };
-
-        window.closeCoinModal = function() {
-            const coinModal = document.getElementById('coin-modal');
-            if (coinModal) coinModal.classList.remove('active');
-        };
-
-        window.selectCoinSide = function(side) {
-            if (casinoState.isFlipping) return;
-            casinoState.selectedCoinSide = side;
-            const headsBtn = document.getElementById('coinHeads');
-            const tailsBtn = document.getElementById('coinTails');
-            if (headsBtn) headsBtn.classList.toggle('selected', side === 'heads');
-            if (tailsBtn) tailsBtn.classList.toggle('selected', side === 'tails');
-        };
-
-        window.flipCoin = function() {
-            if (casinoState.isFlipping || !casinoState.selectedCoinSide) return;
-            const betInput = document.getElementById('coinBet');
-            const coinResult = document.getElementById('coinResult');
-            const coinFlipBtn = document.getElementById('coinFlipBtn');
-            const coinDisplay = document.getElementById('coinDisplay');
-            if (!betInput || !coinResult || !coinFlipBtn || !coinDisplay) return;
-            
-            const bet = parseInt(betInput.value) || 0;
-            if (bet <= 0 || bet > (state.click_coins || 0)) {
-                coinResult.innerHTML = '<p style="color:#e74c3c;">Недостаточно монет!</p>';
-                return;
-            }
-
-            casinoState.isFlipping = true;
-            coinFlipBtn.disabled = true;
-            coinResult.innerHTML = '';
-
-            const coinInner = coinDisplay.querySelector('.coin-inner');
-            coinInner.style.animation = 'none';
-            coinInner.offsetHeight;
-            coinInner.style.animation = 'coin-spin 0.5s ease-in-out';
-
-            setTimeout(() => {
-                const result = Math.random() < 0.5 ? 'heads' : 'tails';
-                coinInner.textContent = result === 'heads' ? '🦅' : '🪙';
-
-                const win = result === casinoState.selectedCoinSide;
-                if (win) {
-                    state.click_coins += bet;
-                    coinResult.innerHTML = `<p style="color:#27ae60;">✅ Победа! +${bet} 🪙</p>`;
-                } else {
-                    state.click_coins -= bet;
-                    coinResult.innerHTML = `<p style="color:#e74c3c;">❌ Проигрыш! -${bet} 🪙</p>`;
-                }
-
-                casinoState.isFlipping = false;
-                coinFlipBtn.disabled = false;
-
-                if (typeof updateCasinoBalance === 'function') updateCasinoBalance();
-                if (typeof saveGame === 'function') saveGame();
-                if (typeof updateMainBalance === 'function') updateMainBalance();
-            }, 500);
-        };
 
         // Центральная функция обновления баланса (главная страница)
         // ВАЖНО: НЕ работает с localStorage - только обновляет UI из state!
@@ -5597,11 +5514,11 @@ body {
             }
         });
 
-        // ==========================================
-        // Casino Games Functions (продолжение)
-        // ==========================================
-        // --- DICE GAME ---
-        window.openDiceGame = function() {
+// ==========================================
+// Farm Grid Functions
+// ==========================================
+// Глобальная функция отрисовки сетки
+window.renderGrid = function() {
             casinoState.diceState = 'idle';
             casinoState.diceRoll1 = 0;
             casinoState.diceRoll2 = 0;
@@ -6756,7 +6673,7 @@ window.renderGrid = function() {
     }
 }
 
-// Глобальная функция для кнопки ядра (сделана глобальной через window)
+// Глобальная функция для кнопки ядра
 window.tapCore = function tapCore() {
     // Проверка что gameState определён
     if (typeof gameState === 'undefined') {
