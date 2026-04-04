@@ -4722,8 +4722,11 @@ body {
                         first_play: state.first_play
                     });
 
+                    // ОТЛАДКА: показываем alert что данные загружены
+                    console.log('[loadUserData] ✅ Данные загружены! Баланс:', state.click_coins, state.stars, state.crystals);
+
                     updateUI();
-                    console.log('[loadUserData] Данные загружены из БД успешно, first_play:', state.first_play);
+                    console.log('[loadUserData] updateUI() вызван');
                     window.userDataLoaded = true;  // Помечаем, что данные загружены
 
                     // ГАРАНТИРОВАННО обновляем баланс на главной странице
@@ -4732,19 +4735,23 @@ body {
                         const balanceStars = document.getElementById('balance-stars');
                         const balanceCrystals = document.getElementById('balance-crystals');
                         
+                        console.log('[forceUpdateBalance] Элементы:', balanceCoins ? 'OK' : 'NULL', balanceStars ? 'OK' : 'NULL', balanceCrystals ? 'OK' : 'NULL');
+                        
                         if (balanceCoins && balanceStars && balanceCrystals) {
                             balanceCoins.textContent = (state.click_coins || 0).toLocaleString();
                             balanceStars.textContent = (state.stars || 0).toLocaleString();
                             balanceCrystals.textContent = (state.crystals || 0).toLocaleString();
-                            console.log('[loadUserData] ✅ Баланс обновлен:', state.click_coins, state.stars, state.crystals);
+                            console.log('[forceUpdateBalance] ✅ Баланс обновлен:', state.click_coins, state.stars, state.crystals);
                             return true;
                         }
+                        console.log('[forceUpdateBalance] ❌ Элементы не найдены');
                         return false;
                     }
                     
                     // Пробуем сразу
                     if (!forceUpdateBalance()) {
                         // Элементы не готовы, пробуем через 100мс, 300мс, 500мс
+                        console.log('[forceUpdateBalance] Повторные попытки...');
                         setTimeout(() => { if (!forceUpdateBalance()) setTimeout(() => { if (!forceUpdateBalance()) setTimeout(forceUpdateBalance, 500); }, 300); }, 100);
                     }
 
@@ -4793,7 +4800,11 @@ body {
 
             // Загружаем данные пользователя
             console.log('[DOMContentLoaded] Вызываем loadUserData()...');
-            loadUserData();
+            loadUserData().then(() => {
+                console.log('[DOMContentLoaded] loadUserData() завершён успешно');
+            }).catch((e) => {
+                console.error('[DOMContentLoaded] loadUserData() ошибка:', e);
+            });
         });
 
         // Обновление интерфейса
