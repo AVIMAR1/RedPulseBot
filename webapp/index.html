@@ -4098,9 +4098,9 @@ body {
                 const balanceCoins = document.getElementById('balance-coins');
                 const balanceCrystals = document.getElementById('balance-crystals');
                 const balanceStars = document.getElementById('balance-stars');
-                if (balanceCoins) balanceCoins.textContent = state.click_coins.toLocaleString();
-                if (balanceCrystals) balanceCrystals.textContent = state.crystals.toLocaleString();
-                if (balanceStars) balanceStars.textContent = state.stars.toLocaleString();
+                if (balanceCoins) balanceCoins.textContent = formatNumber(state.click_coins || 0, false);
+                if (balanceCrystals) balanceCrystals.textContent = formatNumber(state.crystals || 0, false);
+                if (balanceStars) balanceStars.textContent = formatNumber(state.stars || 0, true);
             } catch (e) {
                 console.error('Ошибка updateMainBalance:', e);
             }
@@ -4262,15 +4262,15 @@ body {
                     });
 
                     if (coinsEl) {
-                        coinsEl.textContent = (data.click_coins || 0).toLocaleString();
+                        coinsEl.textContent = formatNumber(data.click_coins || 0, false);
                         console.log('[loadProfile] coins:', coinsEl.textContent);
                     }
                     if (starsEl) {
-                        starsEl.textContent = (data.stars || 0).toLocaleString();
+                        starsEl.textContent = formatNumber(data.stars || 0, true);
                         console.log('[loadProfile] stars:', starsEl.textContent);
                     }
                     if (crystalsEl) {
-                        crystalsEl.textContent = (data.crystals || 0).toLocaleString();
+                        crystalsEl.textContent = formatNumber(data.crystals || 0, false);
                         console.log('[loadProfile] crystals:', crystalsEl.textContent);
                     }
 
@@ -5267,15 +5267,15 @@ body {
                     });
 
                     if (coinsEl) {
-                        coinsEl.textContent = (data.click_coins || 0).toLocaleString();
+                        coinsEl.textContent = formatNumber(data.click_coins || 0, false);
                         console.log('[loadProfile] coins:', coinsEl.textContent);
                     }
                     if (starsEl) {
-                        starsEl.textContent = (data.stars || 0).toLocaleString();
+                        starsEl.textContent = formatNumber(data.stars || 0, true);
                         console.log('[loadProfile] stars:', starsEl.textContent);
                     }
                     if (crystalsEl) {
-                        crystalsEl.textContent = (data.crystals || 0).toLocaleString();
+                        crystalsEl.textContent = formatNumber(data.crystals || 0, false);
                         console.log('[loadProfile] crystals:', crystalsEl.textContent);
                     }
 
@@ -6170,15 +6170,8 @@ window.loadGame = async function() {
                         // Ферма пустая - НЕ синхронизируем чтобы не затереть state.xp/state.level
                         console.log('[loadGame] Ферма пустая, syncGameState НЕ вызван (чтобы не затереть прогресс)');
                     }
-                    
+
                     updateUI();
-
-                    // Ждём завершения рендера
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    renderGrid();
-                    console.log('[loadGame] Grid отрисован');
-
-                    // startPassiveEffects() вызывается в initGame() после loadGame()
                     console.log('[loadGame] Загружено из БД успешно');
                     return;
                 }
@@ -6605,13 +6598,15 @@ window.renderGrid = function() {
         return;
     }
     
+    console.log('[renderGrid] gameState.grid:', gameState.grid ? 'OK' : 'NULL', 'rows:', gameState.grid?.length, 'fieldRows:', gameState.fieldRows);
+    
     // НЕ рендерим если grid ещё не загружен
     if (!gameState.grid || !Array.isArray(gameState.grid) || gameState.grid.length === 0 || !gameState.grid[0]) {
-        console.log('[renderGrid] Grid ещё не загружен, пропускаем');
-        return;
+        console.log('[renderGrid] Grid ещё не загружен, создаём новый');
+        initGrid();
     }
     
-    console.log('[renderGrid] fieldRows:', gameState.fieldRows, 'FIELD_COLS:', FIELD_COLS);
+    console.log('[renderGrid] Рендерим поле', gameState.fieldRows, 'x', FIELD_COLS);
     gridEl.innerHTML = '';
 
     const chargeIndicator = document.createElement('div');
