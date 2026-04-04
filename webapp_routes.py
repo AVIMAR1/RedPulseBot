@@ -547,6 +547,9 @@ async def get_farm_state(user_id: int):
             if row["farm_state_json"]:
                 import json
                 farm_state = json.loads(row["farm_state_json"])
+                # Добавляем lastTapTime из farm_state_json
+                if 'lastTapTime' in farm_state:
+                    result['lastTapTime'] = farm_state['lastTapTime']
                 result = { **result, **farm_state }
 
             print(f'[get_farm_state] userId={user_id}, данные:', result)
@@ -617,10 +620,14 @@ async def save_farm_state(request: Request):
             final_max_temp = int(db_row["max_temp"] or 100) if req_max_temp == 100 else req_max_temp
             # first_play: если в запросе False, сохраняем 0
             final_first_play = 0 if farm_state.get('firstPlay') is False else (int(db_row["first_play"]) if db_row["first_play"] is not None else 1)
+            # lastTapTime сохраняем из запроса
+            import time
+            final_last_tap_time = farm_state.get('lastTapTime', int(time.time() * 1000))
             
             print(f'[save-farm-state] max(): реакции {db_row["reactions_triggered"]} -> {final_reactions}, блоки {db_row["blocks_placed"]} -> {final_blocks}')
         else:
             # Нет данных в БД - используем значения из запроса
+            import time
             final_blocks = req_blocks
             final_reactions = req_reactions
             final_reactor = req_reactor
@@ -636,6 +643,7 @@ async def save_farm_state(request: Request):
             final_temp = req_temp
             final_max_temp = req_max_temp
             final_first_play = 0 if farm_state.get('firstPlay') is False else 1
+            final_last_tap_time = farm_state.get('lastTapTime', int(time.time() * 1000))
 
         cursor.execute("""
             UPDATE users SET

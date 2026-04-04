@@ -3822,22 +3822,6 @@ body {
                 </div>
             </div>
             <div class="profile-details">
-                <!-- Баланс -->
-                <div class="profile-balance-section" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; padding: 12px; background: rgba(231, 76, 60, 0.1); border-radius: 12px; border: 1px solid rgba(231, 76, 60, 0.2);">
-                    <div class="profile-balance-item" style="text-align: center;">
-                        <div style="font-size: 20px; margin-bottom: 4px;">🪙</div>
-                        <div id="profile-coins" style="font-weight: 700; font-size: 14px; color: #f1c40f;">0</div>
-                    </div>
-                    <div class="profile-balance-item" style="text-align: center;">
-                        <div style="font-size: 20px; margin-bottom: 4px;">⭐</div>
-                        <div id="profile-stars" style="font-weight: 700; font-size: 14px; color: #ff0000;">0</div>
-                    </div>
-                    <div class="profile-balance-item" style="text-align: center;">
-                        <div style="font-size: 20px; margin-bottom: 4px;">💎</div>
-                        <div id="profile-crystals" style="font-weight: 700; font-size: 14px; color: #3498db;">0</div>
-                    </div>
-                </div>
-                
                 <div class="profile-detail-item">
                     <span class="profile-detail-label">👥 Рефералов</span>
                     <span class="profile-detail-value" id="profile-referrals">0</span>
@@ -6174,9 +6158,22 @@ window.loadGame = async function() {
                     gameState.xpToNext = gameState.level * CONFIG.XP.BASE_PER_LEVEL;  // Динамический XP
                     if (dbData.temp !== undefined && dbData.temp !== null) gameState.temp = dbData.temp;
                     if (dbData.maxTemp !== undefined && dbData.maxTemp !== null) gameState.maxTemp = dbData.maxTemp;
+                    if (dbData.lastTapTime) gameState.lastTapTime = dbData.lastTapTime;
                     if (dbData.reactor_level > 1) gameState.reactor_level = dbData.reactor_level;
                     if (dbData.blocks_placed > 0) gameState.blocks_placed = dbData.blocks_placed;
                     if (dbData.reactions_triggered > 0) gameState.reactions_triggered = dbData.reactions_triggered;
+                    
+                    // Рассчитываем остывание температуры за время пока ферма была закрыта
+                    if (dbData.lastTapTime) {
+                        const timePassed = Date.now() - dbData.lastTapTime;
+                        if (timePassed > 0 && gameState.temp > 0) {
+                            const secondsPassed = timePassed / 1000;
+                            const cooldownRate = CONFIG.TEMP_COOLDOWN_RATE * (1 + (gameState.level - 1) * 0.05);
+                            const tempDecrease = secondsPassed * cooldownRate;
+                            gameState.temp = Math.max(0, gameState.temp - tempDecrease);
+                            console.log('[loadGame] Остывание: прошло', secondsPassed.toFixed(0), 'сек, температура', dbData.temp, '->', gameState.temp.toFixed(1));
+                        }
+                    }
                     // firstPlay берём из state (загружено из /api/user), а если там нет - из БД фермы
                     // false только если явно false, иначе true (первый заход)
                     const stateFirstPlay = state.first_play === false ? false : true;
@@ -6493,6 +6490,7 @@ async function saveFarmState() {
             // Температура
             temp: gameState.temp || 0,
             maxTemp: gameState.maxTemp || 100,
+            lastTapTime: gameState.lastTapTime || Date.now(),
             // Статистика фермы
             blocks_placed: blocksCount,
             reactions_triggered: gameState.reactions_triggered || 0,
