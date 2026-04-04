@@ -4654,45 +4654,17 @@ body {
 
         // Загрузка данных пользователя — ТОЛЬКО ИЗ БД (только при первом запуске!)
         async function loadUserData() {
-            // ПРОВЕРКА: если userId не определён, НЕ загружаем данные
-            if (!userId || typeof userId === 'undefined') {
-                console.warn('[loadUserData] userId не определён, данные не загружены');
-                return;  // Просто выходим, НЕ показываем access denied
-            }
-
-            // ПРОВЕРКА: если уже загружали данные, НЕ загружаем снова (чтобы не перезаписать свежие данные старыми из БД)
-            if (window.userDataLoaded) {
-                console.log('[loadUserData] Данные уже загружены, пропускаем повторную загрузку');
-                return;
-            }
-
-            console.log('[loadUserData] Начало загрузки для userId:', userId);
+            if (!userId || typeof userId === 'undefined') return;
+            if (window.userDataLoaded) return;
 
             try {
-                // Загружаем данные с сервера (БД — единственный источник правды!)
                 const response = await fetch(`/api/user/${userId}`);
-                console.log('[loadUserData] Ответ API:', response.status);
-                
-                if (response.status === 403) {
-                    const errorData = await response.json();
-                    console.error('[loadUserData] Пользователь не зарегистрирован:', errorData);
-                    showAccessDenied(errorData.message || 'Сначала зарегистрируйтесь в боте (нажмите /start)');
-                    return;
-                }
-                
+                if (response.status === 403) return;
+
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('[loadUserData] Получено из БД:', data);
+                    if (data.error === 'NOT_REGISTERED') return;
 
-                    // Проверяем, нет ли ошибки в данных
-                    if (data.error === 'NOT_REGISTERED') {
-                        console.error('[loadUserData] Пользователь не зарегистрирован!');
-                        showAccessDenied(data.message || 'Сначала зарегистрируйтесь в боте (нажмите /start)');
-                        return;
-                    }
-
-                    console.log('[loadUserData] Обновляем state данными из БД...');
-                    // Обновляем state данными из БД
                     state.click_coins = data.click_coins || 0;
                     state.crystals = data.crystals || 0;
                     state.stars = data.stars || 0;
@@ -4711,48 +4683,22 @@ body {
                     state.first_name = data.first_name || '';
                     state.username = data.username || '';
                     state.created_at = data.created_at || '';
-                    state.first_play = data.first_play === false ? false : true;  // false только если явно false
+                    state.first_play = data.first_play === false ? false : true;
 
-                    console.log('[loadUserData] state после обновления:', {
-                        click_coins: state.click_coins,
-                        stars: state.stars,
-                        crystals: state.crystals,
-                        level: state.level,
-                        first_play: state.first_play
-                    });
+                    window.userDataLoaded = true;
 
-                    // ОТЛАДКА: показываем alert что данные загружены
-                    console.log('[loadUserData] ✅ Данные загружены! Баланс:', state.click_coins, state.stars, state.crystals);
+                    // СРАЗУ обновляем баланс на главной
+                    const bc = document.getElementById('balance-coins');
+                    const bs = document.getElementById('balance-stars');
+                    const bcr = document.getElementById('balance-crystals');
+                    if (bc) bc.textContent = state.click_coins.toLocaleString();
+                    if (bs) bs.textContent = state.stars.toLocaleString();
+                    if (bcr) bcr.textContent = state.crystals.toLocaleString();
 
                     updateUI();
-                    console.log('[loadUserData] updateUI() вызван');
-                    window.userDataLoaded = true;  // Помечаем, что данные загружены
-
-                    // ОТЛАДКА: alert с данными
-                    alert('[loadUserData] state.click_coins=' + state.click_coins + '\nstate.stars=' + state.stars + '\nstate.crystals=' + state.crystals);
-
-                    // Обновляем баланс на главной странице
-                    setTimeout(() => {
-                        const balanceCoins = document.getElementById('balance-coins');
-                        const balanceStars = document.getElementById('balance-stars');
-                        const balanceCrystals = document.getElementById('balance-crystals');
-                        
-                        console.log('[loadUserData] Баланс элементы:', balanceCoins ? 'OK' : 'NULL', balanceStars ? 'OK' : 'NULL', balanceCrystals ? 'OK' : 'NULL');
-                        
-                        if (balanceCoins) balanceCoins.textContent = (state.click_coins || 0).toLocaleString();
-                        if (balanceStars) balanceStars.textContent = (state.stars || 0).toLocaleString();
-                        if (balanceCrystals) balanceCrystals.textContent = (state.crystals || 0).toLocaleString();
-                        
-                        console.log('[loadUserData] ✅ Баланс обновлен:', state.click_coins, state.stars, state.crystals);
-                    }, 200);
-
                     return;
-                } else {
-                    console.error('[loadUserData] Ошибка HTTP:', response.status);
                 }
-            } catch(e) {
-                console.error('[loadUserData] Ошибка загрузки данных из БД:', e);
-            }
+            } catch(e) {}
 
             updateUI();
         }
@@ -4790,12 +4736,7 @@ body {
             // ============================================================
 
             // Загружаем данные пользователя
-            console.log('[DOMContentLoaded] Вызываем loadUserData()...');
-            loadUserData().then(() => {
-                console.log('[DOMContentLoaded] loadUserData() завершён успешно');
-            }).catch((e) => {
-                console.error('[DOMContentLoaded] loadUserData() ошибка:', e);
-            });
+            loadUserData();
         });
 
         // Обновление интерфейса
