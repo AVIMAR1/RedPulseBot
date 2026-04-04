@@ -7320,12 +7320,11 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
                             const boosted = ch * block.value;
                             const pDir = { 'top': {x:0,y:-1}, 'bottom': {x:0,y:1}, 'left': {x:-1,y:0}, 'right': {x:1,y:0} };
                             if (outPorts.length > 0) {
-                                // Каждая ветка получает СВОЮ копию checked
+                                // Все ветки используют ОБЩИЙ checked — лазер не может попасть дважды в один блок
                                 const promises = outPorts.map((port, i) =>
                                     new Promise(res => {
                                         setTimeout(() => {
-                                            const newChecked = new Set(branchChecked);
-                                            step(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted, px, py, newChecked).then(res);
+                                            step(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted, px, py, branchChecked).then(res);
                                         }, i * 100);
                                     })
                                 );
