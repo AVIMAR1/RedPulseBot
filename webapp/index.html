@@ -3955,6 +3955,34 @@ body {
         window.userId = userId;
         console.log('[INIT] window.userId установлен:', window.userId);
 
+        // Как только userId появился - загружаем данные и обновляем баланс
+        function onUserIdReady() {
+            if (userId) {
+                console.log('[onUserIdReady] userId готов:', userId);
+                // Запускаем polling баланса сразу
+                if (!window.balancePollInterval) {
+                    window.balancePollInterval = setInterval(() => {
+                        if (!userId) return;
+                        fetch(`/api/user/${userId}`)
+                            .then(r => r.json())
+                            .then(data => {
+                                if (data.click_coins !== undefined) {
+                                    state.click_coins = data.click_coins || 0;
+                                    state.stars = data.stars || 0;
+                                    state.crystals = data.crystals || 0;
+                                    updateBalanceDisplay();
+                                }
+                            })
+                            .catch(() => {});
+                    }, 2000);
+                }
+                loadUserData();
+            } else {
+                setTimeout(onUserIdReady, 100);
+            }
+        }
+        onUserIdReady();
+
         const user = tg.initDataUnsafe?.user;
 
         // Функция показа экрана блокировки
