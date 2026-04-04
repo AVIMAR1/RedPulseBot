@@ -6870,6 +6870,76 @@ function launchCharge() {
     spawnCharge(x, y, dir, charge, new Set(), 0);
 }
 
+// Оптимизированный снаряд — 30fps вместо 60fps
+function spawnCharge(x, y, dir, charge, processed, skipFrames) {
+    const fieldGrid = document.getElementById('fieldGrid');
+    if (!fieldGrid) { finishCharging(); return; }
+
+    const padding = 10;
+    const fieldWidth = FIELD_COLS * (CELL_SIZE + GAP) + padding * 2;
+    const fieldHeight = gameState.fieldRows * (CELL_SIZE + GAP) + padding * 2;
+    const BASE_SPEED = 3.5;
+
+    const chargeEl = document.createElement('div');
+    chargeEl.className = 'charge-particle';
+    chargeEl.style.left = `${x - 9}px`;
+    chargeEl.style.top = `${y - 9}px`;
+    fieldGrid.appendChild(chargeEl);
+
+    const processedBlocks = new Set();
+    let lastTime = 0;
+    const FRAME_INTERVAL = 33; // 30fps вместо 60fps
+
+    function move(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const elapsed = timestamp - lastTime;
+        if (elapsed < FRAME_INTERVAL) {
+            requestAnimationFrame(move);
+            return;
+        }
+        lastTime = timestamp;
+
+        x += dir.x * BASE_SPEED;
+        y += dir.y * BASE_SPEED;
+
+        chargeEl.style.left = `${x - 9}px`;
+        chargeEl.style.top = `${y - 9}px`;
+
+        // Bounds check
+        if (x < padding - 10 || x > fieldWidth - padding + 10 || y < padding - 10 || y > fieldHeight - padding + 10) {
+            chargeEl.remove();
+            finishCharging();
+            return;
+        }
+
+        const col = Math.floor((x - padding) / (CELL_SIZE + GAP));
+        const row = Math.floor((y - padding) / (CELL_SIZE + GAP));
+        const blockKey = `${row}-${col}`;
+
+        if (row >= 0 && row < gameState.fieldRows && col >= 0 && col < FIELD_COLS) {
+            const block = gameState.grid[row]?.[col];
+            if (block && !processedBlocks.has(blockKey)) {
+                const cellX = padding + col * (CELL_SIZE + GAP);
+                const cellY = padding + row * (CELL_SIZE + GAP);
+                const hitBox = CELL_SIZE * 0.7;
+                const dx = Math.abs(x - (cellX + CELL_SIZE/2));
+                const dy = Math.abs(y - (cellY + CELL_SIZE/2));
+
+                if (dx < hitBox && dy < hitBox) {
+                    processedBlocks.add(blockKey);
+                    chargeEl.remove();
+                    handleBlock(block, row, col, charge, dir, processedBlocks, x, y);
+                    return;
+                }
+            }
+        }
+
+        requestAnimationFrame(move);
+    }
+
+    requestAnimationFrame(move);
+}
+
 function handleBlock(block, row, col, charge, dir, processed, x, y) {
     const fieldGrid = document.getElementById('fieldGrid');
     const padding = 10;
@@ -6920,36 +6990,15 @@ function handleBlock(block, row, col, charge, dir, processed, x, y) {
         case BLOCK_TYPES.ROUTER:
             const hitPort = getHitPort(dir);
             if (!block.routerConfig || !block.routerConfig.ports) {
-                setTimeout(finishCharging, 100);
+                finishCharging();
                 return;
             }
 
             const ports = block.routerConfig.ports;
-            // Проверяем вход в порт с допуском
-            const portEntryMap = {
-                'top': { y: cellY + 5, xMin: cellX + CELL_SIZE*0.3, xMax: cellX + CELL_SIZE*0.7 },
-                'bottom': { y: cellY + CELL_SIZE - 5, xMin: cellX + CELL_SIZE*0.3, xMax: cellX + CELL_SIZE*0.7 },
-                'left': { x: cellX + 5, yMin: cellY + CELL_SIZE*0.3, yMax: cellY + CELL_SIZE*0.7 },
-                'right': { x: cellX + CELL_SIZE - 5, yMin: cellY + CELL_SIZE*0.3, yMax: cellY + CELL_SIZE*0.7 }
-            };
-            
-            const entryZone = portEntryMap[hitPort];
-            let actuallyHit = false;
-            
-            if (hitPort === 'top' || hitPort === 'bottom') {
-                const hitY = hitPort === 'top' ? cellY + 5 : cellY + CELL_SIZE - 5;
-                if (Math.abs(y - hitY) < 15 && x >= entryZone.xMin && x <= entryZone.xMax) {
-                    actuallyHit = true;
-                }
-            } else {
-                const hitX = hitPort === 'left' ? cellX + 5 : cellX + CELL_SIZE - 5;
-                if (Math.abs(x - hitX) < 15 && y >= entryZone.yMin && y <= entryZone.yMax) {
-                    actuallyHit = true;
-                }
-            }
-            
-            if (!actuallyHit || !ports.includes(hitPort)) {
-                // Пролетел мимо порта - пропускаем
+
+            // Упрощённая проверка - направление совпадает с портом
+            if (!ports.includes(hitPort)) {
+                // Не попал в порт - пропускаем
                 spawnCharge(x, y, dir, charge, processed, 3);
                 return;
             }
@@ -6959,7 +7008,7 @@ function handleBlock(block, row, col, charge, dir, processed, x, y) {
 
             const outputPorts = ports.filter(p => p !== hitPort);
             if (outputPorts.length === 0) {
-                setTimeout(finishCharging, 100);
+                finishCharging();
                 return;
             }
 
@@ -6978,7 +7027,7 @@ function handleBlock(block, row, col, charge, dir, processed, x, y) {
                 const outDir = portToDir[port];
                 const outX = cellX + CELL_SIZE/2;
                 const outY = cellY + CELL_SIZE/2;
-                setTimeout(() => spawnCharge(outX, outY, outDir, boostedCharge, newProcessed, 12), i * 80);
+                setTimeout(() => spawnCharge(outX, outY, outDir, boostedCharge, newProcessed, 5), i * 50);
             });
             break;
 
