@@ -4508,16 +4508,32 @@ body {
                     const rating = await response.json();
                     const container = document.getElementById('rating-list');
 
+                    // Загружаем аватарки для всех игроков
+                    const avatarCache = {};
+                    for (const player of rating) {
+                        try {
+                            const avatarResp = await fetch(`/api/avatar/${player.telegram_id}`);
+                            if (avatarResp.ok) {
+                                const avatarData = await avatarResp.json();
+                                if (avatarData.url) avatarCache[player.telegram_id] = avatarData.url;
+                            }
+                        } catch(e) {}
+                    }
+
                     container.innerHTML = rating.map((player, index) => {
                         const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
                         const isCurrentUser = player.telegram_id === userId;
                         const initials = getInitials(player.first_name || 'И');
+                        const avatarUrl = avatarCache[player.telegram_id];
+                        const avatarHtml = avatarUrl
+                            ? `<img src="${avatarUrl}" style="width:36px;height:36px;border-radius:10px;object-fit:cover;flex-shrink:0;" onerror="this.outerHTML='<div class=\\'rating-avatar\\' style=\\'background:linear-gradient(135deg, hsl(${player.telegram_id * 37 % 360}, 60%, 45%), hsl(${(player.telegram_id * 37 + 40) % 360}, 70%, 35%));\\'>${initials}</div>'">`
+                            : `<div class="rating-avatar" style="background:linear-gradient(135deg, hsl(${player.telegram_id * 37 % 360}, 60%, 45%), hsl(${(player.telegram_id * 37 + 40) % 360}, 70%, 35%));">${initials}</div>`;
 
                         return `
                             <div class="task-item" style="${isCurrentUser ? 'border-color:var(--primary)' : ''};cursor:pointer;" onclick="viewPlayerProfile(${player.telegram_id})">
                                 <div style="display:flex;align-items:center;gap:12px;flex:1;">
                                     <div style="font-size:20px;font-weight:700;width:30px;">${medal}</div>
-                                    <div class="rating-avatar" style="background:linear-gradient(135deg, hsl(${(player.telegram_id * 37) % 360}, 60%, 45%), hsl(${(player.telegram_id * 37 + 40) % 360}, 70%, 35%));">${initials}</div>
+                                    ${avatarHtml}
                                     <div>
                                         <div style="font-weight:600;">${player.first_name || 'Игрок'}</div>
                                         <div style="font-size:12px;color:var(--text-secondary);">@${player.username || 'unknown'}</div>
@@ -4551,14 +4567,28 @@ body {
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
 
+            // Загружаем аватарку
+            let avatarUrl = '';
+            try {
+                const avResp = await fetch(`/api/avatar/${telegramId}`);
+                if (avResp.ok) {
+                    const avData = await avResp.json();
+                    if (avData.url) avatarUrl = avData.url;
+                }
+            } catch(e) {}
+
             try {
                 const resp = await fetch(`/api/profile/${telegramId}`);
                 if (resp.ok) {
                     const data = await resp.json();
                     const initials = getInitials(data.first_name || 'И');
+                    const avatarHtml = avatarUrl
+                        ? `<img src="${avatarUrl}" style="width:64px;height:64px;border-radius:14px;object-fit:cover;margin:0 auto 12px;display:block;" onerror="this.outerHTML='<div style=\\'width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg, hsl(${telegramId * 37 % 360}, 60%, 45%), hsl(${(telegramId * 37 + 40) % 360}, 70%, 35%));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;margin:0 auto 12px;\\'>${initials}</div>'">`
+                        : `<div style="width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg, hsl(${telegramId * 37 % 360}, 60%, 45%), hsl(${(telegramId * 37 + 40) % 360}, 70%, 35%));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;margin:0 auto 12px;">${initials}</div>`;
+
                     modal.innerHTML = `
                         <div style="text-align:center;">
-                            <div style="width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg, hsl(${telegramId * 37 % 360}, 60%, 45%), hsl(${(telegramId * 37 + 40) % 360}, 70%, 35%));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;margin:0 auto 12px;">${initials}</div>
+                            ${avatarHtml}
                             <h3 style="margin:0 0 4px;">${data.first_name || 'Игрок'}</h3>
                             <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">@${data.username || 'unknown'}</div>
                             <div style="display:flex;justify-content:center;gap:16px;margin-bottom:16px;">

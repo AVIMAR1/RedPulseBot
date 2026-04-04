@@ -5,10 +5,13 @@ from pathlib import Path
 from datetime import datetime
 import random
 import json
+import os
+import aiohttp
 from core.progression import progress_for_xp
 
 router = APIRouter()
 WEBAPP_DIR = Path(__file__).parent / "webapp"
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 
 # Версия кэша - увеличивайте при изменениях в JS/CSS
 CACHE_VERSION = "0.1.7"
@@ -787,6 +790,31 @@ async def get_rating():
         "username": u["username"] or "unknown",
         "stars": u["stars"] or 0
     } for u in users]
+
+@router.get("/api/avatar/{user_id}")
+async def get_avatar(user_id: int):
+    """Получить URL аватара пользователя через Telegram Bot API"""
+    if not BOT_TOKEN:
+        return {"url": ""}
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Получаем фото пользователя
+            async with session.get(f"https://api.telegram.org/bot{BOT_TOKEN}/getUserProfilePhotos?user_id={user_id}&limit=1") as resp:
+                data = await resp.json()
+                if data.get("ok") and data["result"]["total_count"] > 0:
+                    file_id = data["result"]["photos"][0][-1]["file_id"]
+                    # Получаем ссылку на файл
+                    async with session.get(f"https://api.telegram.org/bot{BOT_TOKEN}/getFile?file_id={file_id}") as resp2:
+                        file_data = await resp2.json()
+                        if file_data.get("ok"):
+                            file_path = file_data["result"]["file_path"]
+                            url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
+                            return {"url": url}
+    except Exception as e:
+        print(f"Avatar fetch error: {e}")
+
+    return {"url": ""}
 
 @router.get("/api/shop/{category}")
 async def get_shop_items(category: str, userId: int = None):
