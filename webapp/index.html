@@ -4371,16 +4371,11 @@ body {
 
                     // Уровень игрока и ядра
                     const coreLevel = data.core_level || 1;
-                    const playerLevel = Math.floor((coreLevel - 1) / 5) + 1;
+                    const playerLevel = data.level || 1;
                     const coreLevelEl = document.getElementById('profile-core-level');
                     const playerLevelEl = document.getElementById('profile-level');
-                    console.log('[loadProfile] Элементы уровней:', {
-                        core: coreLevelEl ? 'OK' : 'NULL',
-                        player: playerLevelEl ? 'OK' : 'NULL'
-                    });
                     if (coreLevelEl) coreLevelEl.textContent = coreLevel;
                     if (playerLevelEl) playerLevelEl.textContent = playerLevel;
-                    console.log('[loadProfile] Уровень ядра:', coreLevel, 'игрока:', playerLevel);
 
                     // Блоки и реакции (из profile API)
                     const blocksEl = document.getElementById('profile-blocks');
@@ -4867,18 +4862,31 @@ body {
         }
 
         // Формат звёзд для фермы и банка
-        function formatFarmStars(val) {
-            if (!val || val === 0) return '0.00';
+        function formatFarmStars(val, isBank) {
+            if (!val || val === 0) return isBank ? '0.0000' : '0.00';
+            if (isBank) {
+                return (Math.round(val * 10000) / 10000).toFixed(4);
+            }
             val = Math.round(val * 100) / 100;
-            if (val >= 1000) return formatNumber(val); // 1K+ → 1.5К
+            if (val >= 1000) return formatNumber(val);
             return val.toFixed(2);
         }
 
         // Формат алмазов для фермы и банка
-        function formatFarmDiamonds(val) {
+        function formatFarmDiamonds(val, isBank) {
             if (!val || val === 0) return '0';
-            if (val >= 1000) return formatNumber(val); // 1K+ → 1.5КК
-            return (Math.round(val * 1000) / 1000).toFixed(3);
+            if (isBank) {
+                return (Math.round(val * 10000) / 10000).toFixed(4);
+            }
+            // Без запятой — целое число
+            return Math.floor(val).toLocaleString();
+        }
+
+        // Формат монет для банка
+        function formatBankCoins(val) {
+            if (!val || val === 0) return '0.00';
+            if (val >= 1000) return formatNumber(val);
+            return (Math.round(val * 100) / 100).toFixed(2);
         }
 
         // Обновление интерфейса
@@ -5477,16 +5485,11 @@ body {
 
                     // Уровень игрока и ядра
                     const coreLevel = data.core_level || 1;
-                    const playerLevel = Math.floor((coreLevel - 1) / 5) + 1;
+                    const playerLevel = data.level || 1;
                     const coreLevelEl = document.getElementById('profile-core-level');
                     const playerLevelEl = document.getElementById('profile-level');
-                    console.log('[loadProfile] Элементы уровней:', {
-                        core: coreLevelEl ? 'OK' : 'NULL',
-                        player: playerLevelEl ? 'OK' : 'NULL'
-                    });
                     if (coreLevelEl) coreLevelEl.textContent = coreLevel;
                     if (playerLevelEl) playerLevelEl.textContent = playerLevel;
-                    console.log('[loadProfile] Уровень ядра:', coreLevel, 'игрока:', playerLevel);
 
                     // Блоки и реакции (из profile API)
                     const blocksEl = document.getElementById('profile-blocks');
@@ -6690,12 +6693,12 @@ window.updateUI = function() {
         const bankCrystalsEl = document.getElementById('bankCrystals');
         const bankStarsEl = document.getElementById('bankStars');
 
-        if (coinsEl) coinsEl.textContent = formatNumber(gameState.coins);
-        if (crystalsEl) crystalsEl.textContent = formatNumber(gameState.crystals);
-        if (starsEl) starsEl.textContent = formatFarmStars(gameState.stars);
-        if (bankCoinsEl) bankCoinsEl.textContent = formatNumber(gameState.bankCoins || 0);
-        if (bankCrystalsEl) bankCrystalsEl.textContent = formatFarmDiamonds(gameState.bankCrystals || 0);
-        if (bankStarsEl) bankStarsEl.textContent = formatFarmStars(gameState.bankStars || 0);
+        if (coinsEl) coinsEl.textContent = formatFarmDiamonds(gameState.coins, false);
+        if (crystalsEl) crystalsEl.textContent = formatFarmDiamonds(gameState.crystals, false);
+        if (starsEl) starsEl.textContent = formatFarmStars(gameState.stars, false);
+        if (bankCoinsEl) bankCoinsEl.textContent = formatBankCoins(gameState.bankCoins || 0);
+        if (bankCrystalsEl) bankCrystalsEl.textContent = formatFarmDiamonds(gameState.bankCrystals || 0, true);
+        if (bankStarsEl) bankStarsEl.textContent = formatFarmStars(gameState.bankStars || 0, true);
     }
 
     // Синхронизация с главным state для обновления баланса
