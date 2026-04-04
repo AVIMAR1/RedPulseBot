@@ -4752,12 +4752,39 @@ body {
             function waitForUserIdAndLoad() {
                 if (userId) {
                     loadUserData();
+                    // Запускаем polling баланса каждые 2 секунды
+                    startBalancePolling();
                 } else {
                     setTimeout(waitForUserIdAndLoad, 100);
                 }
             }
             waitForUserIdAndLoad();
         });
+
+        // Polling баланса с сервера
+        let balancePollInterval = null;
+        function startBalancePolling() {
+            if (balancePollInterval) return;
+            balancePollInterval = setInterval(() => {
+                if (!userId) return;
+                fetch(`/api/user/${userId}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.click_coins !== undefined) {
+                            state.click_coins = data.click_coins || 0;
+                            state.stars = data.stars || 0;
+                            state.crystals = data.crystals || 0;
+                            const bc = document.getElementById('balance-coins');
+                            const bs = document.getElementById('balance-stars');
+                            const bcr = document.getElementById('balance-crystals');
+                            if (bc) bc.textContent = state.click_coins.toLocaleString();
+                            if (bs) bs.textContent = state.stars.toLocaleString();
+                            if (bcr) bcr.textContent = state.crystals.toLocaleString();
+                        }
+                    })
+                    .catch(() => {});
+            }, 2000);
+        }
 
         // Обновление интерфейса
         let prevBalance = { coins: 0, stars: 0, crystals: 0 };
