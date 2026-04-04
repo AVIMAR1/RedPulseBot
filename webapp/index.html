@@ -4482,6 +4482,10 @@ body {
                 if (result.success) {
                     if (result.reward_coins) state.click_coins += result.reward_coins;
                     if (result.reward_stars) state.stars += result.reward_stars;
+                    // За задания даём XP (реакции) для уровня игрока
+                    if (result.reward_xp) {
+                        gameState.reactions_triggered = (gameState.reactions_triggered || 0) + result.reward_xp;
+                    }
                     updateUI();
                     if (typeof saveGame === 'function') saveGame();
                     setTimeout(() => updateMainBalance(), 100);
@@ -6693,7 +6697,7 @@ window.updateUI = function() {
         const bankCrystalsEl = document.getElementById('bankCrystals');
         const bankStarsEl = document.getElementById('bankStars');
 
-        if (coinsEl) coinsEl.textContent = formatFarmDiamonds(gameState.coins, false);
+        if (coinsEl) coinsEl.textContent = formatNumber(gameState.coins);
         if (crystalsEl) crystalsEl.textContent = formatFarmDiamonds(gameState.crystals, false);
         if (starsEl) starsEl.textContent = formatFarmStars(gameState.stars, false);
         if (bankCoinsEl) bankCoinsEl.textContent = formatBankCoins(gameState.bankCoins || 0);
