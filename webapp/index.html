@@ -4517,7 +4517,7 @@ body {
                             <div class="task-item" style="${isCurrentUser ? 'border-color:var(--primary)' : ''};cursor:pointer;" onclick="viewPlayerProfile(${player.telegram_id})">
                                 <div style="display:flex;align-items:center;gap:12px;flex:1;">
                                     <div style="font-size:20px;font-weight:700;width:30px;">${medal}</div>
-                                    <div class="rating-avatar">${initials}</div>
+                                    <div class="rating-avatar" style="background:linear-gradient(135deg, hsl(${(player.telegram_id * 37) % 360}, 60%, 45%), hsl(${(player.telegram_id * 37 + 40) % 360}, 70%, 35%));">${initials}</div>
                                     <div>
                                         <div style="font-weight:600;">${player.first_name || 'Игрок'}</div>
                                         <div style="font-size:12px;color:var(--text-secondary);">@${player.username || 'unknown'}</div>
@@ -4558,7 +4558,7 @@ body {
                     const initials = getInitials(data.first_name || 'И');
                     modal.innerHTML = `
                         <div style="text-align:center;">
-                            <div style="width:64px;height:64px;border-radius:14px;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;margin:0 auto 12px;">${initials}</div>
+                            <div style="width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg, hsl(${telegramId * 37 % 360}, 60%, 45%), hsl(${(telegramId * 37 + 40) % 360}, 70%, 35%));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;margin:0 auto 12px;">${initials}</div>
                             <h3 style="margin:0 0 4px;">${data.first_name || 'Игрок'}</h3>
                             <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">@${data.username || 'unknown'}</div>
                             <div style="display:flex;justify-content:center;gap:16px;margin-bottom:16px;">
@@ -4792,6 +4792,21 @@ body {
             } else {
                 setTimeout(updateBalanceDisplay, 500);
             }
+        }
+
+        // Формат звёзд для фермы и банка
+        function formatFarmStars(val) {
+            if (!val || val === 0) return '0.00';
+            val = Math.round(val * 100) / 100;
+            if (val >= 1000) return formatNumber(val); // 1K+ → 1.5К
+            return val.toFixed(2);
+        }
+
+        // Формат алмазов для фермы и банка
+        function formatFarmDiamonds(val) {
+            if (!val || val === 0) return '0';
+            if (val >= 1000) return formatNumber(val); // 1K+ → 1.5КК
+            return (Math.round(val * 1000) / 1000).toFixed(3);
         }
 
         // Обновление интерфейса
@@ -6605,10 +6620,10 @@ window.updateUI = function() {
 
         if (coinsEl) coinsEl.textContent = formatNumber(gameState.coins);
         if (crystalsEl) crystalsEl.textContent = formatNumber(gameState.crystals);
-        if (starsEl) starsEl.textContent = (Math.round((gameState.stars || 0) * 100) / 100).toFixed(2);
+        if (starsEl) starsEl.textContent = formatFarmStars(gameState.stars);
         if (bankCoinsEl) bankCoinsEl.textContent = formatNumber(gameState.bankCoins || 0);
-        if (bankCrystalsEl) bankCrystalsEl.textContent = (Math.round((gameState.bankCrystals || 0) * 1000) / 1000).toFixed(3);
-        if (bankStarsEl) bankStarsEl.textContent = (Math.round((gameState.bankStars || 0) * 100000) / 100000).toFixed(5);
+        if (bankCrystalsEl) bankCrystalsEl.textContent = formatFarmDiamonds(gameState.bankCrystals || 0);
+        if (bankStarsEl) bankStarsEl.textContent = formatFarmStars(gameState.bankStars || 0);
     }
 
     // Синхронизация с главным state для обновления баланса
@@ -7006,8 +7021,8 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     fieldGrid.appendChild(canvas);
 
     const ctx = canvas.getContext('2d');
-    ctx.strokeStyle = '#e74c3c';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#ff2222';
+    ctx.lineWidth = 3.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
@@ -7067,9 +7082,10 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
 
         // Пульсация лазера
         const pulse = 0.85 + 0.15 * Math.sin(timestamp * 0.008);
-        ctx.lineWidth = 3 * pulse;
-        ctx.shadowColor = '#e74c3c';
-        ctx.shadowBlur = 8 * pulse;
+        ctx.lineWidth = 3.5 * pulse;
+        ctx.shadowColor = '#ff0000';
+        ctx.shadowBlur = 12 * pulse;
+        ctx.strokeStyle = `rgba(255, 30, 30, ${0.9 + 0.1 * pulse})`;
 
         for (const seg of completedSegments) {
             ctx.beginPath();
@@ -7105,7 +7121,8 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
         }
 
         // Сброс стилей
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#ff2222';
+        ctx.lineWidth = 3.5;
         ctx.shadowBlur = 0;
 
         // Если ещё есть анимации или эффекты — продолжаем цикл
