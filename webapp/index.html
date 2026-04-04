@@ -6944,61 +6944,85 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // Завершённые сегменты (каждый — независимая линия)
+    // Завершённые сегменты (общие для всех веток)
     const completedSegments = [];
-    // Текущий анимируемый сегмент
-    let currentAnim = null;
+    // Анимации — каждая ветка добавляет свою
+    const activeAnimations = [];
 
-    // Перерисовать Canvas
-    function redrawCanvas() {
+    // Глобальный animation loop — обновляет ВСЕ анимации за один кадр
+    let globalAnimFrameId = null;
+
+    function globalAnimLoop(timestamp) {
+        globalAnimFrameId = null;
+
+        // Обновляем все активные анимации
+        const finished = [];
+        for (let i = 0; i < activeAnimations.length; i++) {
+            const anim = activeAnimations[i];
+            if (!anim.startTime) anim.startTime = timestamp;
+            const elapsed = timestamp - anim.startTime;
+            const t = Math.min(elapsed / anim.duration, 1);
+            anim.progress = t;
+            if (t >= 1) finished.push(i);
+        }
+
+        // Удаляем завершённые (в обратном порядке чтобы индексы не сбились)
+        for (let i = finished.length - 1; i >= 0; i--) {
+            const idx = finished[i];
+            const anim = activeAnimations[idx];
+            activeAnimations.splice(idx, 1);
+            completedSegments.push({x1: anim.x1, y1: anim.y1, x2: anim.x2, y2: anim.y2});
+            if (anim.resolve) anim.resolve();
+        }
+
+        // Перерисовка
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.beginPath();
         for (const seg of completedSegments) {
+            ctx.beginPath();
             ctx.moveTo(seg.x1, seg.y1);
             ctx.lineTo(seg.x2, seg.y2);
+            ctx.stroke();
         }
-        if (currentAnim) {
-            const cx = currentAnim.x1 + (currentAnim.x2 - currentAnim.x1) * currentAnim.progress;
-            const cy = currentAnim.y1 + (currentAnim.y2 - currentAnim.y1) * currentAnim.progress;
-            ctx.moveTo(currentAnim.x1, currentAnim.y1);
+        for (const anim of activeAnimations) {
+            const cx = anim.x1 + (anim.x2 - anim.x1) * anim.progress;
+            const cy = anim.y1 + (anim.y2 - anim.y1) * anim.progress;
+            ctx.beginPath();
+            ctx.moveTo(anim.x1, anim.y1);
             ctx.lineTo(cx, cy);
+            ctx.stroke();
         }
-        ctx.stroke();
+
+        // Если ещё есть анимации — продолжаем цикл
+        if (activeAnimations.length > 0) {
+            globalAnimFrameId = requestAnimationFrame(globalAnimLoop);
+        }
     }
 
-    // Анимация — каждый сегмент рисуется отдельно, без смешивания веток
-    function moveSmooth(x1, y1, x2, y2, onDone) {
-        if (Math.abs(x1 - x2) < 0.5 && Math.abs(y1 - y2) < 0.5) {
-            completedSegments.push({x1, y1, x2, y2});
-            onDone();
-            return;
+    // Запустить глобальный loop
+    function ensureGlobalLoop() {
+        if (!globalAnimFrameId) {
+            globalAnimFrameId = requestAnimationFrame(globalAnimLoop);
         }
+    }
 
-        const dist = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
-        const duration = (dist / PIXELS_PER_SEC) * 1000;
-        const startTime = performance.now();
-        currentAnim = {x1, y1, x2, y2, progress: 0};
-
-        function frame(now) {
-            const elapsed = now - startTime;
-            const t = Math.min(elapsed / duration, 1);
-            currentAnim.progress = t;
-            redrawCanvas();
-
-            if (t < 1) {
-                animFrameId = requestAnimationFrame(frame);
-            } else {
+    // Анимация — добавляет запись в activeAnimations
+    function moveSmooth(x1, y1, x2, y2) {
+        return new Promise(resolve => {
+            if (Math.abs(x1 - x2) < 0.5 && Math.abs(y1 - y2) < 0.5) {
                 completedSegments.push({x1, y1, x2, y2});
-                currentAnim = null;
-                onDone();
+                resolve();
+                return;
             }
-        }
-        animFrameId = requestAnimationFrame(frame);
+
+            const dist = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+            const duration = (dist / PIXELS_PER_SEC) * 1000;
+
+            activeAnimations.push({x1, y1, x2, y2, progress: 0, duration, resolve});
+            ensureGlobalLoop();
+        });
     }
 
     function finishLaser() {
-        if (animFrameId) cancelAnimationFrame(animFrameId);
-
         // Банк
         gameState.bankCoins = (gameState.bankCoins || 0) + earned.coins;
         gameState.bankCrystals = (gameState.bankCrystals || 0) + earned.diamonds;
@@ -7031,11 +7055,7 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
         if (completedBranches >= activeBranches) finishLaser();
     }
 
-    // Обёртка moveSmooth в Promise
-    function moveSmoothAsync(x1, y1, x2, y2) {
-        return new Promise(resolve => moveSmooth(x1, y1, x2, y2, resolve));
-    }
-
+    // Обёртка для async/await
     async function step(r, c, d, ch, fromX, fromY, branchChecked) {
         // Каждая ветка получает свою копию checked
         if (!branchChecked) branchChecked = checked;
@@ -7045,7 +7065,7 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
         if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) {
             const endX = Math.max(0, Math.min(fieldW, fromX + d.x * 20));
             const endY = Math.max(0, Math.min(fieldH, fromY + d.y * 20));
-            await moveSmoothAsync(fromX, fromY, endX, endY);
+            await moveSmooth(fromX, fromY, endX, endY);
             branchDone();
             return;
         }
@@ -7063,7 +7083,7 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
         const block = gameState.grid[r]?.[c];
 
         // Двигаемся к клетке
-        await moveSmoothAsync(fromX || px, fromY || py, px, py);
+        await moveSmooth(fromX || px, fromY || py, px, py);
 
         if (!block) {
             await step(r + d.y, c + d.x, d, ch, px, py);
