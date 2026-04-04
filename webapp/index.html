@@ -7036,7 +7036,9 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
         return new Promise(resolve => moveSmooth(x1, y1, x2, y2, resolve));
     }
 
-    async function step(r, c, d, ch, fromX, fromY) {
+    async function step(r, c, d, ch, fromX, fromY, branchChecked) {
+        // Каждая ветка получает свою копию checked
+        if (!branchChecked) branchChecked = checked;
         activeBranches++;
 
         // Стена — плавно доезжаем до границы
@@ -7050,12 +7052,12 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
 
         // Уже обработан
         const blockKey = `${r}-${c}`;
-        if (checked.has(blockKey)) {
+        if (branchChecked.has(blockKey)) {
             branchDone();
             return;
         }
 
-        checked.add(blockKey);
+        branchChecked.add(blockKey);
         const px = padding + c * cellStep + CELL_SIZE / 2;
         const py = padding + r * cellStep + CELL_SIZE / 2;
         const block = gameState.grid[r]?.[c];
@@ -7082,24 +7084,28 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
                 case BLOCK_TYPES.MULTIPLIER:
                     await step(r + d.y, c + d.x, d, ch * block.value, px, py);
                     break;
-                case BLOCK_TYPES.ROUTER: {
-                    const hitPort = getHitPort(d);
-                    const ports = block.routerConfig?.ports || [];
-                    if (ports.includes(hitPort)) {
-                        const outPorts = ports.filter(p => p !== hitPort);
-                        const boosted = ch * block.value;
-                        const pDir = { 'top': {x:0,y:-1}, 'bottom': {x:0,y:1}, 'left': {x:-1,y:0}, 'right': {x:1,y:0} };
-                        if (outPorts.length > 0) {
-                            const promises = outPorts.map((port, i) =>
-                                new Promise(res => setTimeout(() => step(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted, px, py).then(res), i * 100))
-                            );
-                            await Promise.all(promises);
+                    case BLOCK_TYPES.ROUTER: {
+                        const hitPort = getHitPort(d);
+                        const ports = block.routerConfig?.ports || [];
+                        if (ports.includes(hitPort)) {
+                            const outPorts = ports.filter(p => p !== hitPort);
+                            const boosted = ch * block.value;
+                            const pDir = { 'top': {x:0,y:-1}, 'bottom': {x:0,y:1}, 'left': {x:-1,y:0}, 'right': {x:1,y:0} };
+                            if (outPorts.length > 0) {
+                                // Каждая ветка получает СВОЮ копию checked
+                                const promises = outPorts.map((port, i) =>
+                                    new Promise(res => {
+                                        setTimeout(() => {
+                                            const newChecked = new Set(branchChecked);
+                                            step(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted, px, py, newChecked).then(res);
+                                        }, i * 100);
+                                    })
+                                );
+                                await Promise.all(promises);
+                            }
                         }
-                        // outPorts.length === 0 — нет выходных портов, step завершён
+                        break;
                     }
-                    // Порт не совпал — step завершён
-                    break;
-                }
                 default:
                     await step(r + d.y, c + d.x, d, ch, px, py);
             }
