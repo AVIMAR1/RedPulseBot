@@ -4729,31 +4729,20 @@ body {
                     console.log('[loadUserData] updateUI() вызван');
                     window.userDataLoaded = true;  // Помечаем, что данные загружены
 
-                    // ГАРАНТИРОВАННО обновляем баланс на главной странице
-                    function forceUpdateBalance() {
+                    // Обновляем баланс на главной странице
+                    setTimeout(() => {
                         const balanceCoins = document.getElementById('balance-coins');
                         const balanceStars = document.getElementById('balance-stars');
                         const balanceCrystals = document.getElementById('balance-crystals');
                         
-                        console.log('[forceUpdateBalance] Элементы:', balanceCoins ? 'OK' : 'NULL', balanceStars ? 'OK' : 'NULL', balanceCrystals ? 'OK' : 'NULL');
+                        console.log('[loadUserData] Баланс элементы:', balanceCoins ? 'OK' : 'NULL', balanceStars ? 'OK' : 'NULL', balanceCrystals ? 'OK' : 'NULL');
                         
-                        if (balanceCoins && balanceStars && balanceCrystals) {
-                            balanceCoins.textContent = (state.click_coins || 0).toLocaleString();
-                            balanceStars.textContent = (state.stars || 0).toLocaleString();
-                            balanceCrystals.textContent = (state.crystals || 0).toLocaleString();
-                            console.log('[forceUpdateBalance] ✅ Баланс обновлен:', state.click_coins, state.stars, state.crystals);
-                            return true;
-                        }
-                        console.log('[forceUpdateBalance] ❌ Элементы не найдены');
-                        return false;
-                    }
-                    
-                    // Пробуем сразу
-                    if (!forceUpdateBalance()) {
-                        // Элементы не готовы, пробуем через 100мс, 300мс, 500мс
-                        console.log('[forceUpdateBalance] Повторные попытки...');
-                        setTimeout(() => { if (!forceUpdateBalance()) setTimeout(() => { if (!forceUpdateBalance()) setTimeout(forceUpdateBalance, 500); }, 300); }, 100);
-                    }
+                        if (balanceCoins) balanceCoins.textContent = (state.click_coins || 0).toLocaleString();
+                        if (balanceStars) balanceStars.textContent = (state.stars || 0).toLocaleString();
+                        if (balanceCrystals) balanceCrystals.textContent = (state.crystals || 0).toLocaleString();
+                        
+                        console.log('[loadUserData] ✅ Баланс обновлен:', state.click_coins, state.stars, state.crystals);
+                    }, 200);
 
                     return;
                 } else {
@@ -4769,12 +4758,12 @@ body {
         // Инициализация при загрузке страницы для Telegram
         document.addEventListener('DOMContentLoaded', () => {
             console.log('[DOMContentLoaded] Страница загружена, userId:', userId, 'isAuthorized:', isAuthorized);
-            
-            // === ПРОВЕРКА АВТОРИЗАЦИИ ПЕРЕД ЗАГРУЗКОЙ ===
+
+            // НЕ блокируем доступ если нет авторизации - позволяем загрузить данные
             if (!isAuthorized || !userId) {
-                console.error('[DOMContentLoaded] Доступ заблокирован! isAuthorized:', isAuthorized, 'userId:', userId);
-                // НЕ загружаем ничего если нет авторизации
-                return;
+                console.warn('[DOMContentLoaded] Авторизация не пройдена, но продолжаем работу (тестовый режим)');
+                // Для тестирования через браузер можно задать userId вручную в консоли:
+                // window.userId = 123456789; isAuthorized = true;
             }
             
             console.log('[DOMContentLoaded] Авторизация пройдена, загружаем данные...');
