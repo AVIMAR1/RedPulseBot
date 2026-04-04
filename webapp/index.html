@@ -6914,7 +6914,7 @@ function launchCharge() {
     spawnLaser(startRow, startCol, x, y, dir, charge, new Set());
 }
 
-// Лазер — ОДИН Canvas, плавное движение между клетками
+// Лазер — плавная анимация, ОДИН Canvas
 function spawnLaser(row, col, x, y, dir, charge, processed) {
     const fieldGrid = document.getElementById('fieldGrid');
     if (!fieldGrid) { finishCharging(); return; }
@@ -6924,10 +6924,12 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     const fieldRows = gameState.fieldRows;
     const fieldW = fieldGrid.clientWidth || FIELD_COLS * cellStep + padding * 2;
     const fieldH = fieldGrid.clientHeight || fieldRows * cellStep + padding * 2;
-    const MOVE_DURATION = 200; // мс на клетку — плавно
+    const SPEED = 40; // мс на 1px — скорость лазера
 
     const checked = processed || new Set();
     let earned = { coins: 0, diamonds: 0, stars: 0 };
+    let animFrameId = null;
+    let totalSegments = 0;
 
     const canvas = document.createElement('canvas');
     canvas.classList.add('laser-canvas');
@@ -6935,7 +6937,6 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     canvas.height = fieldH;
     canvas.style.width = fieldW + 'px';
     canvas.style.height = fieldH + 'px';
-    canvas.style.willChange = 'opacity';
     fieldGrid.appendChild(canvas);
 
     const ctx = canvas.getContext('2d');
@@ -6944,125 +6945,52 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    let activeBranches = 0;
-    let branchesDone = 0;
+    // Все точки лазера (для перерисовки)
+    const allPoints = [];
 
-    function branchFinished() {
-        branchesDone++;
-        if (branchesDone >= activeBranches) finishLaser(canvas);
-    }
-
-    // Плавное движение от точки к точке
-    function animateMove(fromX, fromY, toX, toY, duration, callback) {
+    // Анимация движения от точки к точке (рисует ВЕСЬ путь)
+    function moveSmooth(x1, y1, x2, y2, onDone) {
+        const dist = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+        const duration = dist / SPEED; // мс
         const startTime = performance.now();
+
         function frame(now) {
             const elapsed = now - startTime;
             const t = Math.min(elapsed / duration, 1);
-            // ease-in-out
-            const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-            const curX = fromX + (toX - fromX) * ease;
-            const curY = fromY + (toY - fromY) * ease;
-            // Рисуем линию до текущей точки
-            ctx.beginPath();
-            ctx.moveTo(fromX, fromY);
-            ctx.lineTo(curX, curY);
-            ctx.stroke();
-            if (t < 1) {
-                requestAnimationFrame(frame);
+            const cx = x1 + (x2 - x1) * t;
+            const cy = y1 + (y2 - y1) * t;
+
+            // Перерисовываем ВЕСЬ путь + текущий сегмент
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (allPoints.length > 0) {
+                ctx.beginPath();
+                ctx.moveTo(allPoints[0].x, allPoints[0].y);
+                for (let i = 1; i < allPoints.length; i++) {
+                    ctx.lineTo(allPoints[i].x, allPoints[i].y);
+                }
+                ctx.lineTo(cx, cy);
+                ctx.stroke();
             } else {
-                callback();
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(cx, cy);
+                ctx.stroke();
+            }
+
+            if (t < 1) {
+                animFrameId = requestAnimationFrame(frame);
+            } else {
+                allPoints.push({x: x2, y: y2});
+                onDone();
             }
         }
-        requestAnimationFrame(frame);
+        animFrameId = requestAnimationFrame(frame);
     }
 
-    function step(r, c, d, ch, fromX, fromY) {
-        activeBranches++;
+    function finishLaser() {
+        if (animFrameId) cancelAnimationFrame(animFrameId);
 
-        return new Promise((resolve) => {
-            if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) {
-                branchFinished();
-                resolve();
-                return;
-            }
-
-            const blockKey = `${r}-${c}`;
-            if (checked.has(blockKey)) {
-                branchFinished();
-                resolve();
-                return;
-            }
-
-            checked.add(blockKey);
-
-            const px = padding + c * cellStep + CELL_SIZE / 2;
-            const py = padding + r * cellStep + CELL_SIZE / 2;
-            const startX = fromX ?? px;
-            const startY = fromY ?? py;
-
-            const block = gameState.grid[r]?.[c];
-
-            if (!block) {
-                animateMove(startX, startY, px, py, MOVE_DURATION, () => {
-                    step(r + d.y, c + d.x, d, ch, px, py).then(resolve);
-                });
-            } else {
-                animateMove(startX, startY, px, py, MOVE_DURATION, () => {
-                    switch (block.type) {
-                        case BLOCK_TYPES.COIN:
-                            earned.coins += ch * CONFIG.CONVERSION.COIN * block.level;
-                            step(r + d.y, c + d.x, d, ch, px, py).then(() => { branchFinished(); resolve(); });
-                            break;
-                        case BLOCK_TYPES.DIAMOND:
-                            earned.diamonds += (ch * block.level) / CONFIG.CONVERSION.DIAMOND;
-                            step(r + d.y, c + d.x, d, ch, px, py).then(() => { branchFinished(); resolve(); });
-                            break;
-                        case BLOCK_TYPES.STAR:
-                            earned.stars += (ch * block.level) / CONFIG.CONVERSION.STAR;
-                            step(r + d.y, c + d.x, d, ch, px, py).then(() => { branchFinished(); resolve(); });
-                            break;
-                        case BLOCK_TYPES.MULTIPLIER:
-                            step(r + d.y, c + d.x, d, ch * block.value, px, py).then(() => { branchFinished(); resolve(); });
-                            break;
-                        case BLOCK_TYPES.ROUTER: {
-                            const hitPort = getHitPort(d);
-                            const ports = block.routerConfig?.ports || [];
-                            if (ports.includes(hitPort)) {
-                                const outPorts = ports.filter(p => p !== hitPort);
-                                const boosted = ch * block.value;
-                                const pDir = { 'top': {x:0,y:-1}, 'bottom': {x:0,y:1}, 'left': {x:-1,y:0}, 'right': {x:1,y:0} };
-                                if (outPorts.length === 0) {
-                                    branchFinished();
-                                    resolve();
-                                } else {
-                                    const promises = outPorts.map(port =>
-                                        new Promise(res => setTimeout(() => step(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted, px, py).then(res), 50))
-                                    );
-                                    Promise.all(promises).then(() => { branchFinished(); resolve(); });
-                                }
-                            } else {
-                                branchFinished();
-                                resolve();
-                            }
-                            break;
-                        }
-                        default:
-                            step(r + d.y, c + d.x, d, ch, px, py).then(() => { branchFinished(); resolve(); });
-                    }
-                });
-            }
-        });
-    }
-
-    // Начальная точка
-    const startPx = padding + col * cellStep + CELL_SIZE / 2;
-    const startPy = padding + row * cellStep + CELL_SIZE / 2;
-
-    setTimeout(() => {
-        step(row, col, dir, charge, startPx, startPy);
-    }, 100);
-
-    function finishLaser(canvas) {
+        // Банк
         gameState.bankCoins = (gameState.bankCoins || 0) + earned.coins;
         gameState.bankCrystals = (gameState.bankCrystals || 0) + earned.diamonds;
         gameState.bankStars = (gameState.bankStars || 0) + earned.stars;
@@ -7084,6 +7012,112 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
             setTimeout(() => { canvas.remove(); summaryEl.remove(); updateBalance(); finishCharging(); }, 400);
         }, 2000);
     }
+
+    // Очередь шагов — последовательная обработка
+    const stepQueue = [];
+    let isProcessing = false;
+
+    function enqueueStep(r, c, d, ch, fromX, fromY) {
+        stepQueue.push({r, c, d, ch, fromX, fromY});
+        if (!isProcessing) processQueue();
+    }
+
+    function processQueue() {
+        if (stepQueue.length === 0) {
+            isProcessing = false;
+            return;
+        }
+        isProcessing = true;
+        const {r, c, d, ch, fromX, fromY} = stepQueue.shift();
+
+        if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) {
+            // Удар о стену — рисуем короткий «хвост»
+            const endX = Math.max(0, Math.min(fieldW, fromX + d.x * (CELL_SIZE + GAP)));
+            const endY = Math.max(0, Math.min(fieldH, fromY + d.y * (CELL_SIZE + GAP)));
+            allPoints.push({x: endX, y: endY});
+            // Перерисовываем весь путь
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (allPoints.length > 0) {
+                ctx.beginPath();
+                ctx.moveTo(allPoints[0].x, allPoints[0].y);
+                for (let i = 1; i < allPoints.length; i++) {
+                    ctx.lineTo(allPoints[i].x, allPoints[i].y);
+                }
+                ctx.stroke();
+            }
+            if (stepQueue.length === 0) finishLaser();
+            else processQueue();
+            return;
+        }
+
+        const blockKey = `${r}-${c}`;
+        if (checked.has(blockKey)) {
+            // Уже обработан — стоп
+            if (stepQueue.length === 0) finishLaser();
+            else processQueue();
+            return;
+        }
+
+        checked.add(blockKey);
+        const px = padding + c * cellStep + CELL_SIZE / 2;
+        const py = padding + r * cellStep + CELL_SIZE / 2;
+
+        const block = gameState.grid[r]?.[c];
+
+        if (!block) {
+            moveSmooth(fromX || px, fromY || py, px, py, () => {
+                enqueueStep(r + d.y, c + d.x, d, ch, px, py);
+            });
+        } else {
+            moveSmooth(fromX || px, fromY || py, px, py, () => {
+                switch (block.type) {
+                    case BLOCK_TYPES.COIN:
+                        earned.coins += ch * CONFIG.CONVERSION.COIN * block.level;
+                        enqueueStep(r + d.y, c + d.x, d, ch, px, py);
+                        break;
+                    case BLOCK_TYPES.DIAMOND:
+                        earned.diamonds += (ch * block.level) / CONFIG.CONVERSION.DIAMOND;
+                        enqueueStep(r + d.y, c + d.x, d, ch, px, py);
+                        break;
+                    case BLOCK_TYPES.STAR:
+                        earned.stars += (ch * block.level) / CONFIG.CONVERSION.STAR;
+                        enqueueStep(r + d.y, c + d.x, d, ch, px, py);
+                        break;
+                    case BLOCK_TYPES.MULTIPLIER:
+                        enqueueStep(r + d.y, c + d.x, d, ch * block.value, px, py);
+                        break;
+                    case BLOCK_TYPES.ROUTER: {
+                        const hitPort = getHitPort(d);
+                        const ports = block.routerConfig?.ports || [];
+                        if (ports.includes(hitPort)) {
+                            const outPorts = ports.filter(p => p !== hitPort);
+                            const boosted = ch * block.value;
+                            const pDir = { 'top': {x:0,y:-1}, 'bottom': {x:0,y:1}, 'left': {x:-1,y:0}, 'right': {x:1,y:0} };
+                            outPorts.forEach((port, i) => {
+                                setTimeout(() => {
+                                    enqueueStep(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted, px, py);
+                                }, i * 100);
+                            });
+                        } else {
+                            if (stepQueue.length === 0) finishLaser();
+                        }
+                        break;
+                    }
+                    default:
+                        enqueueStep(r + d.y, c + d.x, d, ch, px, py);
+                }
+            });
+        }
+    }
+
+    // Стартовая точка
+    const startPx = padding + col * cellStep + CELL_SIZE / 2;
+    const startPy = padding + row * cellStep + CELL_SIZE / 2;
+    allPoints.push({x: startPx, y: startPy});
+
+    setTimeout(() => {
+        enqueueStep(row, col, dir, charge, startPx, startPy);
+    }, 100);
 }
 
 function handleBlock(block, row, col, charge, dir, processed, x, y) {
