@@ -11,7 +11,7 @@ router = APIRouter()
 WEBAPP_DIR = Path(__file__).parent / "webapp"
 
 # Версия кэша - увеличивайте при изменениях в JS/CSS
-CACHE_VERSION = "0.1.5"
+CACHE_VERSION = "0.1.6"
 
 # ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 def get_db():

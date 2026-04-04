@@ -4120,38 +4120,22 @@ body {
         };
 
         // Центральная функция обновления баланса (главная страница)
+        // ВАЖНО: НЕ перезаписывает state из localStorage - только обновляет UI!
         function updateMainBalance() {
             if (typeof isSyncing !== 'undefined' && isSyncing) return;
             window.isSyncing = true;
 
             try {
-                // Синхронизация с фермой/казино (всегда берём актуальные данные из localStorage)
-                const farmStateRaw = localStorage.getItem('redpulse_state');
-                if (farmStateRaw) {
-                    try {
-                        const farmState = JSON.parse(farmStateRaw);
-
-                        // Всегда обновляем из localStorage (актуальные данные)
-                        state.click_coins = farmState.click_coins || 0;
-                        state.crystals = farmState.crystals || 0;
-                        state.stars = farmState.stars || 0;
-                        state.total_clicks = farmState.total_clicks || state.total_clicks;
-                        state.level = farmState.level || state.level;
-                        state.xp = farmState.xp || state.xp;
-                        state.xpToNext = farmState.xpToNext || state.xpToNext;
-                        state.click_power = farmState.click_power || state.click_power;
-                    } catch (e) {
-                        console.error('Ошибка чтения состояния фермы:', e);
-                    }
-                }
-
-                // Сохранение в localStorage
-                localStorage.setItem('redpulse_state', JSON.stringify(state));
+                // НЕ загружаем данные из localStorage - state уже содержит актуальные данные из БД!
+                // Только обновляем UI текущими значениями из state
 
                 // Обновление UI
                 if (typeof updateUI === 'function') {
                     updateUI();
                 }
+
+                // Сохранение в localStorage (текущий state)
+                localStorage.setItem('redpulse_state', JSON.stringify(state));
 
                 // Сохранение через saveData (для API)
                 if (typeof saveData === 'function') {
@@ -4175,16 +4159,16 @@ body {
         // Синхронизация с фермой
         function syncWithFarm() {
             try {
-                // Ферма использует gameState, синхронизируем с state
+                // Ферма использует gameState, синхронизируем с state (берём БОЛЬШЕЕ значение!)
                 if (typeof gameState !== 'undefined') {
-                    // gameState → state (сохраняем изменения из фермы)
-                    state.click_coins = gameState.coins || 0;
-                    state.crystals = gameState.crystals || 0;
-                    state.stars = gameState.stars || 0;
-                    state.total_clicks = gameState.totalTaps || 0;
-                    state.level = gameState.level || 1;
-                    state.click_power = Math.floor(gameState.chargePower) || 1;
-                    
+                    // gameState → state (сохраняем изменения из фермы, НО НЕ перезаписываем нулями!)
+                    if (gameState.coins > 0) state.click_coins = Math.max(state.click_coins || 0, gameState.coins);
+                    if (gameState.crystals > 0) state.crystals = Math.max(state.crystals || 0, gameState.crystals);
+                    if (gameState.stars > 0) state.stars = Math.max(state.stars || 0, gameState.stars);
+                    if (gameState.totalTaps > 0) state.total_clicks = Math.max(state.total_clicks || 0, gameState.totalTaps);
+                    if (gameState.level > 1) state.level = Math.max(state.level || 1, gameState.level);
+                    if (gameState.chargePower > 1) state.click_power = Math.floor(gameState.chargePower);
+
                     // Сохраняем в localStorage
                     localStorage.setItem('redpulse_state', JSON.stringify(state));
                     if (typeof saveGame === 'function') saveGame();
@@ -4701,16 +4685,16 @@ body {
             
             console.log('[DOMContentLoaded] Авторизация пройдена, загружаем данные...');
             
-            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 0.1.4 ===
-            const currentVersion = '0.1.4';
+            // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 0.1.6 ===
+            const currentVersion = '0.1.6';  // Обновили версию
             const savedVersion = localStorage.getItem('appVersion');
-            
+
             if (savedVersion !== currentVersion) {
-                console.log('[MIGRATION] Очистка localStorage (версия:', savedVersion, '->', currentVersion, ')');
-                // Очищаем ВСЁ полностью
-                localStorage.clear();
+                console.log('[MIGRATION] Версия изменена:', savedVersion, '->', currentVersion);
+                // НЕ очищаем localStorage полностью - данные теперь синхронизируются с БД
+                // Только обновляем версию
                 localStorage.setItem('appVersion', currentVersion);
-                console.log('[MIGRATION] localStorage полностью очищен, версия:', currentVersion);
+                console.log('[MIGRATION] Версия обновлена, localStorage сохранён');
             }
             // ============================================================
 
@@ -7663,7 +7647,7 @@ window.initGame = function() {
 // ==========================================
 // АВТОМАТИЧЕСКАЯ ПРОВЕРКА ВЕРСИИ И ОЧИСТКА КЭША
 // ==========================================
-const APP_VERSION = '0.1.5';  // Увеличивайте при изменениях
+const APP_VERSION = '0.1.6';  // Увеличивайте при изменениях
 
 // Регистрация Service Worker для управления кэшем
 if ('serviceWorker' in navigator) {
