@@ -6876,71 +6876,68 @@ function spawnCharge(x, y, dir, charge, processed, skipFrames) {
 
     const padding = 10;
     const cellStep = CELL_SIZE + GAP;
-    const fieldWidth = FIELD_COLS * cellStep + padding * 2;
-    const fieldHeight = gameState.fieldRows * cellStep + padding * 2;
+    const fieldRows = gameState.fieldRows;
 
-    // Позиция снаряда
-    let chargeX = x;
-    let chargeY = y;
+    // Текущая клетка
+    let col = Math.round((x - padding) / cellStep);
+    let row = Math.round((y - padding) / cellStep);
 
     const chargeEl = document.createElement('div');
     chargeEl.className = 'charge-particle';
-    chargeEl.style.left = `${chargeX - 9}px`;
-    chargeEl.style.top = `${chargeY - 9}px`;
+    const centerX = padding + col * cellStep + CELL_SIZE / 2;
+    const centerY = padding + row * cellStep + CELL_SIZE / 2;
+    chargeEl.style.left = `${centerX - 9}px`;
+    chargeEl.style.top = `${centerY - 9}px`;
     chargeEl.style.transition = '';
     fieldGrid.appendChild(chargeEl);
 
     const checked = processed || new Set();
-    const speed = 2.5; // пикселей за шаг
-    const STEP_MS = 16; // ~60fps
+    const STEP_DELAY = 80; // мс между клетками
 
-    function step() {
-        chargeX += dir.x * speed;
-        chargeY += dir.y * speed;
-
-        chargeEl.style.left = `${chargeX - 9}px`;
-        chargeEl.style.top = `${chargeY - 9}px`;
+    function stepToNext() {
+        // Двигаемся на 1 клетку
+        col += dir.x;
+        row += dir.y;
 
         // Выход за границы
-        if (chargeX < padding - 15 || chargeX > fieldWidth - padding + 15 || 
-            chargeY < padding - 15 || chargeY > fieldHeight - padding + 15) {
+        if (row < 0 || row >= fieldRows || col < 0 || col >= FIELD_COLS) {
             chargeEl.style.transition = 'opacity 0.2s';
             chargeEl.style.opacity = '0';
             setTimeout(() => { chargeEl.remove(); finishCharging(); }, 200);
             return;
         }
 
-        // Проверка столкновения
-        const col = Math.floor((chargeX - padding) / cellStep);
-        const row = Math.floor((chargeY - padding) / cellStep);
-        const blockKey = `${row}-${col}`;
+        // Обновляем позицию
+        const newX = padding + col * cellStep + CELL_SIZE / 2;
+        const newY = padding + row * cellStep + CELL_SIZE / 2;
+        chargeEl.style.transition = `left ${STEP_DELAY}ms linear, top ${STEP_DELAY}ms linear`;
+        chargeEl.style.left = `${newX - 9}px`;
+        chargeEl.style.top = `${newY - 9}px`;
 
-        if (row >= 0 && row < gameState.fieldRows && col >= 0 && col < FIELD_COLS) {
+        setTimeout(() => {
+            chargeEl.style.transition = '';
+
             const block = gameState.grid[row]?.[col];
+            const blockKey = `${row}-${col}`;
+
             if (block && !checked.has(blockKey)) {
-                const cellX = padding + col * cellStep + CELL_SIZE / 2;
-                const cellY = padding + row * cellStep + CELL_SIZE / 2;
-                const dx = Math.abs(chargeX - cellX);
-                const dy = Math.abs(chargeY - cellY);
-
-                if (dx < CELL_SIZE * 0.45 && dy < CELL_SIZE * 0.45) {
-                    checked.add(blockKey);
-                    chargeEl.style.transition = 'transform 0.15s ease-out, opacity 0.15s ease-out';
-                    chargeEl.style.transform = 'scale(1.5)';
-                    chargeEl.style.opacity = '0';
-                    setTimeout(() => {
-                        chargeEl.remove();
-                        handleBlock(block, row, col, charge, dir, checked, cellX, cellY);
-                    }, 150);
-                    return;
-                }
+                // Столкновение
+                checked.add(blockKey);
+                chargeEl.style.transition = 'transform 0.15s ease-out, opacity 0.15s ease-out';
+                chargeEl.style.transform = 'scale(1.5)';
+                chargeEl.style.opacity = '0';
+                setTimeout(() => {
+                    chargeEl.remove();
+                    handleBlock(block, row, col, charge, dir, checked, newX, newY);
+                }, 150);
+            } else {
+                // Пустая клетка — продолжаем
+                stepToNext();
             }
-        }
-
-        setTimeout(step, STEP_MS);
+        }, STEP_DELAY);
     }
 
-    step();
+    stepToNext();
 }
 
 function handleBlock(block, row, col, charge, dir, processed, x, y) {
