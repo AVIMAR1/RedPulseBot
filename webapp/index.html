@@ -4696,22 +4696,14 @@ body {
                     console.log('[loadUserData] Данные загружены из БД успешно, first_play:', state.first_play);
                     window.userDataLoaded = true;  // Помечаем, что данные загружены
 
-                    // Обновляем баланс в главном меню
-                    setTimeout(() => {
-                        if (typeof updateMainBalance === 'function') {
-                            updateMainBalance();
-                            console.log('[loadUserData] Баланс обновлён');
-                        }
-                        
-                        // Принудительно обновляем элементы баланса
-                        const balanceCoins = document.getElementById('balance-coins');
-                        const balanceStars = document.getElementById('balance-stars');
-                        const balanceCrystals = document.getElementById('balance-crystals');
-                        if (balanceCoins) balanceCoins.textContent = state.click_coins.toLocaleString();
-                        if (balanceStars) balanceStars.textContent = state.stars.toLocaleString();
-                        if (balanceCrystals) balanceCrystals.textContent = state.crystals.toLocaleString();
-                        console.log('[loadUserData] Баланс принудительно обновлен:', state.click_coins, state.stars, state.crystals);
-                    }, 100);
+                    // Принудительно обновляем баланс на главной странице
+                    const balanceCoins = document.getElementById('balance-coins');
+                    const balanceStars = document.getElementById('balance-stars');
+                    const balanceCrystals = document.getElementById('balance-crystals');
+                    if (balanceCoins) balanceCoins.textContent = state.click_coins.toLocaleString();
+                    if (balanceStars) balanceStars.textContent = state.stars.toLocaleString();
+                    if (balanceCrystals) balanceCrystals.textContent = state.crystals.toLocaleString();
+                    console.log('[loadUserData] Баланс обновлен:', state.click_coins, state.stars, state.crystals);
 
                     return;
                 } else {
@@ -6138,6 +6130,13 @@ window.loadGame = async function() {
                     const stateFirstPlay = state.first_play === false ? false : true;
                     const dbFirstPlay = dbData.firstPlay === false ? false : true;
                     gameState.firstPlay = state.first_play !== undefined ? stateFirstPlay : dbFirstPlay;
+                    
+                    console.log('[loadGame] firstPlay:', {
+                        state_first_play: state.first_play,
+                        stateFirstPlay,
+                        dbFirstPlay,
+                        result: gameState.firstPlay
+                    });
 
                     console.log('[loadGame] gameState после загрузки:', {
                         coins: gameState.coins,
@@ -7616,8 +7615,7 @@ function showFloatingEarn(row, col, text, type) {
 
 // Функция инициализации игры
 let gameInitialized = false;
-let initAttempts = 0;
-let gameLoadPromise = null;  // Кэшируем промис загрузки чтобы не загружать дважды
+let gameLoadPromise = null;
 
 window.initGame = function() {
     if (gameInitialized) {
@@ -7625,55 +7623,26 @@ window.initGame = function() {
         return;
     }
 
-    initAttempts++;
-    console.log('[initGame] Попытка #' + initAttempts + ', window.userDataLoaded:', window.userDataLoaded);
-
-    // Ждём завершения loadUserData() перед инициализацией (максимум 10 попыток = 1 секунда)
-    if (!window.userDataLoaded) {
-        if (initAttempts > 10) {
-            console.warn('[initGame] Превышено время ожидания loadUserData() (1с), инициализируем без данных');
-            // Инициализируем даже без данных чтобы поле отображалось
-            gameInitialized = true;
-            if (!gameLoadPromise) {
-                gameLoadPromise = loadGame();
-            }
-            gameLoadPromise.then(() => {
-                updateUI();
-                startPassiveEffects();
-                console.log('[initGame] Инициализация завершена (без данных из /api/user)');
-            });
-            return;
-        } else {
-            setTimeout(() => initGame(), 100);
-            return;
-        }
-    }
-
-    console.log('[initGame] Начало инициализации, state.click_coins:', state.click_coins);
+    console.log('[initGame] Начало инициализации');
 
     // Показываем лоадер
     const loader = document.getElementById('farmLoader');
     if (loader) loader.classList.add('active');
 
-    // Используем кэшированный промис или создаём новый
+    // Запускаем загрузку игры (не ждём userDataLoaded)
     if (!gameLoadPromise) {
         gameLoadPromise = loadGame();
     }
-    
-    // ВАЖНО: Сначала загружаем данные из БД фермы
+
     gameLoadPromise.then(() => {
         // Скрываем лоадер
         if (loader) loader.classList.remove('active');
-        // После загрузки из БД синхронизируем с state (берём БОЛЬШЕЕ значение)
-        console.log('[initGame] После loadGame: gameState.coins=', gameState.coins, 'state.click_coins=', state.click_coins);
 
-        // loadGame() уже синхронизировал state с gameState, но state мог быть загружен из БД бота
-        // Поэтому берём максимальное значение между state (бот) и gameState (ферма)
+        // Синхронизируем state и gameState (берём максимум)
         const maxCoins = Math.max(state.click_coins || 0, Math.floor(gameState.coins || 0));
         const maxCrystals = Math.max(state.crystals || 0, Math.floor(gameState.crystals || 0));
         const maxStars = Math.max(state.stars || 0, Math.floor(gameState.stars || 0));
 
-        // Обновляем оба значения
         state.click_coins = maxCoins;
         state.crystals = maxCrystals;
         state.stars = maxStars;
@@ -7681,25 +7650,23 @@ window.initGame = function() {
         gameState.crystals = maxCrystals;
         gameState.stars = maxStars;
 
-        console.log('[initGame] После синхронизации: state.click_coins=', state.click_coins, 'gameState.coins=', gameState.coins);
+        console.log('[initGame] После синхронизации:', state.click_coins, gameState.coins);
 
         updateUI();
         startPassiveEffects();
 
-        // Показываем подсказку только если firstPlay === true (загружено из БД)
+        // Показываем подсказку только если firstPlay === true
         if (gameState.firstPlay) {
             console.log('[initGame] Первый запуск, показываем подсказку');
             setTimeout(() => {
                 showHelp();
-                // После показа подсказки устанавливаем firstPlay = false и сохраняем
                 gameState.firstPlay = false;
-                state.first_play = false;  // Также обновляем state
-                console.log('[initGame] firstPlay установлен в false, сохраняем...');
-                // Сохраняем в БД
+                state.first_play = false;
+                console.log('[initGame] firstPlay = false');
                 if (typeof saveGame === 'function') {
                     saveGame();
                 }
-            }, 300);  // Уменьшили задержку с 500 до 300мс
+            }, 300);
         } else {
             console.log('[initGame] Не первый запуск, firstPlay=', gameState.firstPlay);
         }
