@@ -6924,7 +6924,7 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     const fieldRows = gameState.fieldRows;
     const fieldW = fieldGrid.clientWidth || FIELD_COLS * cellStep + padding * 2;
     const fieldH = fieldGrid.clientHeight || fieldRows * cellStep + padding * 2;
-    const PIXELS_PER_SEC = 60; // медленно, плавно
+    const PIXELS_PER_SEC = 90; // ускорено (60 * 1.5)
 
     const checked = processed || new Set();
     let earned = { coins: 0, diamonds: 0, stars: 0 };
