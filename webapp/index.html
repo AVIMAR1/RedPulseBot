@@ -2512,21 +2512,15 @@ body {
 .block-level-3-5 { background: linear-gradient(135deg, #1e5c3a, #0d3721) !important; border-color: #2d875a !important; }
 .block-level-6-8 { background: linear-gradient(135deg, #5c3a1e, #37210d) !important; border-color: #875a2d !important; }
 .block-level-9-11 { background: linear-gradient(135deg, #5c1e1e, #370d0d) !important; border-color: #872d2d !important; }
-.block-level-12-14 { background: linear-gradient(135deg, #1a3a5c, #0d2137) !important; border-color: #2d5a87 !important; }
-.block-level-15-17 { background: linear-gradient(135deg, #1e5c3a, #0d3721) !important; border-color: #2d875a !important; }
-.block-level-18-20 { background: linear-gradient(135deg, #5c3a1e, #37210d) !important; border-color: #875a2d !important; }
-.block-level-21-23 { background: linear-gradient(135deg, #5c1e1e, #370d0d) !important; border-color: #872d2d !important; }
+.block-level-12-14 { background: linear-gradient(135deg, #1a3a5c, #0d2137) !important; border-color: #2d5a87 !important; animation: block-flicker 1.5s ease-in-out infinite; }
+.block-level-15-17 { background: linear-gradient(135deg, #1e5c3a, #0d3721) !important; border-color: #2d875a !important; animation: block-flicker 1.5s ease-in-out infinite; }
+.block-level-18-20 { background: linear-gradient(135deg, #5c3a1e, #37210d) !important; border-color: #875a2d !important; animation: block-flicker 1.5s ease-in-out infinite; }
+.block-level-21-23 { background: linear-gradient(135deg, #5c1e1e, #370d0d) !important; border-color: #872d2d !important; animation: block-flicker 1s ease-in-out infinite; }
 
 @keyframes block-flicker {
     0%, 100% { opacity: 1; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
     50% { opacity: 0.85; box-shadow: 0 0 40px rgba(255,255,255,0.5); }
 }
-
-/* Low quality — отключаем все анимации блоков */
-.quality-low .block-level-12-14,
-.quality-low .block-level-15-17,
-.quality-low .block-level-18-20,
-.quality-low .block-level-21-23 { animation: none !important; }
 
 .block-level-badge {
     position: absolute;
@@ -2644,6 +2638,18 @@ body {
     border-radius: 5px;
     transition: width 0.5s ease;
     position: relative;
+}
+
+.xp-bar-text {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    z-index: 2;
+    pointer-events: none;
 }
 
 .xp-fill::after {
@@ -3047,8 +3053,6 @@ body {
     animation: charge-pulse 0.3s ease-in-out infinite;
 }
 
-.quality-low .charge-particle { animation: none; width: 14px; height: 14px; box-shadow: none; background: #e74c3c; }
-
 @keyframes charge-pulse {
     0%, 100% { transform: scale(1); opacity: 1; }
     50% { transform: scale(1.3); opacity: 0.8; }
@@ -3060,10 +3064,8 @@ body {
     width: 100%; height: 100%;
     pointer-events: none;
     z-index: 100;
-    transition: opacity 0.6s ease-out;
+    transition: opacity 0.4s ease-out;
 }
-
-.quality-low .laser-canvas { transition: opacity 0.2s; }
 
 .laser-summary {
     position: absolute;
@@ -3079,20 +3081,6 @@ body {
 .laser-summary-item { display: flex; flex-direction: column; align-items: center; }
 .laser-summary-icon { font-size: 18px; margin-bottom: 2px; }
 .laser-summary-amount { font-size: 13px; font-weight: 700; color: #fff; }
-
-.quality-options { display: flex; flex-direction: column; gap: 8px; }
-.quality-btn {
-    display: flex; align-items: center; gap: 12px;
-    background: var(--bg-dark); border: 2px solid rgba(255,255,255,0.1);
-    padding: 12px; border-radius: 12px; cursor: pointer;
-    transition: all 0.2s; text-align: left; width: 100%;
-}
-.quality-btn:hover { border-color: var(--primary); background: rgba(231,76,60,0.1); }
-.quality-btn.active { border-color: var(--primary); background: rgba(231,76,60,0.15); }
-.quality-icon { font-size: 24px; }
-.quality-info { flex: 1; }
-.quality-name { font-size: 14px; font-weight: 600; color: #fff; }
-.quality-desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
 
 .charge-trail {
     position: absolute;
@@ -3675,7 +3663,6 @@ body {
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <button class="help-btn-small" onclick="showHelp()" title="Справка">?</button>
-                    <button class="help-btn-small" onclick="showSettings()" title="Настройки">⚙️</button>
                     <div class="version">v0.1.4</div>
                 </div>
             </header>
@@ -3690,6 +3677,7 @@ body {
                 </div>
                 <div class="xp-bar">
                     <div class="xp-fill" id="xpFill" style="width: 0%"></div>
+                    <div class="xp-bar-text" id="xpBarText">0 / 100 XP</div>
                 </div>
             </div>
 
@@ -3824,42 +3812,6 @@ body {
                     <div class="modal-body" id="helpBody"></div>
                     <div class="modal-buttons">
                         <button class="modal-btn primary" onclick="closeHelp()">Понятно</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Settings Modal -->
-            <div class="modal-overlay" id="settingsModal" style="display:none;">
-                <div class="modal">
-                    <div class="modal-title">⚙️ Настройки графики</div>
-                    <div class="modal-body">
-                        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px;">Выберите качество для оптимизации:</p>
-                        <div class="quality-options" style="display:flex;flex-direction:column;gap:8px;">
-                            <button class="quality-btn" data-quality="low" onclick="setQuality('low')">
-                                <div class="quality-icon">🔋</div>
-                                <div class="quality-info">
-                                    <div class="quality-name">Минимальное</div>
-                                    <div class="quality-desc">Без анимаций и эффектов, макс. производительность</div>
-                                </div>
-                            </button>
-                            <button class="quality-btn" data-quality="medium" onclick="setQuality('medium')">
-                                <div class="quality-icon">⚡</div>
-                                <div class="quality-info">
-                                    <div class="quality-name">Среднее</div>
-                                    <div class="quality-desc">Меньше эффектов, баланс качества</div>
-                                </div>
-                            </button>
-                            <button class="quality-btn" data-quality="high" onclick="setQuality('high')">
-                                <div class="quality-icon">🎮</div>
-                                <div class="quality-info">
-                                    <div class="quality-name">Максимальное</div>
-                                    <div class="quality-desc">Все эффекты и анимации</div>
-                                </div>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="modal-buttons">
-                        <button class="modal-btn primary" onclick="closeSettings()">Готово</button>
                     </div>
                 </div>
             </div>
@@ -4096,7 +4048,7 @@ body {
             TEMP_MAX_BASE: 100,
             TAP_COOLDOWN: 10000,
             BASE_CHARGE_POWER: 1,
-            CHARGE_PER_LEVEL: 0.5,
+            CHARGE_PER_LEVEL: 0.25,
             DROP_RATES: { COIN: 50, ROUTER: 25, MULTIPLIER: 10, DIAMOND: 10, STAR: 5 },
             MULTIPLIER_VALUES: [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
             MULTIPLIER_CHANCES: [35, 25, 18, 10, 6, 3, 2, 1],
@@ -4644,73 +4596,6 @@ body {
             }
         }
 
-        // ===== НАСТРОЙКИ ГРАФИКИ =====
-        function showSettings() {
-            const modal = document.getElementById('settingsModal');
-            if (modal) {
-                modal.style.display = 'flex';
-                // Обновить активную кнопку
-                const currentQuality = localStorage.getItem('quality') || 'medium';
-                document.querySelectorAll('.quality-btn').forEach(btn => {
-                    btn.classList.toggle('active', btn.dataset.quality === currentQuality);
-                });
-            }
-        }
-
-        function closeSettings() {
-            const modal = document.getElementById('settingsModal');
-            if (modal) {
-                modal.classList.remove('show');
-                setTimeout(() => modal.style.display = 'none', 300);
-                applyQuality();
-            }
-        }
-
-        function setQuality(quality) {
-            localStorage.setItem('quality', quality);
-            document.querySelectorAll('.quality-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.quality === quality);
-            });
-        }
-
-        function getQuality() {
-            return localStorage.getItem('quality') || 'medium';
-        }
-
-        function applyQuality() {
-            const q = getQuality();
-            const root = document.documentElement;
-
-            if (q === 'low') {
-                // Минимум — отключаем всё
-                root.style.setProperty('--laser-speed', '300');
-                root.style.setProperty('--laser-glow', 'none');
-                root.style.setProperty('--block-animations', 'none');
-                root.style.setProperty('--particle-animations', 'none');
-                root.style.setProperty('--balance-animations', 'none');
-                document.body.classList.add('quality-low');
-                document.body.classList.remove('quality-medium', 'quality-high');
-            } else if (q === 'medium') {
-                // Средний — часть эффектов
-                root.style.setProperty('--laser-speed', '150');
-                root.style.setProperty('--laser-glow', 'none');
-                root.style.setProperty('--block-animations', '0.5s');
-                root.style.setProperty('--particle-animations', '0.5s');
-                root.style.setProperty('--balance-animations', '0.5s');
-                document.body.classList.add('quality-medium');
-                document.body.classList.remove('quality-low', 'quality-high');
-            } else {
-                // Максимум — всё включено
-                root.style.setProperty('--laser-speed', '100');
-                root.style.setProperty('--laser-glow', '6px');
-                root.style.setProperty('--block-animations', '1s');
-                root.style.setProperty('--particle-animations', '1s');
-                root.style.setProperty('--balance-animations', '1s');
-                document.body.classList.add('quality-high');
-                document.body.classList.remove('quality-low', 'quality-medium');
-            }
-        }
-
         // Показать уведомление
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
@@ -4786,9 +4671,6 @@ body {
         // Инициализация при загрузке страницы для Telegram
         document.addEventListener('DOMContentLoaded', () => {
             console.log('[DOMContentLoaded] Страница загружена, userId:', userId, 'isAuthorized:', isAuthorized);
-
-            // Применяем качество графики
-            if (typeof applyQuality === 'function') applyQuality();
 
             // НЕ блокируем доступ если нет авторизации - позволяем загрузить данные
             if (!isAuthorized || !userId) {
@@ -6032,8 +5914,8 @@ window.syncGameState = function() {
     gameState.level = maxLevel;
     state.xp = maxXp;
     gameState.xp = maxXp;
-    state.xpToNext = maxLevel * CONFIG.XP.BASE_PER_LEVEL;
-    gameState.xpToNext = maxLevel * CONFIG.XP.BASE_PER_LEVEL;
+    state.xpToNext = Math.round(CONFIG.XP.BASE_PER_LEVEL * Math.pow(CONFIG.XP.GROWTH, maxLevel - 1));
+    gameState.xpToNext = Math.round(CONFIG.XP.BASE_PER_LEVEL * Math.pow(CONFIG.XP.GROWTH, maxLevel - 1));
 
     // total_clicks — берём максимум
     state.total_clicks = Math.max(state.total_clicks || 0, gameState.totalTaps || 0);
@@ -6230,7 +6112,7 @@ window.loadGame = async function() {
                     if (dbData.bankStars > 0) gameState.bankStars = dbData.bankStars;
                     if (dbData.level > 1) gameState.level = dbData.level;
                     if (dbData.xp > 0) gameState.xp = dbData.xp;
-                    gameState.xpToNext = gameState.level * CONFIG.XP.BASE_PER_LEVEL;  // Динамический XP
+                    gameState.xpToNext = Math.round(CONFIG.XP.BASE_PER_LEVEL * Math.pow(CONFIG.XP.GROWTH, gameState.level - 1));
                     if (dbData.temp !== undefined && dbData.temp !== null) gameState.temp = dbData.temp;
                     if (dbData.maxTemp !== undefined && dbData.maxTemp !== null) gameState.maxTemp = dbData.maxTemp;
                     if (dbData.lastTapTime) gameState.lastTapTime = dbData.lastTapTime;
@@ -6679,6 +6561,8 @@ window.updateUI = function() {
     const xpNext = document.getElementById('xpNext');
     if (levelBadge) levelBadge.textContent = gameState.level || 1;
     if (xpFill) xpFill.style.width = `${(gameState.xp / gameState.xpToNext) * 100}%`;
+    const xpBarText = document.getElementById('xpBarText');
+    if (xpBarText) xpBarText.textContent = `${Math.floor(gameState.xp)} / ${gameState.xpToNext} XP`;
     if (xpNext) xpNext.textContent = formatNumber(gameState.xpToNext - gameState.xp);
 
     const shopLevelDisplay = document.getElementById('shopLevelDisplay');
@@ -7030,7 +6914,7 @@ function launchCharge() {
     spawnLaser(startRow, startCol, x, y, dir, charge, new Set());
 }
 
-// Лазер — ОДИН Canvas, все ветки рисуются вместе, минимум нагрузки
+// Лазер — ОДИН Canvas, плавное движение между клетками
 function spawnLaser(row, col, x, y, dir, charge, processed) {
     const fieldGrid = document.getElementById('fieldGrid');
     if (!fieldGrid) { finishCharging(); return; }
@@ -7040,15 +6924,11 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     const fieldRows = gameState.fieldRows;
     const fieldW = fieldGrid.clientWidth || FIELD_COLS * cellStep + padding * 2;
     const fieldH = fieldGrid.clientHeight || fieldRows * cellStep + padding * 2;
-
-    // Скорость зависит от качества
-    const quality = typeof getQuality === 'function' ? getQuality() : 'medium';
-    const STEP_DELAY = quality === 'low' ? 300 : quality === 'medium' ? 180 : 120;
+    const MOVE_DURATION = 200; // мс на клетку — плавно
 
     const checked = processed || new Set();
     let earned = { coins: 0, diamonds: 0, stars: 0 };
 
-    // Лёгкий Canvas без тяжёлых операций
     const canvas = document.createElement('canvas');
     canvas.classList.add('laser-canvas');
     canvas.width = fieldW;
@@ -7060,14 +6940,9 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
 
     const ctx = canvas.getContext('2d');
     ctx.strokeStyle = '#e74c3c';
-    ctx.lineWidth = quality === 'low' ? 2 : 3;
+    ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    // Тень только на максимуме
-    if (quality === 'high') {
-        ctx.shadowColor = '#e74c3c';
-        ctx.shadowBlur = 6;
-    }
 
     let activeBranches = 0;
     let branchesDone = 0;
@@ -7075,6 +6950,30 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     function branchFinished() {
         branchesDone++;
         if (branchesDone >= activeBranches) finishLaser(canvas);
+    }
+
+    // Плавное движение от точки к точке
+    function animateMove(fromX, fromY, toX, toY, duration, callback) {
+        const startTime = performance.now();
+        function frame(now) {
+            const elapsed = now - startTime;
+            const t = Math.min(elapsed / duration, 1);
+            // ease-in-out
+            const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+            const curX = fromX + (toX - fromX) * ease;
+            const curY = fromY + (toY - fromY) * ease;
+            // Рисуем линию до текущей точки
+            ctx.beginPath();
+            ctx.moveTo(fromX, fromY);
+            ctx.lineTo(curX, curY);
+            ctx.stroke();
+            if (t < 1) {
+                requestAnimationFrame(frame);
+            } else {
+                callback();
+            }
+        }
+        requestAnimationFrame(frame);
     }
 
     function step(r, c, d, ch, fromX, fromY) {
@@ -7098,87 +6997,76 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
 
             const px = padding + c * cellStep + CELL_SIZE / 2;
             const py = padding + r * cellStep + CELL_SIZE / 2;
-
-            // Рисуем линию
-            ctx.beginPath();
-            ctx.moveTo(fromX || px, fromY || py);
-            ctx.lineTo(px, py);
-            ctx.stroke();
+            const startX = fromX ?? px;
+            const startY = fromY ?? py;
 
             const block = gameState.grid[r]?.[c];
 
             if (!block) {
-                setTimeout(() => {
-                    step(r + d.y, c + d.x, d, ch, px, py).then(() => { branchFinished(); resolve(); });
-                }, STEP_DELAY);
+                animateMove(startX, startY, px, py, MOVE_DURATION, () => {
+                    step(r + d.y, c + d.x, d, ch, px, py).then(resolve);
+                });
             } else {
-                switch (block.type) {
-                    case BLOCK_TYPES.COIN:
-                        earned.coins += ch * CONFIG.CONVERSION.COIN * block.level;
-                        setTimeout(() => {
+                animateMove(startX, startY, px, py, MOVE_DURATION, () => {
+                    switch (block.type) {
+                        case BLOCK_TYPES.COIN:
+                            earned.coins += ch * CONFIG.CONVERSION.COIN * block.level;
                             step(r + d.y, c + d.x, d, ch, px, py).then(() => { branchFinished(); resolve(); });
-                        }, STEP_DELAY);
-                        break;
-                    case BLOCK_TYPES.DIAMOND:
-                        earned.diamonds += (ch * block.level) / CONFIG.CONVERSION.DIAMOND;
-                        setTimeout(() => {
+                            break;
+                        case BLOCK_TYPES.DIAMOND:
+                            earned.diamonds += (ch * block.level) / CONFIG.CONVERSION.DIAMOND;
                             step(r + d.y, c + d.x, d, ch, px, py).then(() => { branchFinished(); resolve(); });
-                        }, STEP_DELAY);
-                        break;
-                    case BLOCK_TYPES.STAR:
-                        earned.stars += (ch * block.level) / CONFIG.CONVERSION.STAR;
-                        setTimeout(() => {
+                            break;
+                        case BLOCK_TYPES.STAR:
+                            earned.stars += (ch * block.level) / CONFIG.CONVERSION.STAR;
                             step(r + d.y, c + d.x, d, ch, px, py).then(() => { branchFinished(); resolve(); });
-                        }, STEP_DELAY);
-                        break;
-                    case BLOCK_TYPES.MULTIPLIER:
-                        setTimeout(() => {
+                            break;
+                        case BLOCK_TYPES.MULTIPLIER:
                             step(r + d.y, c + d.x, d, ch * block.value, px, py).then(() => { branchFinished(); resolve(); });
-                        }, STEP_DELAY);
-                        break;
-                    case BLOCK_TYPES.ROUTER: {
-                        const hitPort = getHitPort(d);
-                        const ports = block.routerConfig?.ports || [];
-                        if (ports.includes(hitPort)) {
-                            const outPorts = ports.filter(p => p !== hitPort);
-                            const boosted = ch * block.value;
-                            const pDir = { 'top': {x:0,y:-1}, 'bottom': {x:0,y:1}, 'left': {x:-1,y:0}, 'right': {x:1,y:0} };
-
-                            if (outPorts.length === 0) {
+                            break;
+                        case BLOCK_TYPES.ROUTER: {
+                            const hitPort = getHitPort(d);
+                            const ports = block.routerConfig?.ports || [];
+                            if (ports.includes(hitPort)) {
+                                const outPorts = ports.filter(p => p !== hitPort);
+                                const boosted = ch * block.value;
+                                const pDir = { 'top': {x:0,y:-1}, 'bottom': {x:0,y:1}, 'left': {x:-1,y:0}, 'right': {x:1,y:0} };
+                                if (outPorts.length === 0) {
+                                    branchFinished();
+                                    resolve();
+                                } else {
+                                    const promises = outPorts.map(port =>
+                                        new Promise(res => setTimeout(() => step(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted, px, py).then(res), 50))
+                                    );
+                                    Promise.all(promises).then(() => { branchFinished(); resolve(); });
+                                }
+                            } else {
                                 branchFinished();
                                 resolve();
-                            } else {
-                                const promises = outPorts.map(port =>
-                                    new Promise(res => setTimeout(() => step(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted, px, py).then(res), STEP_DELAY))
-                                );
-                                Promise.all(promises).then(() => { branchFinished(); resolve(); });
                             }
-                        } else {
-                            branchFinished();
-                            resolve();
+                            break;
                         }
-                        break;
-                    }
-                    default:
-                        setTimeout(() => {
+                        default:
                             step(r + d.y, c + d.x, d, ch, px, py).then(() => { branchFinished(); resolve(); });
-                        }, STEP_DELAY);
-                }
+                    }
+                });
             }
         });
     }
 
+    // Начальная точка
+    const startPx = padding + col * cellStep + CELL_SIZE / 2;
+    const startPy = padding + row * cellStep + CELL_SIZE / 2;
+
     setTimeout(() => {
-        step(row, col, dir, charge, null, null);
+        step(row, col, dir, charge, startPx, startPy);
     }, 100);
 
     function finishLaser(canvas) {
-        // Банк
         gameState.bankCoins = (gameState.bankCoins || 0) + earned.coins;
         gameState.bankCrystals = (gameState.bankCrystals || 0) + earned.diamonds;
         gameState.bankStars = (gameState.bankStars || 0) + earned.stars;
 
-        // Простая панелька (без тяжёлых анимаций)
         const summaryEl = document.createElement('div');
         summaryEl.className = 'laser-summary';
         summaryEl.innerHTML = `
