@@ -7124,81 +7124,94 @@ function createBreedingAnimation(row, col, newLevel) {
     setTimeout(() => breedText.remove(), 800);
 }
 
+// Оптимизированный снаряд — прыгает от блока к блоку (НЕ каждый кадр!)
 function spawnCharge(x, y, dir, charge, processed, skipFrames) {
     const fieldGrid = document.getElementById('fieldGrid');
     if (!fieldGrid) { finishCharging(); return; }
 
     const padding = 10;
-    const fieldWidth = FIELD_COLS * (CELL_SIZE + GAP) + padding * 2;
-    const fieldHeight = gameState.fieldRows * (CELL_SIZE + GAP) + padding * 2;
-    const BASE_SPEED = 3.5;
+    const cellStep = CELL_SIZE + GAP;
 
-    // Упрощённая анимация — БЕЗ trail элементов (убираем лишние DOM)
+    // Создаём снаряд (один раз!)
     const chargeEl = document.createElement('div');
     chargeEl.className = 'charge-particle';
     chargeEl.style.left = `${x - 9}px`;
     chargeEl.style.top = `${y - 9}px`;
     fieldGrid.appendChild(chargeEl);
 
-    let frames = 0;
-    let lastTime = 0;
+    // Анимация полёта к следующему блоку
+    function flyToNextBlock() {
+        // Определяем текущую ячейку
+        const col = Math.floor((x - padding) / cellStep);
+        const row = Math.floor((y - padding) / cellStep);
 
-    function move(timestamp) {
-        if (!lastTime) lastTime = timestamp;
-        const deltaTime = Math.min((timestamp - lastTime) / 16.67, 2);
-        lastTime = timestamp;
+        // Ищем ближайший блок в направлении движения
+        let targetRow = -1, targetCol = -1;
 
-        x += dir.x * BASE_SPEED * deltaTime;
-        y += dir.y * BASE_SPEED * deltaTime;
-        frames++;
-
-        // Обновляем позицию реже (каждые 2 кадра)
-        if (frames % 2 === 0) {
-            chargeEl.style.left = `${x - 9}px`;
-            chargeEl.style.top = `${y - 9}px`;
+        if (dir.y > 0) { // Вниз
+            for (let r = row + 1; r < gameState.fieldRows; r++) {
+                const block = gameState.grid[r]?.[col];
+                if (block && !processed.has(`${r}-${col}`)) {
+                    targetRow = r; targetCol = col; break;
+                }
+            }
+        } else if (dir.y < 0) { // Вверх
+            for (let r = row - 1; r >= 0; r--) {
+                const block = gameState.grid[r]?.[col];
+                if (block && !processed.has(`${r}-${col}`)) {
+                    targetRow = r; targetCol = col; break;
+                }
+            }
+        } else if (dir.x > 0) { // Вправо
+            for (let c = col + 1; c < FIELD_COLS; c++) {
+                const block = gameState.grid[row]?.[c];
+                if (block && !processed.has(`${row}-${c}`)) {
+                    targetRow = row; targetCol = c; break;
+                }
+            }
+        } else if (dir.x < 0) { // Влево
+            for (let c = col - 1; c >= 0; c--) {
+                const block = gameState.grid[row]?.[c];
+                if (block && !processed.has(`${row}-${c}`)) {
+                    targetRow = row; targetCol = c; break;
+                }
+            }
         }
 
-        // Пропуск первых кадров для выхода из блока
-        if (frames < skipFrames) {
-            requestAnimationFrame(move);
-            return;
-        }
-
-        // Bounds check — упрощённая проверка
-        if (x < padding - 10 || x > fieldWidth - padding + 10 || y < padding - 10 || y > fieldHeight - padding + 10) {
+        if (targetRow === -1) {
+            // Нет блоков — снаряд улетает за пределы
             chargeEl.remove();
             finishCharging();
             return;
         }
 
-        // Block collision
-        const col = Math.floor((x - padding) / (CELL_SIZE + GAP));
-        const row = Math.floor((y - padding) / (CELL_SIZE + GAP));
-        const blockKey = `${row}-${col}`;
+        // Анимация полёта к блоку (CSS transition — быстро!)
+        const targetX = padding + targetCol * cellStep + CELL_SIZE / 2;
+        const targetY = padding + targetRow * cellStep + CELL_SIZE / 2;
 
-        if (row >= 0 && row < gameState.fieldRows && col >= 0 && col < FIELD_COLS) {
-            const block = gameState.grid[row][col];
+        chargeEl.style.transition = 'left 0.15s ease-in, top 0.15s ease-in';
+        chargeEl.style.left = `${targetX - 9}px`;
+        chargeEl.style.top = `${targetY - 9}px`;
+
+        setTimeout(() => {
+            chargeEl.style.transition = '';
+            const blockKey = `${targetRow}-${targetCol}`;
+            const block = gameState.grid[targetRow][targetCol];
+
             if (block && !processed.has(blockKey)) {
-                const cellX = padding + col * (CELL_SIZE + GAP);
-                const cellY = padding + row * (CELL_SIZE + GAP);
-
-                const hitBox = CELL_SIZE * 0.6;
-                const dx = Math.abs(x - (cellX + CELL_SIZE/2));
-                const dy = Math.abs(y - (cellY + CELL_SIZE/2));
-
-                if (dx < hitBox && dy < hitBox) {
-                    processed.add(blockKey);
-                    chargeEl.remove();
-                    handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y);
-                    return;
-                }
+                processed.add(blockKey);
+                // Убираем снаряд ПЕРЕД обработкой (handler может создать новые)
+                chargeEl.remove();
+                handleBlock(block, targetRow, targetCol, charge, dir, processed, null, targetX, targetY);
+            } else {
+                chargeEl.remove();
+                finishCharging();
             }
-        }
-
-        requestAnimationFrame(move);
+        }, 160);
     }
 
-    requestAnimationFrame(move);
+    // Запускаем полёт
+    flyToNextBlock();
 }
 
 function getHitPort(dir) {
