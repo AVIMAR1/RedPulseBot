@@ -4570,6 +4570,23 @@ body {
                 syncWithFarm();
                 updateUI();
 
+                // Обновляем баланс на главной странице
+                function updateBalanceOnHome() {
+                    const balanceCoins = document.getElementById('balance-coins');
+                    const balanceStars = document.getElementById('balance-stars');
+                    const balanceCrystals = document.getElementById('balance-crystals');
+                    
+                    if (balanceCoins && balanceStars && balanceCrystals) {
+                        balanceCoins.textContent = state.click_coins.toLocaleString();
+                        balanceStars.textContent = state.stars.toLocaleString();
+                        balanceCrystals.textContent = state.crystals.toLocaleString();
+                        console.log('[showPage] Баланс на главной обновлен:', state.click_coins, state.stars, state.crystals);
+                    } else {
+                        setTimeout(updateBalanceOnHome, 100);
+                    }
+                }
+                updateBalanceOnHome();
+
                 // Анимация обновления баланса ТОЛЬКО если пришли с фермы
                 console.log('[showPage] wasOnClicker:', wasOnClicker);
                 if (wasOnClicker) {
@@ -4696,14 +4713,24 @@ body {
                     console.log('[loadUserData] Данные загружены из БД успешно, first_play:', state.first_play);
                     window.userDataLoaded = true;  // Помечаем, что данные загружены
 
-                    // Принудительно обновляем баланс на главной странице
-                    const balanceCoins = document.getElementById('balance-coins');
-                    const balanceStars = document.getElementById('balance-stars');
-                    const balanceCrystals = document.getElementById('balance-crystals');
-                    if (balanceCoins) balanceCoins.textContent = state.click_coins.toLocaleString();
-                    if (balanceStars) balanceStars.textContent = state.stars.toLocaleString();
-                    if (balanceCrystals) balanceCrystals.textContent = state.crystals.toLocaleString();
-                    console.log('[loadUserData] Баланс обновлен:', state.click_coins, state.stars, state.crystals);
+                    // Принудительно обновляем баланс на главной странице (с retry)
+                    function updateBalanceElements() {
+                        const balanceCoins = document.getElementById('balance-coins');
+                        const balanceStars = document.getElementById('balance-stars');
+                        const balanceCrystals = document.getElementById('balance-crystals');
+                        
+                        if (balanceCoins && balanceStars && balanceCrystals) {
+                            balanceCoins.textContent = state.click_coins.toLocaleString();
+                            balanceStars.textContent = state.stars.toLocaleString();
+                            balanceCrystals.textContent = state.crystals.toLocaleString();
+                            console.log('[loadUserData] Баланс обновлен:', state.click_coins, state.stars, state.crystals);
+                        } else {
+                            // Элементы ещё не готовы, пробуем через 200мс
+                            console.log('[loadUserData] Элементы баланса не найдены, повторная попытка...');
+                            setTimeout(updateBalanceElements, 200);
+                        }
+                    }
+                    updateBalanceElements();
 
                     return;
                 } else {
