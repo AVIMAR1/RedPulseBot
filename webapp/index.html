@@ -4577,15 +4577,19 @@ body {
                     const balanceCrystals = document.getElementById('balance-crystals');
                     
                     if (balanceCoins && balanceStars && balanceCrystals) {
-                        balanceCoins.textContent = state.click_coins.toLocaleString();
-                        balanceStars.textContent = state.stars.toLocaleString();
-                        balanceCrystals.textContent = state.crystals.toLocaleString();
-                        console.log('[showPage] Баланс на главной обновлен:', state.click_coins, state.stars, state.crystals);
-                    } else {
-                        setTimeout(updateBalanceOnHome, 100);
+                        balanceCoins.textContent = (state.click_coins || 0).toLocaleString();
+                        balanceStars.textContent = (state.stars || 0).toLocaleString();
+                        balanceCrystals.textContent = (state.crystals || 0).toLocaleString();
+                        console.log('[showPage] ✅ Баланс на главной обновлен:', state.click_coins, state.stars, state.crystals);
+                        return true;
                     }
+                    return false;
                 }
-                updateBalanceOnHome();
+                
+                // Пробуем сразу, потом с retry
+                if (!updateBalanceOnHome()) {
+                    setTimeout(() => { if (!updateBalanceOnHome()) setTimeout(updateBalanceOnHome, 300); }, 100);
+                }
 
                 // Анимация обновления баланса ТОЛЬКО если пришли с фермы
                 console.log('[showPage] wasOnClicker:', wasOnClicker);
@@ -4722,24 +4726,27 @@ body {
                     console.log('[loadUserData] Данные загружены из БД успешно, first_play:', state.first_play);
                     window.userDataLoaded = true;  // Помечаем, что данные загружены
 
-                    // Принудительно обновляем баланс на главной странице (с retry)
-                    function updateBalanceElements() {
+                    // ГАРАНТИРОВАННО обновляем баланс на главной странице
+                    function forceUpdateBalance() {
                         const balanceCoins = document.getElementById('balance-coins');
                         const balanceStars = document.getElementById('balance-stars');
                         const balanceCrystals = document.getElementById('balance-crystals');
                         
                         if (balanceCoins && balanceStars && balanceCrystals) {
-                            balanceCoins.textContent = state.click_coins.toLocaleString();
-                            balanceStars.textContent = state.stars.toLocaleString();
-                            balanceCrystals.textContent = state.crystals.toLocaleString();
-                            console.log('[loadUserData] Баланс обновлен:', state.click_coins, state.stars, state.crystals);
-                        } else {
-                            // Элементы ещё не готовы, пробуем через 200мс
-                            console.log('[loadUserData] Элементы баланса не найдены, повторная попытка...');
-                            setTimeout(updateBalanceElements, 200);
+                            balanceCoins.textContent = (state.click_coins || 0).toLocaleString();
+                            balanceStars.textContent = (state.stars || 0).toLocaleString();
+                            balanceCrystals.textContent = (state.crystals || 0).toLocaleString();
+                            console.log('[loadUserData] ✅ Баланс обновлен:', state.click_coins, state.stars, state.crystals);
+                            return true;
                         }
+                        return false;
                     }
-                    updateBalanceElements();
+                    
+                    // Пробуем сразу
+                    if (!forceUpdateBalance()) {
+                        // Элементы не готовы, пробуем через 100мс, 300мс, 500мс
+                        setTimeout(() => { if (!forceUpdateBalance()) setTimeout(() => { if (!forceUpdateBalance()) setTimeout(forceUpdateBalance, 500); }, 300); }, 100);
+                    }
 
                     return;
                 } else {
