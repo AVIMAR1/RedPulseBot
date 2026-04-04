@@ -6091,30 +6091,36 @@ window.loadGame = async function() {
                 console.log('[loadGame] Загружено из БД:', dbData);
 
                 if (dbData && Object.keys(dbData).length > 0) {
-                    // Загружаем ВСЕ данные из БД
-                    gameState.coins = dbData.coins || 0;
-                    gameState.crystals = dbData.crystals || 0;
-                    gameState.stars = dbData.stars || 0;
-                    gameState.bankCoins = dbData.bankCoins || 0;
-                    gameState.bankCrystals = dbData.bankCrystals || 0;
-                    gameState.bankStars = dbData.bankStars || 0;
-                    gameState.level = dbData.level || 1;
-                    gameState.xp = dbData.xp || 0;
+                    console.log('[loadGame] Загружены данные из БД:', JSON.stringify(dbData, null, 2));
+                    
+                    // Загружаем ВСЕ данные из БД (НЕ перезаписываем если значение 0 или null)
+                    if (dbData.coins > 0) gameState.coins = dbData.coins;
+                    if (dbData.crystals > 0) gameState.crystals = dbData.crystals;
+                    if (dbData.stars > 0) gameState.stars = dbData.stars;
+                    if (dbData.bankCoins > 0) gameState.bankCoins = dbData.bankCoins;
+                    if (dbData.bankCrystals > 0) gameState.bankCrystals = dbData.bankCrystals;
+                    if (dbData.bankStars > 0) gameState.bankStars = dbData.bankStars;
+                    if (dbData.level > 1) gameState.level = dbData.level;
+                    if (dbData.xp > 0) gameState.xp = dbData.xp;
                     gameState.xpToNext = gameState.level * CONFIG.XP.BASE_PER_LEVEL;  // Динамический XP
-                    gameState.temp = dbData.temp !== undefined && dbData.temp !== null ? dbData.temp : 0;
-                    gameState.maxTemp = dbData.maxTemp !== undefined && dbData.maxTemp !== null ? dbData.maxTemp : 100;
-                    gameState.reactor_level = dbData.reactor_level || 1;
-                    gameState.blocks_placed = dbData.blocks_placed || 0;
-                    gameState.reactions_triggered = dbData.reactions_triggered || 0;
+                    if (dbData.temp !== undefined && dbData.temp !== null) gameState.temp = dbData.temp;
+                    if (dbData.maxTemp !== undefined && dbData.maxTemp !== null) gameState.maxTemp = dbData.maxTemp;
+                    if (dbData.reactor_level > 1) gameState.reactor_level = dbData.reactor_level;
+                    if (dbData.blocks_placed > 0) gameState.blocks_placed = dbData.blocks_placed;
+                    if (dbData.reactions_triggered > 0) gameState.reactions_triggered = dbData.reactions_triggered;
                     // firstPlay берём из state (загружено из /api/user), а если там нет - из БД фермы
                     gameState.firstPlay = state.first_play !== undefined ? state.first_play : (dbData.firstPlay !== undefined ? dbData.firstPlay : true);
 
-                    console.log('[loadGame] Данные из БД:', {
+                    console.log('[loadGame] gameState после загрузки:', {
                         coins: gameState.coins,
+                        crystals: gameState.crystals,
+                        stars: gameState.stars,
                         bankCoins: gameState.bankCoins,
                         level: gameState.level,
                         xp: gameState.xp,
-                        firstPlay: gameState.firstPlay
+                        firstPlay: gameState.firstPlay,
+                        gridRows: gameState.grid?.length || 0,
+                        shopItems: gameState.shopItems?.length || 0
                     });
 
                     // Загружаем grid и shopItems из farm_state_json
@@ -6132,26 +6138,59 @@ window.loadGame = async function() {
                     // Пересчитываем chargePower
                     gameState.chargePower = CONFIG.BASE_CHARGE_POWER + (gameState.level - 1) * CONFIG.CHARGE_PER_LEVEL;
 
-                    // Если grid всё ещё пустой — создаём новый
-                    if (!gameState.grid || gameState.grid.length === 0 || !gameState.grid[0]) {
-                        console.log('[loadGame] Grid отсутствует, создаём...');
+                    // Если grid всё ещё пустой — создаём новый (НЕ сбрасываем если есть данные!)
+                    const hasGridData = dbData.grid && Array.isArray(dbData.grid) && dbData.grid.length > 0 && dbData.grid[0];
+                    const hasShopData = dbData.shopItems && Array.isArray(dbData.shopItems) && dbData.shopItems.length > 0;
+                    
+                    if (!hasGridData) {
+                        console.log('[loadGame] Grid отсутствует в БД, создаём новый');
                         initGrid();
+                    } else {
+                        console.log('[loadGame] Grid загружен из БД:', dbData.grid.length, 'строк');
+                    }
+
+                    if (!hasShopData) {
+                        console.log('[loadGame] ShopItems отсутствуют в БД, генерируем');
+                        generateShopItems();
+                    } else {
+                        console.log('[loadGame] ShopItems загружены из БД:', dbData.shopItems.length, 'предметов');
                     }
 
                     // ВАЖНО: Синхронизация с state - берём БОЛЬШЕЕ значение (БД или state)
                     console.log('[loadGame] Перед синхронизацией: state.click_coins=', state.click_coins, 'gameState.coins=', gameState.coins);
-                    
-                    state.click_coins = Math.max(state.click_coins || 0, gameState.coins || 0);
-                    state.crystals = Math.max(state.crystals || 0, gameState.crystals || 0);
-                    state.stars = Math.max(state.stars || 0, gameState.stars || 0);
-                    state.bank_coins = Math.max(state.bank_coins || 0, gameState.bankCoins || 0);
-                    state.bank_crystals = Math.max(state.bank_crystals || 0, gameState.bankCrystals || 0);
-                    state.bank_stars = Math.max(state.bank_stars || 0, gameState.bankStars || 0);
+
+                    // НЕ перезаписываем state если gameState = 0 (ферма не сохранялась)
+                    if (gameState.coins > 0) {
+                        state.click_coins = Math.max(state.click_coins || 0, gameState.coins);
+                    }
+                    if (gameState.crystals > 0) {
+                        state.crystals = Math.max(state.crystals || 0, gameState.crystals);
+                    }
+                    if (gameState.stars > 0) {
+                        state.stars = Math.max(state.stars || 0, gameState.stars);
+                    }
+                    if (gameState.bankCoins > 0) {
+                        state.bank_coins = Math.max(state.bank_coins || 0, gameState.bankCoins);
+                    }
+                    if (gameState.bankCrystals > 0) {
+                        state.bank_crystals = Math.max(state.bank_crystals || 0, gameState.bankCrystals);
+                    }
+                    if (gameState.bankStars > 0) {
+                        state.bank_stars = Math.max(state.bank_stars || 0, gameState.bankStars);
+                    }
 
                     console.log('[loadGame] После синхронизации: state.click_coins=', state.click_coins, 'gameState.coins=', gameState.coins);
 
-                    // Затем вызываем syncGameState для полной синхронизации
-                    syncGameState();
+                    // Вызываем syncGameState ТОЛЬКО если ферма имеет данные (чтобы не потерять прогресс)
+                    const hasFarmData = (gameState.coins > 0 || gameState.blocks_placed > 0 || gameState.level > 1);
+                    if (hasFarmData) {
+                        syncGameState();
+                        console.log('[loadGame] syncGameState вызван (ферма имеет данные)');
+                    } else {
+                        // Ферма пустая - НЕ синхронизируем чтобы не затереть state.xp/state.level
+                        console.log('[loadGame] Ферма пустая, syncGameState НЕ вызван (чтобы не затереть прогресс)');
+                    }
+                    
                     updateUI();
 
                     // Ждём завершения рендера
@@ -6170,24 +6209,38 @@ window.loadGame = async function() {
         }
     }
 
-    // Если нет данных в БД — создаём новую игру
+    // Если нет данных в БД — создаём новую игру (НЕ трогаем state!)
     console.log('[loadGame] Нет данных в БД, создаём новую игру');
     console.log('[loadGame] Перед созданием: state.click_coins=', state.click_coins, 'gameState.coins=', gameState.coins);
+
+    // НЕ создаём grid если он уже есть (из предыдущей сессии в памяти)
+    const hasExistingGrid = gameState.grid && Array.isArray(gameState.grid) && gameState.grid.length > 0 && gameState.grid[0];
+    const hasExistingShop = gameState.shopItems && Array.isArray(gameState.shopItems) && gameState.shopItems.length > 0;
     
-    initGrid();
-    generateShopItems();
+    if (!hasExistingGrid) {
+        console.log('[loadGame] Grid отсутствует, создаём новый');
+        initGrid();
+    } else {
+        console.log('[loadGame] Grid уже есть в памяти, пропускаем');
+    }
+    
+    if (!hasExistingShop) {
+        console.log('[loadGame] ShopItems отсутствуют, генерируем');
+        generateShopItems();
+    } else {
+        console.log('[loadGame] ShopItems уже есть в памяти, пропускаем');
+    }
 
     // firstPlay уже установлен в true по умолчанию в gameState
     // Подсказка показывается в initGame() если firstPlay === true
-    
-    // Синхронизация: берём БОЛЬШЕЕ значение из state и gameState
+
+    // НЕ перезаписываем gameState нулями из state - берём максимум
     gameState.coins = Math.max(state.click_coins || 0, gameState.coins || 0);
     gameState.crystals = Math.max(state.crystals || 0, gameState.crystals || 0);
     gameState.stars = Math.max(state.stars || 0, gameState.stars || 0);
-    
-    console.log('[loadGame] После синхронизации: state.click_coins=', state.click_coins, 'gameState.coins=', gameState.coins);
+    // НЕ синхронизируем XP/level обратно в state - state уже имеет актуальный прогресс из /api/user
 
-    syncGameState();
+    console.log('[loadGame] После синхронизации: state.click_coins=', state.click_coins, 'gameState.coins=', gameState.coins);
 
     updateUI();
     setTimeout(() => renderGrid(), 100);
@@ -6351,7 +6404,7 @@ async function saveFarmState() {
             blocks_placed: blocksCount,
             reactions_triggered: gameState.reactions_triggered || 0,
             reactor_level: maxBlockLevel,
-            firstPlay: gameState.firstPlay || false
+            firstPlay: Boolean(gameState.firstPlay)  // Явное преобразование
         };
 
         console.log('[saveFarmState] Сохранение:', {
@@ -6360,6 +6413,7 @@ async function saveFarmState() {
             coins: farmStateToSave.coins,
             blocks: blocksCount,
             reactor_level: maxBlockLevel,
+            firstPlay: farmStateToSave.firstPlay,
             gridRows: cleanGrid.length
         });
 
@@ -7520,6 +7574,8 @@ function showFloatingEarn(row, col, text, type) {
 // Функция инициализации игры
 let gameInitialized = false;
 let initAttempts = 0;
+let gameLoadPromise = null;  // Кэшируем промис загрузки чтобы не загружать дважды
+
 window.initGame = function() {
     if (gameInitialized) {
         console.log('[initGame] Уже инициализировано, пропускаем');
@@ -7529,13 +7585,16 @@ window.initGame = function() {
     initAttempts++;
     console.log('[initGame] Попытка #' + initAttempts + ', window.userDataLoaded:', window.userDataLoaded);
 
-    // Ждём завершения loadUserData() перед инициализацией (максимум 20 попыток = 2 секунды)
+    // Ждём завершения loadUserData() перед инициализацией (максимум 10 попыток = 1 секунда)
     if (!window.userDataLoaded) {
-        if (initAttempts > 20) {
-            console.warn('[initGame] Превышено время ожидания loadUserData() (2с), инициализируем без данных');
+        if (initAttempts > 10) {
+            console.warn('[initGame] Превышено время ожидания loadUserData() (1с), инициализируем без данных');
             // Инициализируем даже без данных чтобы поле отображалось
             gameInitialized = true;
-            loadGame().then(() => {
+            if (!gameLoadPromise) {
+                gameLoadPromise = loadGame();
+            }
+            gameLoadPromise.then(() => {
                 updateUI();
                 startPassiveEffects();
                 console.log('[initGame] Инициализация завершена (без данных из /api/user)');
@@ -7549,8 +7608,13 @@ window.initGame = function() {
 
     console.log('[initGame] Начало инициализации, state.click_coins:', state.click_coins);
 
+    // Используем кэшированный промис или создаём новый
+    if (!gameLoadPromise) {
+        gameLoadPromise = loadGame();
+    }
+    
     // ВАЖНО: Сначала загружаем данные из БД фермы
-    loadGame().then(() => {
+    gameLoadPromise.then(() => {
         // После загрузки из БД синхронизируем с state (берём БОЛЬШЕЕ значение)
         console.log('[initGame] После loadGame: gameState.coins=', gameState.coins, 'state.click_coins=', state.click_coins);
 
@@ -7586,7 +7650,7 @@ window.initGame = function() {
                 if (typeof saveGame === 'function') {
                     saveGame();
                 }
-            }, 500);
+            }, 300);  // Уменьшили задержку с 500 до 300мс
         } else {
             console.log('[initGame] Не первый запуск, firstPlay=', gameState.firstPlay);
         }

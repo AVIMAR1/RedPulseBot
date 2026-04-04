@@ -509,7 +509,7 @@ async def get_farm_state(user_id: int):
         cursor.execute("""
             SELECT farm_state_json, reactor_level, blocks_placed, reactions_triggered,
                    temp, max_temp, level, xp, click_coins, stars, crystals,
-                   bank_coins, bank_stars, bank_crystals
+                   bank_coins, bank_stars, bank_crystals, first_play
             FROM users WHERE telegram_id = ?
         """, (user_id,))
         row = cursor.fetchone()
@@ -599,9 +599,10 @@ async def save_farm_state(request: Request):
             farm_state.get('xp', 0),
             farm_state.get('temp', 0),
             farm_state.get('maxTemp', 100),
-            1 if farm_state.get('firstPlay', True) else 0,
+            0 if farm_state.get('firstPlay') is False else 1,  # firstPlay=False → 0, иначе 1
             user_id
         ))
+        print(f'[save-farm-state] firstPlay={farm_state.get("firstPlay")}, сохраняем first_play={0 if farm_state.get("firstPlay") is False else 1}')
         conn.commit()
         conn.close()
         return {"status": "ok"}
