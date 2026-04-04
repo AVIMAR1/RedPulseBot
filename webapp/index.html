@@ -7242,6 +7242,14 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
         gameState.bankCrystals = (gameState.bankCrystals || 0) + earned.diamonds;
         gameState.bankStars = (gameState.bankStars || 0) + earned.stars;
 
+        // Синхронизируем state сразу — рейтинг и профиль будут актуальны
+        state.click_coins = Math.max(state.click_coins || 0, gameState.coins || 0);
+        state.crystals = Math.max(state.crystals || 0, gameState.crystals || 0);
+        state.stars = Math.max(state.stars || 0, gameState.stars || 0);
+
+        // Сохраняем в БД сразу — рейтинг обновится
+        if (typeof saveGame === 'function') saveGame();
+
         const summaryEl = document.createElement('div');
         summaryEl.className = 'laser-summary';
         summaryEl.innerHTML = `
@@ -7306,16 +7314,19 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
                 case BLOCK_TYPES.COIN:
                     earned.coins += ch * CONFIG.CONVERSION.COIN * block.level;
                     gameState.reactions_triggered++;
+                    state.click_coins = (state.click_coins || 0) + ch * CONFIG.CONVERSION.COIN * block.level;
                     await step(r + d.y, c + d.x, d, ch, px, py);
                     break;
                 case BLOCK_TYPES.DIAMOND:
                     earned.diamonds += (ch * block.level) / CONFIG.CONVERSION.DIAMOND;
                     gameState.reactions_triggered++;
+                    state.crystals = (state.crystals || 0) + (ch * block.level) / CONFIG.CONVERSION.DIAMOND;
                     await step(r + d.y, c + d.x, d, ch, px, py);
                     break;
                 case BLOCK_TYPES.STAR:
                     earned.stars += (ch * block.level) / CONFIG.CONVERSION.STAR;
                     gameState.reactions_triggered++;
+                    state.stars = (state.stars || 0) + (ch * block.level) / CONFIG.CONVERSION.STAR;
                     await step(r + d.y, c + d.x, d, ch, px, py);
                     break;
                 case BLOCK_TYPES.MULTIPLIER:
