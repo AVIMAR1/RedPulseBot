@@ -124,7 +124,7 @@
         .balance-card {
             background: var(--gradient-primary);
             margin: 16px;
-            padding: 20px;
+            padding: 16px 18px;
             border-radius: var(--border-radius-lg);
             box-shadow: var(--shadow-glow);
             position: relative;
@@ -142,35 +142,53 @@
         }
 
         .balance-title {
-            font-size: 14px;
+            font-size: 13px;
             opacity: 0.9;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
         }
 
         .balance-main {
             display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
+            gap: 8px;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .balance-main::-webkit-scrollbar {
+            display: none;
         }
 
         .balance-item {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
             background: rgba(255, 255, 255, 0.1);
-            padding: 10px 16px;
+            padding: 8px 14px;
             border-radius: var(--border-radius-sm);
             backdrop-filter: blur(10px);
+            min-width: 0;
+            flex: 1;
+            max-width: 33%;
         }
 
         .balance-item i {
-            font-size: 20px;
+            font-size: 18px;
         }
 
         .balance-item .amount {
-            font-size: 18px;
+            font-size: 15px;
             font-weight: 700;
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            word-break: break-all;
+            text-align: center;
+            max-width: 100%;
+            overflow: hidden;
+            line-height: 1.2;
         }
 
         .balance-item .amount.updating {
@@ -6477,10 +6495,10 @@ window.updateUI = function() {
 
         if (coinsEl) coinsEl.textContent = formatNumber(gameState.coins);
         if (crystalsEl) crystalsEl.textContent = formatNumber(gameState.crystals);
-        if (starsEl) starsEl.textContent = (Math.round((gameState.stars || 0) * 1000000) / 1000000).toFixed(6);
+        if (starsEl) starsEl.textContent = (Math.round((gameState.stars || 0) * 100) / 100).toFixed(2);
         if (bankCoinsEl) bankCoinsEl.textContent = formatNumber(gameState.bankCoins || 0);
-        if (bankCrystalsEl) bankCrystalsEl.textContent = formatNumber(gameState.bankCrystals || 0);
-        if (bankStarsEl) bankStarsEl.textContent = (Math.round((gameState.bankStars || 0) * 1000000) / 1000000).toFixed(6);
+        if (bankCrystalsEl) bankCrystalsEl.textContent = (Math.round((gameState.bankCrystals || 0) * 1000) / 1000).toFixed(3);
+        if (bankStarsEl) bankStarsEl.textContent = (Math.round((gameState.bankStars || 0) * 100000) / 100000).toFixed(5);
     }
 
     // Синхронизация с главным state для обновления баланса
