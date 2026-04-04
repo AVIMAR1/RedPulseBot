@@ -7019,78 +7019,65 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
         }, 2000);
     }
 
-    // Очередь шагов — последовательная обработка
-    const stepQueue = [];
-    let isProcessing = false;
+    // Простая цепочка — каждый шаг вызывает следующий
+    let activeBranches = 0;
+    let completedBranches = 0;
 
-    function enqueueStep(r, c, d, ch, fromX, fromY) {
-        stepQueue.push({r, c, d, ch, fromX, fromY});
-        if (!isProcessing) processQueue();
+    function branchDone() {
+        completedBranches++;
+        if (completedBranches >= activeBranches) finishLaser();
     }
 
-    function processQueue() {
-        if (stepQueue.length === 0) {
-            isProcessing = false;
-            return;
-        }
-        isProcessing = true;
-        const {r, c, d, ch, fromX, fromY} = stepQueue.shift();
+    function step(r, c, d, ch, fromX, fromY) {
+        activeBranches++;
 
         if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) {
-            // Удар о стену — рисуем короткий «хвост»
             const endX = Math.max(0, Math.min(fieldW, fromX + d.x * (CELL_SIZE + GAP)));
             const endY = Math.max(0, Math.min(fieldH, fromY + d.y * (CELL_SIZE + GAP)));
             allPoints.push({x: endX, y: endY});
-            // Перерисовываем весь путь
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (allPoints.length > 0) {
-                ctx.beginPath();
-                ctx.moveTo(allPoints[0].x, allPoints[0].y);
-                for (let i = 1; i < allPoints.length; i++) {
-                    ctx.lineTo(allPoints[i].x, allPoints[i].y);
-                }
-                ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(allPoints[0].x, allPoints[0].y);
+            for (let i = 1; i < allPoints.length; i++) {
+                ctx.lineTo(allPoints[i].x, allPoints[i].y);
             }
-            if (stepQueue.length === 0) finishLaser();
-            else processQueue();
+            ctx.stroke();
+            branchDone();
             return;
         }
 
         const blockKey = `${r}-${c}`;
         if (checked.has(blockKey)) {
-            // Уже обработан — стоп
-            if (stepQueue.length === 0) finishLaser();
-            else processQueue();
+            branchDone();
             return;
         }
 
         checked.add(blockKey);
         const px = padding + c * cellStep + CELL_SIZE / 2;
         const py = padding + r * cellStep + CELL_SIZE / 2;
-
         const block = gameState.grid[r]?.[c];
 
         if (!block) {
             moveSmooth(fromX || px, fromY || py, px, py, () => {
-                enqueueStep(r + d.y, c + d.x, d, ch, px, py);
+                step(r + d.y, c + d.x, d, ch, px, py);
             });
         } else {
             moveSmooth(fromX || px, fromY || py, px, py, () => {
                 switch (block.type) {
                     case BLOCK_TYPES.COIN:
                         earned.coins += ch * CONFIG.CONVERSION.COIN * block.level;
-                        enqueueStep(r + d.y, c + d.x, d, ch, px, py);
+                        step(r + d.y, c + d.x, d, ch, px, py);
                         break;
                     case BLOCK_TYPES.DIAMOND:
                         earned.diamonds += (ch * block.level) / CONFIG.CONVERSION.DIAMOND;
-                        enqueueStep(r + d.y, c + d.x, d, ch, px, py);
+                        step(r + d.y, c + d.x, d, ch, px, py);
                         break;
                     case BLOCK_TYPES.STAR:
                         earned.stars += (ch * block.level) / CONFIG.CONVERSION.STAR;
-                        enqueueStep(r + d.y, c + d.x, d, ch, px, py);
+                        step(r + d.y, c + d.x, d, ch, px, py);
                         break;
                     case BLOCK_TYPES.MULTIPLIER:
-                        enqueueStep(r + d.y, c + d.x, d, ch * block.value, px, py);
+                        step(r + d.y, c + d.x, d, ch * block.value, px, py);
                         break;
                     case BLOCK_TYPES.ROUTER: {
                         const hitPort = getHitPort(d);
@@ -7101,16 +7088,16 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
                             const pDir = { 'top': {x:0,y:-1}, 'bottom': {x:0,y:1}, 'left': {x:-1,y:0}, 'right': {x:1,y:0} };
                             outPorts.forEach((port, i) => {
                                 setTimeout(() => {
-                                    enqueueStep(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted, px, py);
+                                    step(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted, px, py);
                                 }, i * 100);
                             });
                         } else {
-                            if (stepQueue.length === 0) finishLaser();
+                            branchDone();
                         }
                         break;
                     }
                     default:
-                        enqueueStep(r + d.y, c + d.x, d, ch, px, py);
+                        step(r + d.y, c + d.x, d, ch, px, py);
                 }
             });
         }
@@ -7120,11 +7107,9 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     const startPx = padding + col * cellStep + CELL_SIZE / 2;
     const startPy = padding + row * cellStep + CELL_SIZE / 2;
     allPoints.push({x: startPx, y: startPy});
-    console.log('[spawnLaser] Start:', startPx, startPy, 'row:', row, 'col:', col);
 
     setTimeout(() => {
-        console.log('[spawnLaser] Enqueue step');
-        enqueueStep(row, col, dir, charge, startPx, startPy);
+        step(row, col, dir, charge, startPx, startPy);
     }, 100);
 }
 
