@@ -4557,13 +4557,13 @@ body {
             }
 
             const overlay = document.createElement('div');
-            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
             overlay.onclick = () => overlay.remove();
 
             const modal = document.createElement('div');
-            modal.style.cssText = 'background:var(--bg-card);padding:24px;border-radius:16px;max-width:360px;width:100%;border:1px solid rgba(255,255,255,0.1);';
+            modal.style.cssText = 'background:var(--bg-card);border-radius:20px;max-width:380px;width:100%;border:1px solid rgba(255,255,255,0.1);overflow:hidden;';
             modal.onclick = e => e.stopPropagation();
-            modal.innerHTML = '<div style="text-align:center;"><div style="font-size:48px;margin-bottom:12px;">⏳</div><h3 style="margin:0 0 8px;">Загрузка...</h3></div>';
+            modal.innerHTML = '<div style="text-align:center;padding:40px;"><div style="font-size:48px;margin-bottom:12px;">⏳</div><h3 style="margin:0 0 8px;">Загрузка...</h3></div>';
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
 
@@ -4571,10 +4571,7 @@ body {
             let avatarUrl = '';
             try {
                 const avResp = await fetch(`/api/avatar/${telegramId}`);
-                if (avResp.ok) {
-                    const avData = await avResp.json();
-                    if (avData.url) avatarUrl = avData.url;
-                }
+                if (avResp.ok) { const avData = await avResp.json(); if (avData.url) avatarUrl = avData.url; }
             } catch(e) {}
 
             try {
@@ -4583,27 +4580,72 @@ body {
                     const data = await resp.json();
                     const initials = getInitials(data.first_name || 'И');
                     const avatarHtml = avatarUrl
-                        ? `<img src="${avatarUrl}" style="width:64px;height:64px;border-radius:14px;object-fit:cover;margin:0 auto 12px;display:block;" onerror="this.outerHTML='<div style=\\'width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg, hsl(${telegramId * 37 % 360}, 60%, 45%), hsl(${(telegramId * 37 + 40) % 360}, 70%, 35%));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;margin:0 auto 12px;\\'>${initials}</div>'">`
-                        : `<div style="width:64px;height:64px;border-radius:14px;background:linear-gradient(135deg, hsl(${telegramId * 37 % 360}, 60%, 45%), hsl(${(telegramId * 37 + 40) % 360}, 70%, 35%));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;margin:0 auto 12px;">${initials}</div>`;
+                        ? `<img src="${avatarUrl}" style="width:72px;height:72px;border-radius:16px;object-fit:cover;margin:0 auto 12px;display:block;border:3px solid rgba(231,76,60,0.5);" onerror="this.outerHTML='<div style=\\'width:72px;height:72px;border-radius:16px;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;margin:0 auto 12px;border:3px solid rgba(231,76,60,0.5);\\'>${initials}</div>'">`
+                        : `<div style="width:72px;height:72px;border-radius:16px;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;margin:0 auto 12px;border:3px solid rgba(231,76,60,0.5);">${initials}</div>`;
+
+                    const coins = formatNumber(data.click_coins || 0);
+                    const stars = formatNumber(data.stars || 0, 5);
+                    const crystals = formatNumber(data.crystals || 0);
+                    const reactions = formatNumber(data.reactions_triggered || 0);
+                    const blocks = formatNumber(data.blocks_placed || 0);
+                    const coreLvl = data.core_level || 1;
+                    const playerLvl = data.level || 1;
+                    const tasksDone = data.tasks_completed || 0;
+                    const rank = data.rating_rank || '—';
 
                     modal.innerHTML = `
-                        <div style="text-align:center;">
+                        <div style="padding:24px 20px;text-align:center;">
                             ${avatarHtml}
-                            <h3 style="margin:0 0 4px;">${data.first_name || 'Игрок'}</h3>
-                            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">@${data.username || 'unknown'}</div>
-                            <div style="display:flex;justify-content:center;gap:16px;margin-bottom:16px;">
-                                <div><div style="font-size:18px;font-weight:700;color:var(--gold);">${formatNumber(data.click_coins || 0)}</div><div style="font-size:11px;color:var(--text-secondary);">🪙</div></div>
-                                <div><div style="font-size:18px;font-weight:700;color:#ff0000;">${formatNumber(data.stars || 0, 5)}</div><div style="font-size:11px;color:var(--text-secondary);">⭐</div></div>
-                                <div><div style="font-size:18px;font-weight:700;color:var(--crystal);">${formatNumber(data.crystals || 0)}</div><div style="font-size:11px;color:var(--text-secondary);">💎</div></div>
+                            <h3 style="margin:0 0 2px;font-size:20px;">${data.first_name || 'Игрок'}</h3>
+                            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">@${data.username || 'unknown'}</div>
+
+                            <!-- Баланс -->
+                            <div style="display:flex;justify-content:center;gap:14px;margin-bottom:20px;">
+                                <div style="background:rgba(241,196,15,0.1);padding:10px 16px;border-radius:12px;border:1px solid rgba(241,196,15,0.2);min-width:80px;">
+                                    <div style="font-size:18px;font-weight:700;color:var(--gold);">${coins}</div>
+                                    <div style="font-size:10px;color:var(--text-secondary);">🪙 Монеты</div>
+                                </div>
+                                <div style="background:rgba(255,0,0,0.1);padding:10px 16px;border-radius:12px;border:1px solid rgba(255,0,0,0.2);min-width:80px;">
+                                    <div style="font-size:18px;font-weight:700;color:#ff0000;">${stars}</div>
+                                    <div style="font-size:10px;color:var(--text-secondary);">⭐ Звёзды</div>
+                                </div>
+                                <div style="background:rgba(52,152,219,0.1);padding:10px 16px;border-radius:12px;border:1px solid rgba(52,152,219,0.2);min-width:80px;">
+                                    <div style="font-size:18px;font-weight:700;color:var(--crystal);">${crystals}</div>
+                                    <div style="font-size:10px;color:var(--text-secondary);">💎 Кристаллы</div>
+                                </div>
                             </div>
-                            <div style="font-size:12px;color:var(--text-secondary);">Ур. ${data.level || 1} · ${formatNumber(data.total_clicks || 0)} кликов</div>
+
+                            <!-- Статистика -->
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+                                <div style="background:var(--bg-dark);padding:12px;border-radius:10px;">
+                                    <div style="font-size:16px;font-weight:700;">${playerLvl}</div>
+                                    <div style="font-size:10px;color:var(--text-secondary);">Уровень игрока</div>
+                                </div>
+                                <div style="background:var(--bg-dark);padding:12px;border-radius:10px;">
+                                    <div style="font-size:16px;font-weight:700;">${coreLvl}</div>
+                                    <div style="font-size:10px;color:var(--text-secondary);">Уровень ядра</div>
+                                </div>
+                                <div style="background:var(--bg-dark);padding:12px;border-radius:10px;">
+                                    <div style="font-size:16px;font-weight:700;">${reactions}</div>
+                                    <div style="font-size:10px;color:var(--text-secondary);">⚡ Реакции</div>
+                                </div>
+                                <div style="background:var(--bg-dark);padding:12px;border-radius:10px;">
+                                    <div style="font-size:16px;font-weight:700;">${blocks}</div>
+                                    <div style="font-size:10px;color:var(--text-secondary);">🧱 Блоки</div>
+                                </div>
+                            </div>
+
+                            <div style="display:flex;justify-content:center;gap:20px;font-size:12px;color:var(--text-secondary);">
+                                <span>🏆 Рейтинг: #${rank}</span>
+                                <span>📋 Задания: ${tasksDone}</span>
+                            </div>
                         </div>
                     `;
                 } else {
-                    modal.innerHTML = '<div style="text-align:center;"><div style="font-size:48px;margin-bottom:12px;">❌</div><h3 style="margin:0;">Профиль не найден</h3></div>';
+                    modal.innerHTML = '<div style="text-align:center;padding:40px;"><div style="font-size:48px;margin-bottom:12px;">❌</div><h3 style="margin:0;">Профиль не найден</h3></div>';
                 }
             } catch (e) {
-                modal.innerHTML = '<div style="text-align:center;"><div style="font-size:48px;margin-bottom:12px;">⚠️</div><h3 style="margin:0;">Ошибка загрузки</h3></div>';
+                modal.innerHTML = '<div style="text-align:center;padding:40px;"><div style="font-size:48px;margin-bottom:12px;">⚠️</div><h3 style="margin:0;">Ошибка загрузки</h3></div>';
             }
         }
 
