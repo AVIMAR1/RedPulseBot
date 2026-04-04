@@ -6926,145 +6926,120 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     const padding = 10;
     const cellStep = CELL_SIZE + GAP;
     const fieldRows = gameState.fieldRows;
-    const STEP_DELAY = 150; // мс между клетками
+    const STEP_DELAY = 150;
 
     const checked = processed || new Set();
-    let activeLasers = 0;
-    const allSegments = []; // все сегменты для пульсации
-    let earned = { coins: 0, diamonds: 0, stars: 0 }; // подсчёт заработка
+    const allSegments = [];
+    let earned = { coins: 0, diamonds: 0, stars: 0 };
 
+    // Одна ветка лазера — возвращает Promise когда завершится
     function step(r, c, d, ch) {
-        activeLasers++;
+        return new Promise((resolve) => {
+            // Выход за границы
+            if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) { resolve(); return; }
 
-        // Проверка выхода за границы
-        if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) {
-            activeLasers--;
-            checkAllDone();
-            return;
-        }
+            const blockKey = `${r}-${c}`;
+            // Врезался в себя
+            if (checked.has(blockKey)) { resolve(); return; }
 
-        const blockKey = `${r}-${c}`;
+            checked.add(blockKey);
 
-        // Если уже обработан — останавливаемся (врезался в себя)
-        if (checked.has(blockKey)) {
-            activeLasers--;
-            checkAllDone();
-            return;
-        }
+            // Рисуем точку
+            const segX = padding + c * cellStep + CELL_SIZE / 2;
+            const segY = padding + r * cellStep + CELL_SIZE / 2;
+            const seg = document.createElement('div');
+            seg.className = 'laser-segment';
+            seg.style.left = `${segX - 5}px`;
+            seg.style.top = `${segY - 5}px`;
+            fieldGrid.appendChild(seg);
+            allSegments.push(seg);
 
-        checked.add(blockKey);
+            const block = gameState.grid[r]?.[c];
 
-        // Рисуем точку лазера на клетке
-        const segX = padding + c * cellStep + CELL_SIZE / 2;
-        const segY = padding + r * cellStep + CELL_SIZE / 2;
-        const seg = document.createElement('div');
-        seg.className = 'laser-segment';
-        seg.style.left = `${segX - 5}px`;
-        seg.style.top = `${segY - 5}px`;
-        fieldGrid.appendChild(seg);
-        allSegments.push(seg);
+            if (!block) {
+                // Пустая клетка — продолжаем
+                setTimeout(() => step(r + d.y, c + d.x, d, ch).then(resolve), STEP_DELAY);
+            } else {
+                switch (block.type) {
+                    case BLOCK_TYPES.COIN:
+                        earned.coins += ch * CONFIG.CONVERSION.COIN * block.level;
+                        gameState.bankCoins = (gameState.bankCoins || 0) + ch * CONFIG.CONVERSION.COIN * block.level;
+                        gameState.totalEarned += ch * CONFIG.CONVERSION.COIN * block.level;
+                        setTimeout(() => step(r + d.y, c + d.x, d, ch).then(resolve), STEP_DELAY);
+                        break;
 
-        const block = gameState.grid[r]?.[c];
+                    case BLOCK_TYPES.DIAMOND:
+                        const dVal = (ch * block.level) / CONFIG.CONVERSION.DIAMOND;
+                        earned.diamonds += dVal;
+                        gameState.bankCrystals = (gameState.bankCrystals || 0) + dVal;
+                        setTimeout(() => step(r + d.y, c + d.x, d, ch).then(resolve), STEP_DELAY);
+                        break;
 
-        if (block) {
-            // Попали в блок — обрабатываем без всплывающих цифр
-            switch (block.type) {
-                case BLOCK_TYPES.COIN:
-                    const coins = ch * CONFIG.CONVERSION.COIN * block.level;
-                    earned.coins += coins;
-                    gameState.bankCoins = (gameState.bankCoins || 0) + coins;
-                    gameState.totalEarned += coins;
-                    setTimeout(() => step(r + d.y, c + d.x, d, ch), STEP_DELAY);
-                    break;
+                    case BLOCK_TYPES.STAR:
+                        const sVal = (ch * block.level) / CONFIG.CONVERSION.STAR;
+                        earned.stars += sVal;
+                        gameState.bankStars = (gameState.bankStars || 0) + sVal;
+                        setTimeout(() => step(r + d.y, c + d.x, d, ch).then(resolve), STEP_DELAY);
+                        break;
 
-                case BLOCK_TYPES.DIAMOND:
-                    const diamonds = (ch * block.level) / CONFIG.CONVERSION.DIAMOND;
-                    earned.diamonds += diamonds;
-                    gameState.bankCrystals = (gameState.bankCrystals || 0) + diamonds;
-                    setTimeout(() => step(r + d.y, c + d.x, d, ch), STEP_DELAY);
-                    break;
+                    case BLOCK_TYPES.MULTIPLIER:
+                        setTimeout(() => step(r + d.y, c + d.x, d, ch * block.value).then(resolve), STEP_DELAY);
+                        break;
 
-                case BLOCK_TYPES.STAR:
-                    const stars = (ch * block.level) / CONFIG.CONVERSION.STAR;
-                    earned.stars += stars;
-                    gameState.bankStars = (gameState.bankStars || 0) + stars;
-                    setTimeout(() => step(r + d.y, c + d.x, d, ch), STEP_DELAY);
-                    break;
-
-                case BLOCK_TYPES.MULTIPLIER:
-                    const newCharge = ch * block.value;
-                    setTimeout(() => step(r + d.y, c + d.x, d, newCharge), STEP_DELAY);
-                    break;
-
-                case BLOCK_TYPES.ROUTER:
-                    const hitPort = getHitPort(d);
-                    if (block.routerConfig && block.routerConfig.ports && block.routerConfig.ports.includes(hitPort)) {
-                        const outputPorts = block.routerConfig.ports.filter(p => p !== hitPort);
-                        const boostedCharge = ch * block.value;
-                        const portToDir = { 'top': {x:0,y:-1}, 'bottom': {x:0,y:1}, 'left': {x:-1,y:0}, 'right': {x:1,y:0} };
-                        // Размножаем на каждый выходной порт
-                        outputPorts.forEach(port => {
-                            const outDir = portToDir[port];
-                            setTimeout(() => step(r + outDir.y, c + outDir.x, outDir, boostedCharge), STEP_DELAY);
-                        });
+                    case BLOCK_TYPES.ROUTER: {
+                        const hitPort = getHitPort(d);
+                        const ports = block.routerConfig?.ports || [];
+                        if (ports.includes(hitPort)) {
+                            const outPorts = ports.filter(p => p !== hitPort);
+                            const boosted = ch * block.value;
+                            const pDir = { 'top': {x:0,y:-1}, 'bottom': {x:0,y:1}, 'left': {x:-1,y:0}, 'right': {x:1,y:0} };
+                            // Ждём все ответвления
+                            const promises = outPorts.map(port => 
+                                new Promise(res => setTimeout(() => step(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted).then(res), STEP_DELAY))
+                            );
+                            Promise.all(promises).then(resolve);
+                        } else {
+                            resolve();
+                        }
+                        break;
                     }
-                    break;
 
-                default:
-                    setTimeout(() => step(r + d.y, c + d.x, d, ch), STEP_DELAY);
+                    default:
+                        setTimeout(() => step(r + d.y, c + d.x, d, ch).then(resolve), STEP_DELAY);
+                }
             }
-        } else {
-            // Пустая клетка — продолжаем
-            setTimeout(() => step(r + d.y, c + d.x, d, ch), STEP_DELAY);
-        }
-
-        activeLasers--;
-        checkAllDone();
+        });
     }
 
-    function checkAllDone() {
-        if (activeLasers <= 0 && allSegments.length > 0) {
+    // Запускаем и ждём завершения
+    setTimeout(() => {
+        step(row, col, dir, charge).then(() => {
             finishLaser();
-        }
-    }
+        });
+    }, 100);
 
     function finishLaser() {
-        // 1. Пульсация всего луча
+        // Показываем итог
+        const summaryEl = document.createElement('div');
+        summaryEl.className = 'laser-summary';
+        summaryEl.innerHTML = `
+            <div class="laser-summary-item"><div class="laser-summary-icon">🪙</div><div class="laser-summary-amount">+${Math.floor(earned.coins).toLocaleString()}</div></div>
+            <div class="laser-summary-item"><div class="laser-summary-icon">💎</div><div class="laser-summary-amount">+${Math.floor(earned.diamonds * 100) / 100}</div></div>
+            <div class="laser-summary-item"><div class="laser-summary-icon">⭐</div><div class="laser-summary-amount">+${Math.floor(earned.stars * 100) / 100}</div></div>
+        `;
+        fieldGrid.appendChild(summaryEl);
+
         allSegments.forEach(seg => seg.classList.add('pulse'));
 
-        // 2. Показываем итог заработка через 1.2с
         setTimeout(() => {
-            const summaryEl = document.createElement('div');
-            summaryEl.className = 'laser-summary';
-            summaryEl.innerHTML = `
-                <div class="laser-summary-item"><div class="laser-summary-icon">🪙</div><div class="laser-summary-amount">+${Math.floor(earned.coins).toLocaleString()}</div></div>
-                <div class="laser-summary-item"><div class="laser-summary-icon">💎</div><div class="laser-summary-amount">+${Math.floor(earned.diamonds * 100) / 100}</div></div>
-                <div class="laser-summary-item"><div class="laser-summary-icon">⭐</div><div class="laser-summary-amount">+${Math.floor(earned.stars * 100) / 100}</div></div>
-            `;
-            fieldGrid.appendChild(summaryEl);
-
-            // 3. Затухание луча и итога через 2с
-            setTimeout(() => {
-                summaryEl.style.transition = 'opacity 0.5s ease-out';
-                summaryEl.style.opacity = '0';
-                allSegments.forEach((seg, i) => {
-                    setTimeout(() => {
-                        seg.style.transition = 'opacity 0.3s ease-out';
-                        seg.style.opacity = '0';
-                        setTimeout(() => seg.remove(), 300);
-                    }, i * 10);
-                });
-                setTimeout(() => { 
-                    summaryEl.remove(); 
-                    updateBalance(); 
-                    finishCharging(); 
-                }, 500);
-            }, 2000);
-        }, 1200);
+            summaryEl.style.transition = 'opacity 0.5s ease-out';
+            summaryEl.style.opacity = '0';
+            allSegments.forEach((seg, i) => {
+                setTimeout(() => { seg.style.transition = 'opacity 0.3s'; seg.style.opacity = '0'; setTimeout(() => seg.remove(), 300); }, i * 10);
+            });
+            setTimeout(() => { summaryEl.remove(); updateBalance(); finishCharging(); }, 500);
+        }, 2500);
     }
-
-    // Запускаем первый шаг
-    setTimeout(() => step(row, col, dir, charge), 100);
 }
 
 function handleBlock(block, row, col, charge, dir, processed, x, y) {
