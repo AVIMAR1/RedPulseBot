@@ -2607,6 +2607,48 @@ body {
     border-bottom: none;
     border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
     box-shadow: var(--shadow-card);
+    position: relative;
+}
+
+/* Лоадер фермы */
+.farm-loader {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 15, 15, 0.9);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    z-index: 100;
+    border-radius: var(--border-radius-lg);
+    backdrop-filter: blur(4px);
+}
+
+.farm-loader.active {
+    display: flex;
+}
+
+.farm-loader-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(231, 76, 60, 0.2);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.farm-loader-text {
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
 }
 
 .core-content {
@@ -3515,6 +3557,12 @@ body {
 
         <!-- Clicker Page - Pulse Farm Game (ORIGINAL) -->
         <div id="clicker" class="page">
+            <!-- Лоадер фермы -->
+            <div class="farm-loader" id="farmLoader">
+                <div class="farm-loader-spinner"></div>
+                <div class="farm-loader-text">Загрузка фермы...</div>
+            </div>
+            
             <!-- Header -->
             <header class="header">
                 <div class="logo">
@@ -4159,6 +4207,8 @@ body {
         // Синхронизация с фермой
         function syncWithFarm() {
             try {
+                console.log('[syncWithFarm] До синхронизации: state.click_coins=', state.click_coins, 'gameState.coins=', gameState?.coins);
+                
                 // Ферма использует gameState, синхронизируем с state (берём БОЛЬШЕЕ значение!)
                 if (typeof gameState !== 'undefined') {
                     // gameState → state (сохраняем изменения из фермы, НО НЕ перезаписываем нулями!)
@@ -4168,6 +4218,8 @@ body {
                     if (gameState.totalTaps > 0) state.total_clicks = Math.max(state.total_clicks || 0, gameState.totalTaps);
                     if (gameState.level > 1) state.level = Math.max(state.level || 1, gameState.level);
                     if (gameState.chargePower > 1) state.click_power = Math.floor(gameState.chargePower);
+
+                    console.log('[syncWithFarm] После синхронизации: state.click_coins=', state.click_coins);
 
                     // Сохраняем в localStorage
                     localStorage.setItem('redpulse_state', JSON.stringify(state));
@@ -4647,7 +4699,7 @@ body {
                     state.first_name = data.first_name || '';
                     state.username = data.username || '';
                     state.created_at = data.created_at || '';
-                    state.first_play = data.first_play !== undefined ? data.first_play : true;
+                    state.first_play = data.first_play === false ? false : true;  // false только если явно false, иначе true
 
                     updateUI();
                     console.log('[loadUserData] Данные загружены из БД успешно, first_play:', state.first_play);
@@ -4659,6 +4711,15 @@ body {
                             updateMainBalance();
                             console.log('[loadUserData] Баланс обновлён');
                         }
+                        
+                        // Принудительно обновляем элементы баланса
+                        const balanceCoins = document.getElementById('balance-coins');
+                        const balanceStars = document.getElementById('balance-stars');
+                        const balanceCrystals = document.getElementById('balance-crystals');
+                        if (balanceCoins) balanceCoins.textContent = state.click_coins.toLocaleString();
+                        if (balanceStars) balanceStars.textContent = state.stars.toLocaleString();
+                        if (balanceCrystals) balanceCrystals.textContent = state.crystals.toLocaleString();
+                        console.log('[loadUserData] Баланс принудительно обновлен:', state.click_coins, state.stars, state.crystals);
                     }, 100);
 
                     return;
@@ -6116,7 +6177,10 @@ window.loadGame = async function() {
                     if (dbData.blocks_placed > 0) gameState.blocks_placed = dbData.blocks_placed;
                     if (dbData.reactions_triggered > 0) gameState.reactions_triggered = dbData.reactions_triggered;
                     // firstPlay берём из state (загружено из /api/user), а если там нет - из БД фермы
-                    gameState.firstPlay = state.first_play !== undefined ? state.first_play : (dbData.firstPlay !== undefined ? dbData.firstPlay : true);
+                    // false только если явно false, иначе true (первый заход)
+                    const stateFirstPlay = state.first_play === false ? false : true;
+                    const dbFirstPlay = dbData.firstPlay === false ? false : true;
+                    gameState.firstPlay = state.first_play !== undefined ? stateFirstPlay : dbFirstPlay;
 
                     console.log('[loadGame] gameState после загрузки:', {
                         coins: gameState.coins,
@@ -7630,6 +7694,10 @@ window.initGame = function() {
 
     console.log('[initGame] Начало инициализации, state.click_coins:', state.click_coins);
 
+    // Показываем лоадер
+    const loader = document.getElementById('farmLoader');
+    if (loader) loader.classList.add('active');
+
     // Используем кэшированный промис или создаём новый
     if (!gameLoadPromise) {
         gameLoadPromise = loadGame();
@@ -7637,6 +7705,8 @@ window.initGame = function() {
     
     // ВАЖНО: Сначала загружаем данные из БД фермы
     gameLoadPromise.then(() => {
+        // Скрываем лоадер
+        if (loader) loader.classList.remove('active');
         // После загрузки из БД синхронизируем с state (берём БОЛЬШЕЕ значение)
         console.log('[initGame] После loadGame: gameState.coins=', gameState.coins, 'state.click_coins=', state.click_coins);
 

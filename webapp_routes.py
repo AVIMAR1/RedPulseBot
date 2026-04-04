@@ -126,7 +126,7 @@ async def get_user_data(user_id: int):
                 "streak_days": get("streak_days", 0),
                 "referrals_count": get("referrals_count", 0),
                 "tasks_completed": get("tasks_completed", 0),
-                "first_play": bool(get("first_play", True))
+                "first_play": bool(get("first_play", True)) if get("first_play") is not None else True
             }
 
     # Если пользователь не найден
