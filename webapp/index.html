@@ -122,11 +122,12 @@
 
         /* Balance Card */
         .balance-card {
-            background: var(--gradient-primary);
+            background: var(--bg-card);
             margin: 16px;
             padding: 16px 18px;
             border-radius: var(--border-radius-lg);
-            box-shadow: var(--shadow-glow);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: var(--shadow-card);
             position: relative;
             overflow: hidden;
         }
@@ -134,16 +135,16 @@
         .balance-card::before {
             content: '';
             position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 100%;
-            height: 100%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
         }
 
         .balance-title {
             font-size: 13px;
-            opacity: 0.9;
+            color: var(--text-secondary);
             margin-bottom: 10px;
             font-weight: 600;
             letter-spacing: 0.5px;
@@ -5995,7 +5996,7 @@ function createBlock(type, level, value = 1) {
 }
 
 function generateShopItems() {
-    const shopLevel = Math.floor((gameState.level - 1) / 10) + 1; // Каждые 10 уровней ядра
+    const shopLevel = Math.floor((gameState.level - 1) / 5) + 1; // Каждые 5 уровней
     gameState.shopLevel = shopLevel;
     gameState.shopItems = [];
     for (let i = 0; i < 3; i++) {
@@ -6327,9 +6328,9 @@ async function saveFarmStats() {
 
         const farmStats = {
             userId: userId,
-            reactor_level: maxBlockLevel,
+            reactor_level: gameState.level || 1,  // Уровень ядра, НЕ блока!
             blocks_placed: blocksCount,
-            reactions_triggered: gameState.reactions_triggered || 0,  // ИСПОЛЬЗУЕМ reactions_triggered а не totalTaps
+            reactions_triggered: gameState.reactions_triggered || 0,
             total_energy_produced: gameState.totalEarned || 0,
             // ВАЖНО: сохраняем валюту из state (главное состояние бота)
             click_coins: Math.floor(state.click_coins || 0),
@@ -7466,6 +7467,21 @@ window.repairCore = function() {
 }
 
 let selectedForMove = null;
+
+// Подсчёт блоков на поле
+function countBlocksOnField() {
+    let count = 0;
+    if (gameState.grid) {
+        for (let row = 0; row < gameState.fieldRows; row++) {
+            if (gameState.grid[row]) {
+                for (let col = 0; col < FIELD_COLS; col++) {
+                    if (gameState.grid[row][col]) count++;
+                }
+            }
+        }
+    }
+    return count;
+}
 
 // Глобальная функция для клика по ячейке
 window.onCellClick = function(e, row, col) {
