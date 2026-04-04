@@ -7252,36 +7252,31 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
         // Сохраняем в БД сразу — рейтинг обновится
         if (typeof saveGame === 'function') saveGame();
 
-        const summaryEl = document.createElement('div');
-        summaryEl.className = 'laser-summary';
-        summaryEl.innerHTML = `
-            <div class="laser-summary-item"><div class="laser-summary-icon">🪙</div><div class="laser-summary-amount">+${(Math.round(earned.coins * 100) / 100).toFixed(2)}</div></div>
-            <div class="laser-summary-item"><div class="laser-summary-icon">💎</div><div class="laser-summary-amount">+${(Math.round(earned.diamonds * 10000) / 10000).toFixed(4)}</div></div>
-            <div class="laser-summary-item"><div class="laser-summary-icon">⭐</div><div class="laser-summary-amount">+${(Math.round(earned.stars * 10000) / 10000).toFixed(4)}</div></div>
-        `;
-
-        // Плавное появление (fade-in + scale)
-        summaryEl.style.opacity = '0';
-        summaryEl.style.transform = 'scale(0.8)';
-        summaryEl.style.transition = 'opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
-        fieldGrid.appendChild(summaryEl);
-
         // Форматируем итоговый доход: если >1000 — сокращаем
         function formatEarn(val, decimals) {
             if (val >= 1000) return formatNumber(val);
             return (Math.round(val * Math.pow(10, decimals)) / Math.pow(10, decimals)).toFixed(decimals);
         }
 
+        const summaryEl = document.createElement('div');
+        summaryEl.className = 'laser-summary';
+        summaryEl.style.zIndex = '99999';
         summaryEl.innerHTML = `
             <div class="laser-summary-item"><div class="laser-summary-icon">🪙</div><div class="laser-summary-amount">+${formatEarn(earned.coins, 2)}</div></div>
             <div class="laser-summary-item"><div class="laser-summary-icon">💎</div><div class="laser-summary-amount">+${formatEarn(earned.diamonds, 4)}</div></div>
             <div class="laser-summary-item"><div class="laser-summary-icon">⭐</div><div class="laser-summary-amount">+${formatEarn(earned.stars, 4)}</div></div>
         `;
 
+        // Плавное появление (fade-in + scale) - центрировано через fixed + translate
+        summaryEl.style.opacity = '0';
+        summaryEl.style.transform = 'translate(-50%, -50%) scale(0.8)';
+        summaryEl.style.transition = 'opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        document.body.appendChild(summaryEl);
+
         // Trigger reflow then animate in
         requestAnimationFrame(() => {
             summaryEl.style.opacity = '1';
-            summaryEl.style.transform = 'scale(1)';
+            summaryEl.style.transform = 'translate(-50%, -50%) scale(1)';
         });
 
         setTimeout(() => {
@@ -7289,7 +7284,7 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
             canvas.style.opacity = '0';
             summaryEl.style.transition = 'opacity 0.5s ease-out, transform 0.3s ease-out';
             summaryEl.style.opacity = '0';
-            summaryEl.style.transform = 'scale(0.9) translateY(-10px)';
+            summaryEl.style.transform = 'translate(-50%, -50%) scale(0.9) translateY(-10px)';
             setTimeout(() => { canvas.remove(); summaryEl.remove(); updateBalance(); finishCharging(); }, 500);
         }, 2500);
     }
