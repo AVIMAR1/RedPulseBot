@@ -4079,6 +4079,29 @@ body {
         };
         const casinoState = window.casinoState;
 
+        // Форматирование больших чисел: 1000→1К, 1070→1,07К, 10000→10К, 1000000→1КК
+        // Звёзды НЕ сокращаются - показываются как есть
+        function formatNumber(num, isStars) {
+            if (!num || num === 0) return '0';
+            // Звёзды показываем как есть без сокращения
+            if (isStars) {
+                if (num >= 100) return Math.floor(num).toString();
+                if (num >= 10) return num.toFixed(1);
+                return num.toFixed(2);
+            }
+            num = Math.floor(num);
+            if (num >= 1000000000) return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'ККК';
+            if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'КК';
+            if (num >= 10000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'К';
+            if (num >= 1000) {
+                const k = num / 1000;
+                if (k >= 100) return Math.floor(k) + 'К';
+                if (k >= 10) return k.toFixed(1).replace(/\.0$/, '') + 'К';
+                return k.toFixed(2).replace(/\.?0+$/, '') + 'К';
+            }
+            return num.toLocaleString();
+        }
+
         // Центральная функция обновления баланса (главная страница)
         // ВАЖНО: НЕ работает с localStorage - только обновляет UI из state!
         function updateMainBalance() {
@@ -4098,8 +4121,10 @@ body {
                 const balanceCoins = document.getElementById('balance-coins');
                 const balanceCrystals = document.getElementById('balance-crystals');
                 const balanceStars = document.getElementById('balance-stars');
-                if (balanceCoins) balanceCoins.textContent = state.click_coins.toLocaleString();
-                if (balanceCrystals) balanceCrystals.textContent = state.crystals.toLocaleString();
+                
+                // ИСПОЛЬЗУЕМ сокращённый формат для больших чисел
+                if (balanceCoins) balanceCoins.textContent = formatNumber(state.click_coins);
+                if (balanceCrystals) balanceCrystals.textContent = formatNumber(state.crystals);
                 if (balanceStars) balanceStars.textContent = (state.stars || 0).toFixed(2);
             } catch (e) {
                 console.error('Ошибка updateMainBalance:', e);
@@ -4646,29 +4671,6 @@ body {
             }
             waitForUserIdAndLoad();
         });
-
-        // Форматирование больших чисел: 1000→1К, 1070→1,07К, 10000→10К, 1000000→1КК
-        // Звёзды НЕ сокращаются - показываются как есть
-        function formatNumber(num, isStars) {
-            if (!num || num === 0) return '0';
-            // Звёзды показываем как есть без сокращения
-            if (isStars) {
-                if (num >= 100) return Math.floor(num).toString();
-                if (num >= 10) return num.toFixed(1);
-                return num.toFixed(2);
-            }
-            num = Math.floor(num);
-            if (num >= 1000000000) return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'ККК';
-            if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'КК';
-            if (num >= 10000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'К';
-            if (num >= 1000) {
-                const k = num / 1000;
-                if (k >= 100) return Math.floor(k) + 'К';
-                if (k >= 10) return k.toFixed(1).replace(/\.0$/, '') + 'К';
-                return k.toFixed(2).replace(/\.?0+$/, '') + 'К';
-            }
-            return num.toLocaleString();
-        }
 
         // Функция обновления баланса - вызывается из ВСЕХ мест
         function updateBalanceDisplay() {
@@ -6040,7 +6042,16 @@ window.loadGame = async function() {
     if (userId) {
         try {
             console.log('[loadGame] Запрос к /api/farm-state/' + userId);
-            const response = await fetch(`/api/farm-state/${userId}`);
+            
+            // Добавляем таймаут 5 секунд
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+            
+            const response = await fetch(`/api/farm-state/${userId}`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
             console.log('[loadGame] Ответ сервера:', response.status);
             if (response.ok) {
                 const dbData = await response.json();
@@ -6048,7 +6059,7 @@ window.loadGame = async function() {
 
                 if (dbData && Object.keys(dbData).length > 0) {
                     console.log('[loadGame] Загружены данные из БД:', JSON.stringify(dbData, null, 2));
-                    
+
                     // Загружаем ВСЕ данные из БД (НЕ перезаписываем если значение 0 или null)
                     if (dbData.coins > 0) gameState.coins = dbData.coins;
                     if (dbData.crystals > 0) gameState.crystals = dbData.crystals;
@@ -6068,7 +6079,7 @@ window.loadGame = async function() {
                     if (dbData.baseBlockPrice > 0) gameState.baseBlockPrice = dbData.baseBlockPrice;
                     if (dbData.rerollCost > 0) gameState.rerollCost = dbData.rerollCost;
                     if (dbData.expandCost > 0) gameState.expandCost = dbData.expandCost;
-                    
+
                     // Рассчитываем остывание температуры за время пока ферма была закрыта
                     if (dbData.lastTapTime) {
                         const timePassed = Date.now() - dbData.lastTapTime;
@@ -6085,7 +6096,7 @@ window.loadGame = async function() {
                     const stateFirstPlay = state.first_play === false ? false : true;
                     const dbFirstPlay = dbData.firstPlay === false ? false : true;
                     gameState.firstPlay = state.first_play !== undefined ? stateFirstPlay : dbFirstPlay;
-                    
+
                     console.log('[loadGame] firstPlay:', {
                         state_first_play: state.first_play,
                         stateFirstPlay,
@@ -6123,7 +6134,7 @@ window.loadGame = async function() {
                     // Если grid всё ещё пустой — создаём новый (НЕ сбрасываем если есть данные!)
                     const hasGridData = dbData.grid && Array.isArray(dbData.grid) && dbData.grid.length > 0 && dbData.grid[0];
                     const hasShopData = dbData.shopItems && Array.isArray(dbData.shopItems) && dbData.shopItems.length > 0;
-                    
+
                     if (!hasGridData) {
                         console.log('[loadGame] Grid отсутствует в БД, создаём новый');
                         initGrid();
@@ -6136,6 +6147,25 @@ window.loadGame = async function() {
                         generateShopItems();
                     } else {
                         console.log('[loadGame] ShopItems загружены из БД:', dbData.shopItems.length, 'предметов');
+                    }
+
+                    // ВАЖНО: Принудительно создаём grid если он всё ещё пуст
+                    if (!gameState.grid || !Array.isArray(gameState.grid) || gameState.grid.length === 0) {
+                        console.warn('[loadGame] Grid всё ещё пуст после загрузки, создаём принудительно');
+                        initGrid();
+                    }
+
+                    // ВАЖНО: Принудительно создаём shopItems если они всё ещё пусты
+                    if (!gameState.shopItems || gameState.shopItems.length === 0) {
+                        console.warn('[loadGame] ShopItems всё ещё пусты после загрузки, генерируем принудительно');
+                        generateShopItems();
+                    }
+
+                    // ВАЖНО: Проверяем что grid правильно инициализирован
+                    if (!gameState.grid || gameState.grid.length === 0) {
+                        console.error('[loadGame] КРИТИЧЕСКАЯ ОШИБКА: Grid не инициализирован!');
+                    } else {
+                        console.log('[loadGame] Grid инициализирован:', gameState.grid.length, 'строк,', gameState.grid[0]?.length, 'колонок');
                     }
 
                     // ВАЖНО: Синхронизация с state - берём БОЛЬШЕЕ значение (БД или state)
@@ -6188,24 +6218,42 @@ window.loadGame = async function() {
         } catch (e) {
             console.error('[loadGame] Ошибка загрузки из БД:', e);
             console.error('[loadGame] Stack:', e.stack);
+            
+            // ВАЖНО: Даже если ошибка - создаём grid чтобы ферма не была пустой
+            console.warn('[loadGame] Fallback: создаём grid несмотря на ошибку');
+            if (!gameState.grid || gameState.grid.length === 0) {
+                initGrid();
+            }
+            if (!gameState.shopItems || gameState.shopItems.length === 0) {
+                generateShopItems();
+            }
+        }
+    } else {
+        console.warn('[loadGame] userId не определён, создаём новую игру');
+        // Fallback: создаём базовый grid
+        if (!gameState.grid || gameState.grid.length === 0) {
+            initGrid();
+        }
+        if (!gameState.shopItems || gameState.shopItems.length === 0) {
+            generateShopItems();
         }
     }
 
-    // Если нет данных в БД — создаём новую игру (НЕ трогаем state!)
-    console.log('[loadGame] Нет данных в БД, создаём новую игру');
+    // Если нет данных в БД или произошла ошибка — создаём новую игру (НЕ трогаем state!)
+    console.log('[loadGame] Нет данных в БД или ошибка, создаём новую игру');
     console.log('[loadGame] Перед созданием: state.click_coins=', state.click_coins, 'gameState.coins=', gameState.coins);
 
     // НЕ создаём grid если он уже есть (из предыдущей сессии в памяти)
     const hasExistingGrid = gameState.grid && Array.isArray(gameState.grid) && gameState.grid.length > 0 && gameState.grid[0];
     const hasExistingShop = gameState.shopItems && Array.isArray(gameState.shopItems) && gameState.shopItems.length > 0;
-    
+
     if (!hasExistingGrid) {
         console.log('[loadGame] Grid отсутствует, создаём новый');
         initGrid();
     } else {
         console.log('[loadGame] Grid уже есть в памяти, пропускаем');
     }
-    
+
     if (!hasExistingShop) {
         console.log('[loadGame] ShopItems отсутствуют, генерируем');
         generateShopItems();
@@ -6592,30 +6640,57 @@ window.renderShopItems = function() {
     });
 }
 
-// Глобальная функция форматирования чисел
+// Глобальная функция форматирования чисел (ИСПОЛЬЗУЕТ кириллические обозначения)
 window.formatNumber = function(num) {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toString();
+    if (!num || num === 0) return '0';
+    num = Math.floor(num);
+    if (num >= 1000000000) return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'ККК';
+    if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'КК';
+    if (num >= 10000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'К';
+    if (num >= 1000) {
+        const k = num / 1000;
+        if (k >= 100) return Math.floor(k) + 'К';
+        if (k >= 10) return k.toFixed(1).replace(/\.0$/, '') + 'К';
+        return k.toFixed(2).replace(/\.?0+$/, '') + 'К';
+    }
+    return num.toLocaleString();
 }
 
 // Глобальная функция отрисовки сетки
 window.renderGrid = function() {
     const gridEl = document.getElementById('fieldGrid');
     if (!gridEl) {
-        console.error('renderGrid: fieldGrid элемент не найден!');
+        console.error('[renderGrid] КРИТИЧЕСКАЯ ОШИБКА: fieldGrid элемент не найден!');
         return;
     }
-    
-    console.log('[renderGrid] gameState.grid:', gameState.grid ? 'OK' : 'NULL', 'rows:', gameState.grid?.length, 'fieldRows:', gameState.fieldRows);
-    
+
+    console.log('[renderGrid] Начало: gameState.grid:', gameState.grid ? 'OK' : 'NULL', 'rows:', gameState.grid?.length, 'cols:', gameState.grid?.[0]?.length, 'fieldRows:', gameState.fieldRows);
+
+    // ВАЖНО: Проверяем что gameState определён
+    if (typeof gameState === 'undefined') {
+        console.error('[renderGrid] КРИТИЧЕСКАЯ ОШИБКА: gameState не определён!');
+        return;
+    }
+
+    // ВАЖНО: Проверяем что константы определены
+    if (typeof FIELD_COLS === 'undefined' || typeof CELL_SIZE === 'undefined' || typeof GAP === 'undefined' || typeof CHARGE_COL === 'undefined') {
+        console.error('[renderGrid] КРИТИЧЕСКАЯ ОШИБКА: Константы не определены!', { FIELD_COLS, CELL_SIZE, GAP, CHARGE_COL });
+        return;
+    }
+
     // НЕ рендерим если grid ещё не загружен
     if (!gameState.grid || !Array.isArray(gameState.grid) || gameState.grid.length === 0 || !gameState.grid[0]) {
-        console.log('[renderGrid] Grid ещё не загружен, создаём новый');
+        console.warn('[renderGrid] Grid ещё не загружен, создаём новый');
         initGrid();
     }
-    
-    console.log('[renderGrid] Рендерим поле', gameState.fieldRows, 'x', FIELD_COLS);
+
+    // ВАЖНО: Ещё раз проверяем что grid создан после initGrid()
+    if (!gameState.grid || gameState.grid.length === 0) {
+        console.error('[renderGrid] КРИТИЧЕСКАЯ ОШИБКА: Grid пуст даже после initGrid()!');
+        return;
+    }
+
+    console.log('[renderGrid] Рендерим поле', gameState.fieldRows, 'x', FIELD_COLS, 'grid rows:', gameState.grid.length);
     gridEl.innerHTML = '';
 
     const chargeIndicator = document.createElement('div');
@@ -7600,8 +7675,6 @@ function showFloatingEarn(row, col, text, type) {
 
 // Функция инициализации игры
 let gameInitialized = false;
-let initAttempts = 0;
-let gameLoadPromise = null;
 
 window.initGame = function() {
     if (gameInitialized) {
@@ -7609,44 +7682,23 @@ window.initGame = function() {
         return;
     }
 
-    initAttempts++;
-    console.log('[initGame] Попытка #' + initAttempts + ', window.userDataLoaded:', window.userDataLoaded);
-
-    // Ждём завершения loadUserData() перед инициализацией (максимум 50 попыток = 5 секунд)
-    if (!window.userDataLoaded) {
-        if (initAttempts > 50) {
-            console.error('[initGame] Превышено время ожидания loadUserData(), инициализируем без данных');
-            gameInitialized = true;
-            loadGame().then(() => {
-                updateUI();
-                startPassiveEffects();
-                console.log('[initGame] Инициализация завершена (без данных из /api/user)');
-            });
-            return;
-        } else {
-            setTimeout(() => initGame(), 100);
-            return;
-        }
-    }
-
-    console.log('[initGame] Начало инициализации, state.click_coins:', state.click_coins);
+    console.log('[initGame] Начало инициализации');
 
     // Показываем лоадер
     const loader = document.getElementById('farmLoader');
     if (loader) loader.classList.add('active');
 
-    // Используем кэшированный промис или создаём новый
-    if (!gameLoadPromise) {
-        gameLoadPromise = loadGame();
-    }
-    
-    gameLoadPromise.then(() => {
+    // Загружаем данные фермы из БД
+    loadGame().then(() => {
+        console.log('[initGame] loadGame завершён успешно');
+    }).catch((e) => {
+        console.error('[initGame] loadGame ошибка:', e);
+    }).finally(() => {
         // Скрываем лоадер
+        const loader = document.getElementById('farmLoader');
         if (loader) loader.classList.remove('active');
-        
-        // После загрузки из БД синхронизируем с state (берём БОЛЬШЕЕ значение)
-        console.log('[initGame] После loadGame: gameState.coins=', gameState.coins, 'state.click_coins=', state.click_coins);
 
+        // Синхронизируем state и gameState
         const maxCoins = Math.max(state.click_coins || 0, Math.floor(gameState.coins || 0));
         const maxCrystals = Math.max(state.crystals || 0, Math.floor(gameState.crystals || 0));
         const maxStars = Math.max(state.stars || 0, Math.floor(gameState.stars || 0));
@@ -7658,9 +7710,10 @@ window.initGame = function() {
         gameState.crystals = maxCrystals;
         gameState.stars = maxStars;
 
-        console.log('[initGame] После синхронизации: state.click_coins=', state.click_coins, 'gameState.coins=', gameState.coins);
+        console.log('[initGame] После синхронизации:', state.click_coins, gameState.coins);
 
         updateUI();
+        renderGrid();
         startPassiveEffects();
 
         // Показываем подсказку только если firstPlay === true
