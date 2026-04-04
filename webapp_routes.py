@@ -88,7 +88,7 @@ async def get_user_data(user_id: int):
         cursor = conn.cursor()
         cursor.execute("""
             SELECT click_coins, stars, crystals, total_clicks,
-                   click_power, auto_clicker, energy_multiplier, theme,
+                   click_power, auto_clicker, energy_multiplier,
                    xp, level, streak_days, referrals_count, tasks_completed,
                    first_name, username, created_at, first_play
             FROM users WHERE telegram_id = ?
@@ -116,7 +116,6 @@ async def get_user_data(user_id: int):
                 "auto_clicker": bool(get("auto_clicker")),
                 "max_energy": 1000 * (get("energy_multiplier") or 1),
                 "energy": 1000 * (get("energy_multiplier") or 1),
-                "theme": get("theme", "default"),
                 "xp": xp,
                 "level": p["level"],
                 "first_name": get("first_name", ""),
@@ -199,9 +198,6 @@ async def save_clicks(request: Request):
     auto_clicker = data.get("auto_clicker", False)
     max_energy = max(1000, to_int(data.get("max_energy", 1000), 1000))
     energy_multiplier = max(1, max_energy // 1000)
-    theme = data.get("theme") or ""
-    if len(theme) > 32:
-        theme = theme[:32]
 
     conn = get_db()
     cursor = conn.cursor()
@@ -262,10 +258,10 @@ async def save_clicks(request: Request):
     try:
         cursor.execute("""
             UPDATE users SET click_coins = ?, stars = ?, crystals = ?, total_clicks = ?,
-                click_power = ?, auto_clicker = ?, energy_multiplier = ?, theme = ?,
+                click_power = ?, auto_clicker = ?, energy_multiplier = ?,
                 xp = ?, level = ?, last_activity = CURRENT_TIMESTAMP
             WHERE telegram_id = ?
-        """, (final_coins, final_stars, final_crystals, total_clicks, click_power, auto_clicker, energy_multiplier, theme, xp, level, user_id))
+        """, (final_coins, final_stars, final_crystals, total_clicks, click_power, auto_clicker, energy_multiplier, xp, level, user_id))
     except Exception as e:
         print(f"Error updating user: {e}")
 
