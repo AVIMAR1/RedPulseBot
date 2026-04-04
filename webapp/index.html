@@ -7120,8 +7120,10 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     const startPx = padding + col * cellStep + CELL_SIZE / 2;
     const startPy = padding + row * cellStep + CELL_SIZE / 2;
     allPoints.push({x: startPx, y: startPy});
+    console.log('[spawnLaser] Start:', startPx, startPy, 'row:', row, 'col:', col);
 
     setTimeout(() => {
+        console.log('[spawnLaser] Enqueue step');
         enqueueStep(row, col, dir, charge, startPx, startPy);
     }, 100);
 }
