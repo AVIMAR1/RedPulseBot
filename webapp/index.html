@@ -6929,7 +6929,6 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     const checked = processed || new Set();
     let earned = { coins: 0, diamonds: 0, stars: 0 };
     let animFrameId = null;
-    let totalSegments = 0;
 
     const canvas = document.createElement('canvas');
     canvas.classList.add('laser-canvas');
@@ -6945,48 +6944,52 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // Все точки лазера (для перерисовки)
-    const allPoints = [];
+    // Завершённые сегменты (каждый — независимая линия)
+    const completedSegments = [];
+    // Текущий анимируемый сегмент
+    let currentAnim = null;
 
-    // Анимация движения от точки к точке (рисует ВЕСЬ путь)
+    // Перерисовать Canvas
+    function redrawCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+        for (const seg of completedSegments) {
+            ctx.moveTo(seg.x1, seg.y1);
+            ctx.lineTo(seg.x2, seg.y2);
+        }
+        if (currentAnim) {
+            const cx = currentAnim.x1 + (currentAnim.x2 - currentAnim.x1) * currentAnim.progress;
+            const cy = currentAnim.y1 + (currentAnim.y2 - currentAnim.y1) * currentAnim.progress;
+            ctx.moveTo(currentAnim.x1, currentAnim.y1);
+            ctx.lineTo(cx, cy);
+        }
+        ctx.stroke();
+    }
+
+    // Анимация — каждый сегмент рисуется отдельно, без смешивания веток
     function moveSmooth(x1, y1, x2, y2, onDone) {
-        // Если точки совпадают — сразу продолжаем
         if (Math.abs(x1 - x2) < 0.5 && Math.abs(y1 - y2) < 0.5) {
+            completedSegments.push({x1, y1, x2, y2});
             onDone();
             return;
         }
 
         const dist = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
-        const duration = (dist / PIXELS_PER_SEC) * 1000; // мс
+        const duration = (dist / PIXELS_PER_SEC) * 1000;
         const startTime = performance.now();
+        currentAnim = {x1, y1, x2, y2, progress: 0};
 
         function frame(now) {
             const elapsed = now - startTime;
             const t = Math.min(elapsed / duration, 1);
-            const cx = x1 + (x2 - x1) * t;
-            const cy = y1 + (y2 - y1) * t;
-
-            // Перерисовываем ВЕСЬ путь + текущий сегмент
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (allPoints.length > 0) {
-                ctx.beginPath();
-                ctx.moveTo(allPoints[0].x, allPoints[0].y);
-                for (let i = 1; i < allPoints.length; i++) {
-                    ctx.lineTo(allPoints[i].x, allPoints[i].y);
-                }
-                ctx.lineTo(cx, cy);
-                ctx.stroke();
-            } else {
-                ctx.beginPath();
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(cx, cy);
-                ctx.stroke();
-            }
+            currentAnim.progress = t;
+            redrawCanvas();
 
             if (t < 1) {
                 animFrameId = requestAnimationFrame(frame);
             } else {
-                allPoints.push({x: x2, y: y2});
+                completedSegments.push({x1, y1, x2, y2});
+                currentAnim = null;
                 onDone();
             }
         }
@@ -7108,7 +7111,7 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     // Стартовая точка
     const startPx = padding + col * cellStep + CELL_SIZE / 2;
     const startPy = padding + row * cellStep + CELL_SIZE / 2;
-    allPoints.push({x: startPx, y: startPy});
+    completedSegments.push({x1: startPx, y1: startPy, x2: startPx, y2: startPy});
 
     setTimeout(() => {
         step(row, col, dir, charge, startPx, startPy);
