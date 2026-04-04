@@ -6924,7 +6924,7 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     const fieldRows = gameState.fieldRows;
     const fieldW = fieldGrid.clientWidth || FIELD_COLS * cellStep + padding * 2;
     const fieldH = fieldGrid.clientHeight || fieldRows * cellStep + padding * 2;
-    const PIXELS_PER_SEC = 100; // скорость лазера — 100px/сек = ~0.5сек на клетку
+    const PIXELS_PER_SEC = 60; // медленно, плавно
 
     const checked = processed || new Set();
     let earned = { coins: 0, diamonds: 0, stars: 0 };
@@ -7036,18 +7036,11 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     async function step(r, c, d, ch, fromX, fromY) {
         activeBranches++;
 
-        // Стена
+        // Стена — плавно доезжаем до границы
         if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) {
-            const endX = Math.max(0, Math.min(fieldW, fromX + d.x * (CELL_SIZE + GAP)));
-            const endY = Math.max(0, Math.min(fieldH, fromY + d.y * (CELL_SIZE + GAP)));
-            allPoints.push({x: endX, y: endY});
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.beginPath();
-            ctx.moveTo(allPoints[0].x, allPoints[0].y);
-            for (let i = 1; i < allPoints.length; i++) {
-                ctx.lineTo(allPoints[i].x, allPoints[i].y);
-            }
-            ctx.stroke();
+            const endX = Math.max(0, Math.min(fieldW, fromX + d.x * 20));
+            const endY = Math.max(0, Math.min(fieldH, fromY + d.y * 20));
+            await moveSmoothAsync(fromX, fromY, endX, endY);
             branchDone();
             return;
         }
