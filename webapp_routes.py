@@ -63,11 +63,11 @@ async def get_user_data(user_id: int):
 
     try:
         print(f'[get_user_data] Запрос для userId={user_id}')
-        
+
         # Проверяем, существует ли пользователь
         cursor.execute("SELECT telegram_id, first_name, username FROM users WHERE telegram_id = ?", (user_id,))
         user = cursor.fetchone()
-        
+
         if not user:
             print(f'[get_user_data] userId={user_id} НЕ ЗАРЕГИСТРИРОВАН!')
             conn.close()
@@ -75,7 +75,7 @@ async def get_user_data(user_id: int):
                 "error": "NOT_REGISTERED",
                 "message": "Пользователь не найден. Нажмите /start в боте для регистрации."
             }, 403
-        
+
         print(f'[get_user_data] userId={user_id}, данные:', dict(user))
     except Exception as e:
         print(f"Error fetching user: {e}")
@@ -91,12 +91,12 @@ async def get_user_data(user_id: int):
             SELECT click_coins, stars, crystals, total_clicks,
                    click_power, auto_clicker, energy_multiplier, theme,
                    xp, level, streak_days, referrals_count, tasks_completed,
-                   first_name, username, created_at
+                   first_name, username, created_at, first_play
             FROM users WHERE telegram_id = ?
         """, (user_id,))
         full_user = cursor.fetchone()
         conn.close()
-        
+
         if full_user:
             def get(k, default=0):
                 v = full_user[k]
@@ -125,9 +125,10 @@ async def get_user_data(user_id: int):
                 "created_at": get("created_at", ""),
                 "streak_days": get("streak_days", 0),
                 "referrals_count": get("referrals_count", 0),
-                "tasks_completed": get("tasks_completed", 0)
+                "tasks_completed": get("tasks_completed", 0),
+                "first_play": bool(get("first_play", True))
             }
-    
+
     # Если пользователь не найден
     return {
         "error": "NOT_REGISTERED",
@@ -451,6 +452,7 @@ async def save_farm_stats(request: Request):
                 bank_coins = ?,
                 bank_stars = ?,
                 bank_crystals = ?,
+                first_play = 0,
                 last_activity = CURRENT_TIMESTAMP
             WHERE telegram_id = ?
         """, (reactor_level, blocks_placed, reactions_triggered, total_energy_produced,

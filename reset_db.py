@@ -48,49 +48,49 @@ def reset_database():
             username TEXT,
             first_name TEXT,
             last_name TEXT,
-            
+
             -- Основная валюта
             click_coins INTEGER DEFAULT 0,
             stars INTEGER DEFAULT 0,
             crystals INTEGER DEFAULT 0,
-            
+
             -- Рефералы
             referrer_id INTEGER,
             referral_bonus INTEGER DEFAULT 0,
             referrals_count INTEGER DEFAULT 0,
-            
+
             -- Статистика
             total_clicks INTEGER DEFAULT 0,
             tasks_completed INTEGER DEFAULT 0,
-            
+
             -- Прогресс
             level INTEGER DEFAULT 1,
             xp INTEGER DEFAULT 0,
-            
+
             -- Стрики
             streak_days INTEGER DEFAULT 0,
             streak_last_date TEXT,
             last_daily_reward_at TEXT,
             last_random_bonus_at TEXT,
-            
+
             -- Бусты
             click_power INTEGER DEFAULT 1,
             energy_multiplier INTEGER DEFAULT 1,
             auto_clicker INTEGER DEFAULT 0,
-            
+
             -- Тема
             theme TEXT DEFAULT 'default',
-            
+
             -- Бан
             is_banned INTEGER DEFAULT 0,
             ban_reason TEXT,
             ban_expires TEXT,
             banned_at TEXT,
-            
+
             -- Даты
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            
+
             -- ФЕРМА (реактор)
             reactor_level INTEGER DEFAULT 1,
             blocks_placed INTEGER DEFAULT 0,
@@ -100,12 +100,12 @@ def reset_database():
             temp INTEGER DEFAULT 0,
             max_temp INTEGER DEFAULT 100,
             first_play INTEGER DEFAULT 1,  # 1 = true, 0 = false
-            
+
             -- БАНК ФЕРМЫ
             bank_coins INTEGER DEFAULT 0,
             bank_stars INTEGER DEFAULT 0,
             bank_crystals INTEGER DEFAULT 0,
-            
+
             -- Питомец
             gender TEXT DEFAULT 'male',
             pet_type TEXT,
@@ -115,10 +115,10 @@ def reset_database():
             pet_hunger INTEGER DEFAULT 100,
             pet_happiness INTEGER DEFAULT 100,
             pet_last_interaction TEXT,
-            
+
             -- Титулы
             current_title_id INTEGER,
-            
+
             -- Предупреждения
             warnings_count INTEGER DEFAULT 0
         )
