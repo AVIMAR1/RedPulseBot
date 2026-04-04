@@ -4066,11 +4066,11 @@ body {
             TAP_COOLDOWN: 10000,
             BASE_CHARGE_POWER: 1,
             CHARGE_PER_LEVEL: 0.25,
-            DROP_RATES: { COIN: 50, ROUTER: 25, MULTIPLIER: 10, DIAMOND: 10, STAR: 5 },
+            DROP_RATES: { COIN: 50, ROUTER: 15, MULTIPLIER: 5, DIAMOND: 15, STAR: 5 },
             MULTIPLIER_VALUES: [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
             MULTIPLIER_CHANCES: [35, 25, 18, 10, 6, 3, 2, 1],
             ROUTER_VALUES: [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0],
-            RARITY_PRICE_MULT: { COIN: 1.0, ROUTER: 1.2, MULTIPLIER: 1.3, DIAMOND: 1.4, STAR: 1.5 },
+            RARITY_PRICE_MULT: { COIN: 1.0, ROUTER: 2.0, MULTIPLIER: 2.5, DIAMOND: 1.4, STAR: 1.5 },
             PRICES: { BLOCK_BASE: 25, BLOCK_GROWTH: 1.25, BLOCK_ADD: 8, REROLL_BASE: 100, REROLL_GROWTH: 1.15, REROLL_ADD: 15, EXPAND_BASE: 2000, EXPAND_GROWTH: 1.35, EXPAND_ADD: 800 },
             XP: { BASE_PER_TAP: 10, BASE_PER_LEVEL: 100, GROWTH: 1.15, LEVEL_BONUS_CHARGE: 0.05, LEVEL_BONUS_TEMP: 10 },
             CONVERSION: { COIN: 1, DIAMOND: 3000, STAR: 50000 },
@@ -6700,7 +6700,7 @@ window.updateUI = function() {
         const bankStarsEl = document.getElementById('bankStars');
 
         if (coinsEl) coinsEl.textContent = formatNumber(gameState.coins);
-        if (crystalsEl) crystalsEl.textContent = formatFarmDiamonds(gameState.crystals, false);
+        if (crystalsEl) crystalsEl.textContent = formatNumber(gameState.crystals);
         if (starsEl) starsEl.textContent = formatFarmStars(gameState.stars, false);
         if (bankCoinsEl) bankCoinsEl.textContent = formatBankCoins(gameState.bankCoins || 0);
         if (bankCrystalsEl) bankCrystalsEl.textContent = formatFarmDiamonds(gameState.bankCrystals || 0, true);
