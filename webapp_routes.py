@@ -58,28 +58,26 @@ async def get_service_worker():
 @router.get("/api/user/{user_id}")
 async def get_user_data(user_id: int):
     """Получение данных пользователя с логированием и проверкой регистрации"""
-    print(f'========== [get_user_data] ЗАПРОС userId={user_id} ==========')
+    print(f'========== [API] ЗАПРОС /api/user/{user_id} ==========')
     conn = get_db()
     cursor = conn.cursor()
 
     try:
-        print(f'[get_user_data] Запрос для userId={user_id}')
-
         # Проверяем, существует ли пользователь
         cursor.execute("SELECT telegram_id, first_name, username FROM users WHERE telegram_id = ?", (user_id,))
         user = cursor.fetchone()
 
         if not user:
-            print(f'[get_user_data] userId={user_id} НЕ ЗАРЕГИСТРИРОВАН!')
+            print(f'[API] userId={user_id} НЕ НАЙДЕН В БД!')
             conn.close()
             return {
                 "error": "NOT_REGISTERED",
                 "message": "Пользователь не найден. Нажмите /start в боте для регистрации."
             }, 403
 
-        print(f'[get_user_data] userId={user_id}, данные:', dict(user))
+        print(f'[API] userId={user_id} НАЙДЕН, загружаем данные...')
     except Exception as e:
-        print(f"Error fetching user: {e}")
+        print(f"[API] Ошибка проверки пользователя: {e}")
         user = None
 
     conn.close()
@@ -109,7 +107,7 @@ async def get_user_data(user_id: int):
                 xp = int(get("total_clicks", 0) or 0)
             p = progress_for_xp(xp)
 
-            return {
+            result = {
                 "click_coins": get("click_coins", 0),
                 "stars": get("stars", 0),
                 "crystals": get("crystals", 0),
@@ -129,8 +127,10 @@ async def get_user_data(user_id: int):
                 "tasks_completed": get("tasks_completed", 0),
                 "first_play": bool(get("first_play", True)) if get("first_play") is not None else True
             }
+            print(f'[API] ОТВЕТ: click_coins={result["click_coins"]}, stars={result["stars"]}, crystals={result["crystals"]}')
+            return result
 
-    # Если пользователь не найден
+    print(f'[API] full_user не найден для userId={user_id}')
     return {
         "error": "NOT_REGISTERED",
         "message": "Пользователь не найден. Нажмите /start в боте для регистрации."
