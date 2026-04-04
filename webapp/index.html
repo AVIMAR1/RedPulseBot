@@ -6870,75 +6870,77 @@ function launchCharge() {
     spawnCharge(x, y, dir, charge, new Set(), 0);
 }
 
-// Оптимизированный снаряд — 30fps вместо 60fps
 function spawnCharge(x, y, dir, charge, processed, skipFrames) {
     const fieldGrid = document.getElementById('fieldGrid');
     if (!fieldGrid) { finishCharging(); return; }
 
     const padding = 10;
-    const fieldWidth = FIELD_COLS * (CELL_SIZE + GAP) + padding * 2;
-    const fieldHeight = gameState.fieldRows * (CELL_SIZE + GAP) + padding * 2;
-    const BASE_SPEED = 3.5;
+    const cellStep = CELL_SIZE + GAP;
+    const fieldWidth = FIELD_COLS * cellStep + padding * 2;
+    const fieldHeight = gameState.fieldRows * cellStep + padding * 2;
+
+    // Позиция снаряда
+    let chargeX = x;
+    let chargeY = y;
 
     const chargeEl = document.createElement('div');
     chargeEl.className = 'charge-particle';
-    chargeEl.style.left = `${x - 9}px`;
-    chargeEl.style.top = `${y - 9}px`;
+    chargeEl.style.left = `${chargeX - 9}px`;
+    chargeEl.style.top = `${chargeY - 9}px`;
+    chargeEl.style.transition = '';
     fieldGrid.appendChild(chargeEl);
 
-    // ИСПОЛЬЗУЕМ переданный processed, НЕ создаём новый!
-    const checkedBlocks = processed || new Set();
-    let lastTime = 0;
-    const FRAME_INTERVAL = 33; // 30fps
+    const checked = processed || new Set();
+    const speed = 2.5; // пикселей за шаг
+    const STEP_MS = 16; // ~60fps
 
-    function move(timestamp) {
-        if (!lastTime) lastTime = timestamp;
-        const elapsed = timestamp - lastTime;
-        if (elapsed < FRAME_INTERVAL) {
-            requestAnimationFrame(move);
-            return;
-        }
-        lastTime = timestamp;
+    function step() {
+        chargeX += dir.x * speed;
+        chargeY += dir.y * speed;
 
-        x += dir.x * BASE_SPEED;
-        y += dir.y * BASE_SPEED;
+        chargeEl.style.left = `${chargeX - 9}px`;
+        chargeEl.style.top = `${chargeY - 9}px`;
 
-        chargeEl.style.left = `${x - 9}px`;
-        chargeEl.style.top = `${y - 9}px`;
-
-        // Bounds check
-        if (x < padding - 10 || x > fieldWidth - padding + 10 || y < padding - 10 || y > fieldHeight - padding + 10) {
-            chargeEl.remove();
-            finishCharging();
+        // Выход за границы
+        if (chargeX < padding - 15 || chargeX > fieldWidth - padding + 15 || 
+            chargeY < padding - 15 || chargeY > fieldHeight - padding + 15) {
+            chargeEl.style.transition = 'opacity 0.2s';
+            chargeEl.style.opacity = '0';
+            setTimeout(() => { chargeEl.remove(); finishCharging(); }, 200);
             return;
         }
 
-        const col = Math.floor((x - padding) / (CELL_SIZE + GAP));
-        const row = Math.floor((y - padding) / (CELL_SIZE + GAP));
+        // Проверка столкновения
+        const col = Math.floor((chargeX - padding) / cellStep);
+        const row = Math.floor((chargeY - padding) / cellStep);
         const blockKey = `${row}-${col}`;
 
         if (row >= 0 && row < gameState.fieldRows && col >= 0 && col < FIELD_COLS) {
             const block = gameState.grid[row]?.[col];
-            if (block && !checkedBlocks.has(blockKey)) {
-                const cellX = padding + col * (CELL_SIZE + GAP);
-                const cellY = padding + row * (CELL_SIZE + GAP);
-                const hitBox = CELL_SIZE * 0.7;
-                const dx = Math.abs(x - (cellX + CELL_SIZE/2));
-                const dy = Math.abs(y - (cellY + CELL_SIZE/2));
+            if (block && !checked.has(blockKey)) {
+                const cellX = padding + col * cellStep + CELL_SIZE / 2;
+                const cellY = padding + row * cellStep + CELL_SIZE / 2;
+                const dx = Math.abs(chargeX - cellX);
+                const dy = Math.abs(chargeY - cellY);
 
-                if (dx < hitBox && dy < hitBox) {
-                    checkedBlocks.add(blockKey);
-                    chargeEl.remove();
-                    handleBlock(block, row, col, charge, dir, checkedBlocks, x, y);
+                if (dx < CELL_SIZE * 0.45 && dy < CELL_SIZE * 0.45) {
+                    checked.add(blockKey);
+                    chargeEl.style.transition = 'transform 0.15s ease-out, opacity 0.15s ease-out';
+                    chargeEl.style.transform = 'scale(1.5)';
+                    chargeEl.style.opacity = '0';
+                    setTimeout(() => {
+                        chargeEl.remove();
+                        handleBlock(block, row, col, charge, dir, checked, cellX, cellY);
+                    }, 150);
                     return;
                 }
             }
         }
 
-        requestAnimationFrame(move);
+        setTimeout(step, STEP_MS);
     }
 
-    requestAnimationFrame(move);
+    step();
 }
 
 function handleBlock(block, row, col, charge, dir, processed, x, y) {
