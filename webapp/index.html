@@ -6914,13 +6914,14 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     const checked = processed || new Set();
     let earned = { coins: 0, diamonds: 0, stars: 0 };
 
-    // ОДИН Canvas на всё
+    // Лёгкий Canvas без тяжёлых операций
     const canvas = document.createElement('canvas');
     canvas.classList.add('laser-canvas');
     canvas.width = fieldW;
     canvas.height = fieldH;
     canvas.style.width = fieldW + 'px';
     canvas.style.height = fieldH + 'px';
+    canvas.style.willChange = 'opacity';
     fieldGrid.appendChild(canvas);
 
     const ctx = canvas.getContext('2d');
@@ -6928,25 +6929,29 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    // Без shadowBlur — гораздо быстрее!
 
     let activeBranches = 0;
     let branchesDone = 0;
+
+    function branchFinished() {
+        branchesDone++;
+        if (branchesDone >= activeBranches) finishLaser(canvas);
+    }
 
     function step(r, c, d, ch, fromX, fromY) {
         activeBranches++;
 
         return new Promise((resolve) => {
             if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) {
-                branchesDone++;
-                if (branchesDone === activeBranches) finishLaser(canvas);
+                branchFinished();
+                resolve();
                 return;
             }
 
             const blockKey = `${r}-${c}`;
             if (checked.has(blockKey)) {
-                branchesDone++;
-                if (branchesDone === activeBranches) finishLaser(canvas);
+                branchFinished();
+                resolve();
                 return;
             }
 
@@ -6955,7 +6960,7 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
             const px = padding + c * cellStep + CELL_SIZE / 2;
             const py = padding + r * cellStep + CELL_SIZE / 2;
 
-            // Рисуем линию от предыдущей точки
+            // Рисуем линию
             ctx.beginPath();
             ctx.moveTo(fromX || px, fromY || py);
             ctx.lineTo(px, py);
@@ -6965,31 +6970,31 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
 
             if (!block) {
                 setTimeout(() => {
-                    step(r + d.y, c + d.x, d, ch, px, py).then(resolve);
+                    step(r + d.y, c + d.x, d, ch, px, py).then(() => { branchFinished(); resolve(); });
                 }, STEP_DELAY);
             } else {
                 switch (block.type) {
                     case BLOCK_TYPES.COIN:
                         earned.coins += ch * CONFIG.CONVERSION.COIN * block.level;
                         setTimeout(() => {
-                            step(r + d.y, c + d.x, d, ch, px, py).then(resolve);
+                            step(r + d.y, c + d.x, d, ch, px, py).then(() => { branchFinished(); resolve(); });
                         }, STEP_DELAY);
                         break;
                     case BLOCK_TYPES.DIAMOND:
                         earned.diamonds += (ch * block.level) / CONFIG.CONVERSION.DIAMOND;
                         setTimeout(() => {
-                            step(r + d.y, c + d.x, d, ch, px, py).then(resolve);
+                            step(r + d.y, c + d.x, d, ch, px, py).then(() => { branchFinished(); resolve(); });
                         }, STEP_DELAY);
                         break;
                     case BLOCK_TYPES.STAR:
                         earned.stars += (ch * block.level) / CONFIG.CONVERSION.STAR;
                         setTimeout(() => {
-                            step(r + d.y, c + d.x, d, ch, px, py).then(resolve);
+                            step(r + d.y, c + d.x, d, ch, px, py).then(() => { branchFinished(); resolve(); });
                         }, STEP_DELAY);
                         break;
                     case BLOCK_TYPES.MULTIPLIER:
                         setTimeout(() => {
-                            step(r + d.y, c + d.x, d, ch * block.value, px, py).then(resolve);
+                            step(r + d.y, c + d.x, d, ch * block.value, px, py).then(() => { branchFinished(); resolve(); });
                         }, STEP_DELAY);
                         break;
                     case BLOCK_TYPES.ROUTER: {
@@ -6999,22 +7004,25 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
                             const outPorts = ports.filter(p => p !== hitPort);
                             const boosted = ch * block.value;
                             const pDir = { 'top': {x:0,y:-1}, 'bottom': {x:0,y:1}, 'left': {x:-1,y:0}, 'right': {x:1,y:0} };
-                            // Все ветки на ТОМ ЖЕ Canvas
-                            const promises = outPorts.map(port => {
-                                return new Promise(res =>
-                                    setTimeout(() => step(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted, px, py).then(res), STEP_DELAY)
+
+                            if (outPorts.length === 0) {
+                                branchFinished();
+                                resolve();
+                            } else {
+                                const promises = outPorts.map(port =>
+                                    new Promise(res => setTimeout(() => step(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted, px, py).then(res), STEP_DELAY))
                                 );
-                            });
-                            Promise.all(promises).then(resolve);
+                                Promise.all(promises).then(() => { branchFinished(); resolve(); });
+                            }
                         } else {
-                            branchesDone++;
-                            if (branchesDone === activeBranches) finishLaser(canvas);
+                            branchFinished();
+                            resolve();
                         }
                         break;
                     }
                     default:
                         setTimeout(() => {
-                            step(r + d.y, c + d.x, d, ch, px, py).then(resolve);
+                            step(r + d.y, c + d.x, d, ch, px, py).then(() => { branchFinished(); resolve(); });
                         }, STEP_DELAY);
                 }
             }
