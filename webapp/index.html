@@ -6949,6 +6949,8 @@ window.renderGrid = function() {
 // Делегирование событий для grid (ОДИН обработчик вместо N на ячейку)
 if (!window._gridEventHandlerSetup) {
     document.addEventListener('click', function(e) {
+        // Блокируем клики пока лазер работает
+        if (typeof activeAnimations !== 'undefined' && activeAnimations.length > 0) return;
         const cell = e.target.closest('.cell');
         if (!cell) return;
         const row = parseInt(cell.dataset.row);
@@ -7303,20 +7305,24 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
             switch (block.type) {
                 case BLOCK_TYPES.COIN:
                     earned.coins += ch * CONFIG.CONVERSION.COIN * block.level;
+                    gameState.reactions_triggered++;
                     await step(r + d.y, c + d.x, d, ch, px, py);
                     break;
                 case BLOCK_TYPES.DIAMOND:
                     earned.diamonds += (ch * block.level) / CONFIG.CONVERSION.DIAMOND;
+                    gameState.reactions_triggered++;
                     await step(r + d.y, c + d.x, d, ch, px, py);
                     break;
                 case BLOCK_TYPES.STAR:
                     earned.stars += (ch * block.level) / CONFIG.CONVERSION.STAR;
+                    gameState.reactions_triggered++;
                     await step(r + d.y, c + d.x, d, ch, px, py);
                     break;
                 case BLOCK_TYPES.MULTIPLIER:
+                    gameState.reactions_triggered++;
                     await step(r + d.y, c + d.x, d, ch * block.value, px, py);
                     break;
-                    case BLOCK_TYPES.ROUTER: {
+                case BLOCK_TYPES.ROUTER: {
                         const hitPort = getHitPort(d);
                         const ports = block.routerConfig?.ports || [];
                         if (ports.includes(hitPort)) {
