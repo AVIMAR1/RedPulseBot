@@ -4656,8 +4656,7 @@ body {
             function waitForUserIdAndLoad() {
                 if (userId) {
                     loadUserData();
-                    // Запускаем polling баланса каждые 2 секунды
-                    startBalancePolling();
+                    // Polling баланса УБРАН - баланс обновляется через loadUserData() и updateBalanceDisplay()
                 } else {
                     setTimeout(waitForUserIdAndLoad, 100);
                 }
@@ -4665,39 +4664,25 @@ body {
             waitForUserIdAndLoad();
         });
 
-        // Polling баланса с сервера
-        let balancePollInterval = null;
-        function startBalancePolling() {
-            if (balancePollInterval) return;
-            balancePollInterval = setInterval(() => {
-                if (!userId) return;
-                fetch(`/api/user/${userId}`)
-                    .then(r => r.json())
-                    .then(data => {
-                        if (data.click_coins !== undefined) {
-                            state.click_coins = data.click_coins || 0;
-                            state.stars = data.stars || 0;
-                            state.crystals = data.crystals || 0;
-                            updateBalanceDisplay();
-                        }
-                    })
-                    .catch(() => {});
-            }, 2000);
-        }
-
         // Форматирование больших чисел: 1000→1К, 1070→1,07К, 10000→10К, 1000000→1КК
-        function formatNumber(num) {
+        // Звёзды НЕ сокращаются - показываются как есть
+        function formatNumber(num, isStars) {
             if (!num || num === 0) return '0';
+            // Звёзды показываем как есть без сокращения
+            if (isStars) {
+                if (num >= 100) return Math.floor(num).toString();
+                if (num >= 10) return num.toFixed(1);
+                return num.toFixed(2);
+            }
             num = Math.floor(num);
             if (num >= 1000000000) return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'ККК';
             if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'КК';
             if (num >= 10000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'К';
             if (num >= 1000) {
                 const k = num / 1000;
-                // Не больше 5 символов: 1,07К (5), 10,1К (5), 100К (4)
-                if (k >= 100) return Math.floor(k) + 'К'; // 100К+
-                if (k >= 10) return k.toFixed(1).replace(/\.0$/, '') + 'К'; // 10,1К
-                return k.toFixed(2).replace(/\.?0+$/, '') + 'К'; // 1,07К
+                if (k >= 100) return Math.floor(k) + 'К';
+                if (k >= 10) return k.toFixed(1).replace(/\.0$/, '') + 'К';
+                return k.toFixed(2).replace(/\.?0+$/, '') + 'К';
             }
             return num.toLocaleString();
         }
@@ -4709,11 +4694,10 @@ body {
             const bcr = document.getElementById('balance-crystals');
             
             if (bc && bs && bcr) {
-                bc.innerHTML = '<span>' + formatNumber(state.click_coins || 0) + '</span>';
-                bs.innerHTML = '<span>' + formatNumber(state.stars || 0) + '</span>';
-                bcr.innerHTML = '<span>' + formatNumber(state.crystals || 0) + '</span>';
+                bc.innerHTML = '<span>' + formatNumber(state.click_coins || 0, false) + '</span>';
+                bs.innerHTML = '<span>' + formatNumber(state.stars || 0, true) + '</span>';
+                bcr.innerHTML = '<span>' + formatNumber(state.crystals || 0, false) + '</span>';
             } else {
-                // Элементы не готовы - пробуем через 500мс
                 setTimeout(updateBalanceDisplay, 500);
             }
         }
@@ -6637,6 +6621,13 @@ window.renderGrid = function() {
         console.error('renderGrid: fieldGrid элемент не найден!');
         return;
     }
+    
+    // НЕ рендерим если grid ещё не загружен
+    if (!gameState.grid || !Array.isArray(gameState.grid) || gameState.grid.length === 0 || !gameState.grid[0]) {
+        console.log('[renderGrid] Grid ещё не загружен, пропускаем');
+        return;
+    }
+    
     console.log('[renderGrid] fieldRows:', gameState.fieldRows, 'FIELD_COLS:', FIELD_COLS);
     gridEl.innerHTML = '';
 
@@ -7645,6 +7636,8 @@ window.initGame = function() {
         // Скрываем лоадер
         if (loader) loader.classList.remove('active');
 
+        console.log('[initGame] loadGame завершён, grid:', gameState.grid?.length, 'строк');
+
         // Синхронизируем state и gameState (берём максимум)
         const maxCoins = Math.max(state.click_coins || 0, Math.floor(gameState.coins || 0));
         const maxCrystals = Math.max(state.crystals || 0, Math.floor(gameState.crystals || 0));
@@ -7660,6 +7653,7 @@ window.initGame = function() {
         console.log('[initGame] После синхронизации:', state.click_coins, gameState.coins);
 
         updateUI();
+        renderGrid();  // Гарантированно отрисовываем grid после загрузки
         startPassiveEffects();
 
         // Показываем подсказку только если firstPlay === true
