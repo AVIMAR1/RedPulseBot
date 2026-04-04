@@ -6950,42 +6950,38 @@ function handleBlock(block, row, col, charge, dir, processed, x, y) {
     switch (block.type) {
         case BLOCK_TYPES.COIN:
             const coins = charge * CONFIG.CONVERSION.COIN * block.level;
-            // Начисляем В БАНК фермы
             const oldBankCoins = gameState.bankCoins || 0;
             gameState.bankCoins = oldBankCoins + coins;
             gameState.totalEarned += coins;
             showFloatingEarn(row, col, `+${Math.floor(coins * 100) / 100} 🪙`, 'coin');
-            spawnCharge(x, y, dir, charge, processed, 5);
+            spawnCharge(row, col, x, y, dir, charge, processed);
             updateBalance();
             break;
 
         case BLOCK_TYPES.DIAMOND:
             const diamonds = (charge * block.level) / CONFIG.CONVERSION.DIAMOND;
-            // Начисляем В БАНК фермы
             const oldBankCrystals = gameState.bankCrystals || 0;
             gameState.bankCrystals = oldBankCrystals + diamonds;
             showFloatingEarn(row, col, `+${Math.floor(diamonds * 10000) / 10000} 💎`, 'diamond');
-            spawnCharge(x, y, dir, charge, processed, 5);
+            spawnCharge(row, col, x, y, dir, charge, processed);
             updateBalance();
             break;
 
         case BLOCK_TYPES.STAR:
             const stars = (charge * block.level) / CONFIG.CONVERSION.STAR;
-            // Начисляем В БАНК фермы
             const oldBankStars = gameState.bankStars || 0;
             gameState.bankStars = oldBankStars + stars;
             showFloatingEarn(row, col, `+${Math.floor(stars * 1000000) / 1000000} ⭐`, 'star');
-            spawnCharge(x, y, dir, charge, processed, 5);
+            spawnCharge(row, col, x, y, dir, charge, processed);
             updateBalance();
             break;
 
         case BLOCK_TYPES.MULTIPLIER:
             const newCharge = charge * block.value;
-            // Показываем множитель с 2 знаками, округление вверх для избежания 1.14 вместо 1.15
             const multDisplay = Math.round(block.value * 100) / 100;
             showFloatingEarn(row, col, `×${multDisplay.toFixed(2)}!`, 'multiplier');
             // Выпускаем снаряд из ЦЕНТРА блока
-            setTimeout(() => spawnCharge(cellX + CELL_SIZE/2, cellY + CELL_SIZE/2, dir, newCharge, processed, 8), 50);
+            setTimeout(() => spawnCharge(row, col, x, y, dir, newCharge, processed), 50);
             break;
 
         case BLOCK_TYPES.ROUTER:
@@ -7000,7 +6996,7 @@ function handleBlock(block, row, col, charge, dir, processed, x, y) {
             // Упрощённая проверка - направление совпадает с портом
             if (!ports.includes(hitPort)) {
                 // Не попал в порт - пропускаем
-                spawnCharge(x, y, dir, charge, processed, 3);
+                spawnCharge(row, col, x, y, dir, charge, processed);
                 return;
             }
 
@@ -7026,14 +7022,12 @@ function handleBlock(block, row, col, charge, dir, processed, x, y) {
             // Выпускаем снаряды из ЦЕНТРА блока
             outputPorts.forEach((port, i) => {
                 const outDir = portToDir[port];
-                const outX = cellX + CELL_SIZE/2;
-                const outY = cellY + CELL_SIZE/2;
-                setTimeout(() => spawnCharge(outX, outY, outDir, boostedCharge, newProcessed, 5), i * 50);
+                setTimeout(() => spawnCharge(row, col, x, y, outDir, boostedCharge, newProcessed), i * 50);
             });
             break;
 
         default:
-            spawnCharge(x, y, dir, charge, processed, 5);
+            spawnCharge(row, col, x, y, dir, charge, processed);
     }
 }
 
