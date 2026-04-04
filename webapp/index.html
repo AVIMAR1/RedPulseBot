@@ -6864,10 +6864,12 @@ function launchCharge() {
     if (!fieldGrid) { gameState.isCharging = false; return; }
     const padding = 10;
     const charge = gameState.chargePower || 1;
-    const x = (CHARGE_COL + 0.5) * (CELL_SIZE + GAP) + padding;
-    const y = padding - 10;
+    // Старт: центр колонки CHARGE_COL, НАД первой строкой
+    const x = padding + CHARGE_COL * (CELL_SIZE + GAP) + CELL_SIZE / 2;
+    const y = padding + CELL_SIZE / 2;
     const dir = { x: 0, y: 1 };
-    spawnCharge(x, y, dir, charge, new Set(), 0);
+    // Начинаем с row=-1 чтобы первый шаг привёл в row=0
+    spawnCharge(x, y, dir, charge, new Set(), -1);
 }
 
 function spawnCharge(x, y, dir, charge, processed, skipFrames) {
@@ -6878,9 +6880,9 @@ function spawnCharge(x, y, dir, charge, processed, skipFrames) {
     const cellStep = CELL_SIZE + GAP;
     const fieldRows = gameState.fieldRows;
 
-    // Текущая клетка
+    // Текущая клетка (skipFrames = -1 означает старт над полем)
     let col = Math.round((x - padding) / cellStep);
-    let row = Math.round((y - padding) / cellStep);
+    let row = skipFrames;
 
     const chargeEl = document.createElement('div');
     chargeEl.className = 'charge-particle';
@@ -6892,7 +6894,7 @@ function spawnCharge(x, y, dir, charge, processed, skipFrames) {
     fieldGrid.appendChild(chargeEl);
 
     const checked = processed || new Set();
-    const STEP_DELAY = 80; // мс между клетками
+    const STEP_DELAY = 250; // мс между клетками (замедлено в 3 раза)
 
     function stepToNext() {
         // Двигаемся на 1 клетку
@@ -6937,6 +6939,7 @@ function spawnCharge(x, y, dir, charge, processed, skipFrames) {
         }, STEP_DELAY);
     }
 
+    // Первый шаг — СРАЗУ, без задержки
     stepToNext();
 }
 
