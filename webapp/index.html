@@ -6279,6 +6279,13 @@ async function saveFarmStats() {
         return;
     }
 
+    // НЕ сохраняем если gameState ещё не инициализирован
+    const hasGrid = gameState.grid && Array.isArray(gameState.grid) && gameState.grid.length > 0;
+    if (!hasGrid) {
+        console.log('[saveFarmStats] Пропуск: grid ещё не инициализирован');
+        return;
+    }
+
     try {
         // Считаем уровень реактора (максимальный уровень блока)
         let maxBlockLevel = 1;
@@ -6336,6 +6343,13 @@ async function saveFarmStats() {
 
 async function saveFarmState() {
     if (typeof userId === 'undefined' || !userId) return;
+
+    // НЕ сохраняем если gameState ещё не инициализирован (grid пустой)
+    const hasGrid = gameState.grid && Array.isArray(gameState.grid) && gameState.grid.length > 0;
+    if (!hasGrid) {
+        console.log('[saveFarmState] Пропуск: grid ещё не инициализирован');
+        return;
+    }
 
     try {
         // ВАЖНО: Синхронизируем валюту перед сохранением

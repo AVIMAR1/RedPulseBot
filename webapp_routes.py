@@ -576,6 +576,70 @@ async def save_farm_state(request: Request):
 
     try:
         import json
+        
+        # Получаем текущие значения из БД
+        cursor.execute("""
+            SELECT blocks_placed, reactions_triggered, reactor_level, total_energy_produced,
+                   click_coins, stars, crystals, bank_coins, bank_stars, bank_crystals,
+                   level, xp, temp, max_temp, first_play
+            FROM users WHERE telegram_id = ?
+        """, (user_id,))
+        db_row = cursor.fetchone()
+        
+        # Значения из запроса
+        req_blocks = farm_state.get('blocks_placed', 0)
+        req_reactions = farm_state.get('reactions_triggered', 0)
+        req_reactor = farm_state.get('reactor_level', 1)
+        req_energy = farm_state.get('total_energy_produced', 0)
+        req_coins = farm_state.get('coins', 0)
+        req_stars = farm_state.get('stars', 0)
+        req_crystals = farm_state.get('crystals', 0)
+        req_bank_coins = farm_state.get('bankCoins', 0)
+        req_bank_stars = farm_state.get('bankStars', 0)
+        req_bank_crystals = farm_state.get('bankCrystals', 0)
+        req_level = farm_state.get('level', 1)
+        req_xp = farm_state.get('xp', 0)
+        req_temp = farm_state.get('temp', 0)
+        req_max_temp = farm_state.get('maxTemp', 100)
+        
+        if db_row:
+            # Берём МАКСИМУМ чтобы не потерять прогресс
+            final_blocks = max(int(db_row["blocks_placed"] or 0), req_blocks)
+            final_reactions = max(int(db_row["reactions_triggered"] or 0), req_reactions)
+            final_reactor = max(int(db_row["reactor_level"] or 1), req_reactor)
+            final_energy = max(int(db_row["total_energy_produced"] or 0), req_energy)
+            final_coins = max(int(db_row["click_coins"] or 0), req_coins)
+            final_stars = max(int(db_row["stars"] or 0), req_stars)
+            final_crystals = max(int(db_row["crystals"] or 0), req_crystals)
+            final_bank_coins = max(int(db_row["bank_coins"] or 0), req_bank_coins)
+            final_bank_stars = max(int(db_row["bank_stars"] or 0), req_bank_stars)
+            final_bank_crystals = max(int(db_row["bank_crystals"] or 0), req_bank_crystals)
+            final_level = max(int(db_row["level"] or 1), req_level)
+            final_xp = max(int(db_row["xp"] or 0), req_xp)
+            final_temp = int(db_row["temp"] or 0) if req_temp == 0 else req_temp
+            final_max_temp = int(db_row["max_temp"] or 100) if req_max_temp == 100 else req_max_temp
+            # first_play: если в запросе False, сохраняем 0
+            final_first_play = 0 if farm_state.get('firstPlay') is False else (int(db_row["first_play"]) if db_row["first_play"] is not None else 1)
+            
+            print(f'[save-farm-state] max(): реакции {db_row["reactions_triggered"]} -> {final_reactions}, блоки {db_row["blocks_placed"]} -> {final_blocks}')
+        else:
+            # Нет данных в БД - используем значения из запроса
+            final_blocks = req_blocks
+            final_reactions = req_reactions
+            final_reactor = req_reactor
+            final_energy = req_energy
+            final_coins = req_coins
+            final_stars = req_stars
+            final_crystals = req_crystals
+            final_bank_coins = req_bank_coins
+            final_bank_stars = req_bank_stars
+            final_bank_crystals = req_bank_crystals
+            final_level = req_level
+            final_xp = req_xp
+            final_temp = req_temp
+            final_max_temp = req_max_temp
+            final_first_play = 0 if farm_state.get('firstPlay') is False else 1
+
         cursor.execute("""
             UPDATE users SET
                 farm_state_json = ?,
@@ -598,24 +662,24 @@ async def save_farm_state(request: Request):
             WHERE telegram_id = ?
         """, (
             json.dumps(farm_state),
-            farm_state.get('blocks_placed', 0),
-            farm_state.get('reactions_triggered', 0),
-            farm_state.get('reactor_level', 1),
-            farm_state.get('total_energy_produced', 0),
-            farm_state.get('coins', 0),
-            farm_state.get('stars', 0),
-            farm_state.get('crystals', 0),
-            farm_state.get('bankCoins', 0),
-            farm_state.get('bankStars', 0),
-            farm_state.get('bankCrystals', 0),
-            farm_state.get('level', 1),
-            farm_state.get('xp', 0),
-            farm_state.get('temp', 0),
-            farm_state.get('maxTemp', 100),
-            0 if farm_state.get('firstPlay') is False else 1,  # firstPlay=False → 0, иначе 1
+            final_blocks,
+            final_reactions,
+            final_reactor,
+            final_energy,
+            final_coins,
+            final_stars,
+            final_crystals,
+            final_bank_coins,
+            final_bank_stars,
+            final_bank_crystals,
+            final_level,
+            final_xp,
+            final_temp,
+            final_max_temp,
+            final_first_play,
             user_id
         ))
-        print(f'[save-farm-state] firstPlay={farm_state.get("firstPlay")}, сохраняем first_play={0 if farm_state.get("firstPlay") is False else 1}')
+        print(f'[save-farm-state] ✅ Сохранено: реакции={final_reactions}, блоки={final_blocks}, монеты={final_coins}')
         conn.commit()
         conn.close()
         return {"status": "ok"}
