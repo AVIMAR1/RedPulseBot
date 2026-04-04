@@ -4098,9 +4098,9 @@ body {
                 const balanceCoins = document.getElementById('balance-coins');
                 const balanceCrystals = document.getElementById('balance-crystals');
                 const balanceStars = document.getElementById('balance-stars');
-                if (balanceCoins) balanceCoins.textContent = formatNumber(state.click_coins || 0, false);
-                if (balanceCrystals) balanceCrystals.textContent = formatNumber(state.crystals || 0, false);
-                if (balanceStars) balanceStars.textContent = formatNumber(state.stars || 0, true);
+                if (balanceCoins) balanceCoins.textContent = state.click_coins.toLocaleString();
+                if (balanceCrystals) balanceCrystals.textContent = state.crystals.toLocaleString();
+                if (balanceStars) balanceStars.textContent = (state.stars || 0).toFixed(2);
             } catch (e) {
                 console.error('Ошибка updateMainBalance:', e);
             }
@@ -4677,9 +4677,9 @@ body {
             const bcr = document.getElementById('balance-crystals');
             
             if (bc && bs && bcr) {
-                bc.innerHTML = '<span>' + formatNumber(state.click_coins || 0, false) + '</span>';
-                bs.innerHTML = '<span>' + formatNumber(state.stars || 0, true) + '</span>';
-                bcr.innerHTML = '<span>' + formatNumber(state.crystals || 0, false) + '</span>';
+                bc.innerHTML = '<span>' + (state.click_coins || 0).toLocaleString() + '</span>';
+                bs.innerHTML = '<span>' + (state.stars || 0).toFixed(2) + '</span>';
+                bcr.innerHTML = '<span>' + (state.crystals || 0).toLocaleString() + '</span>';
             } else {
                 setTimeout(updateBalanceDisplay, 500);
             }
@@ -6174,6 +6174,13 @@ window.loadGame = async function() {
                     }
 
                     updateUI();
+
+                    // Ждём завершения рендера
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    renderGrid();
+                    console.log('[loadGame] Grid отрисован');
+
+                    // startPassiveEffects() вызывается в initGame() после loadGame()
                     console.log('[loadGame] Загружено из БД успешно');
                     return;
                 }
@@ -7593,6 +7600,7 @@ function showFloatingEarn(row, col, text, type) {
 
 // Функция инициализации игры
 let gameInitialized = false;
+let initAttempts = 0;
 let gameLoadPromise = null;
 
 window.initGame = function() {
@@ -7601,27 +7609,44 @@ window.initGame = function() {
         return;
     }
 
-    console.log('[initGame] Начало инициализации');
+    initAttempts++;
+    console.log('[initGame] Попытка #' + initAttempts + ', window.userDataLoaded:', window.userDataLoaded);
+
+    // Ждём завершения loadUserData() перед инициализацией (максимум 50 попыток = 5 секунд)
+    if (!window.userDataLoaded) {
+        if (initAttempts > 50) {
+            console.error('[initGame] Превышено время ожидания loadUserData(), инициализируем без данных');
+            gameInitialized = true;
+            loadGame().then(() => {
+                updateUI();
+                startPassiveEffects();
+                console.log('[initGame] Инициализация завершена (без данных из /api/user)');
+            });
+            return;
+        } else {
+            setTimeout(() => initGame(), 100);
+            return;
+        }
+    }
+
+    console.log('[initGame] Начало инициализации, state.click_coins:', state.click_coins);
 
     // Показываем лоадер
     const loader = document.getElementById('farmLoader');
     if (loader) loader.classList.add('active');
 
-    // Запускаем загрузку игры (не ждём userDataLoaded)
+    // Используем кэшированный промис или создаём новый
     if (!gameLoadPromise) {
-        gameLoadPromise = loadGame().catch((e) => {
-            console.error('[initGame] loadGame ошибка:', e);
-            gameLoadPromise = null;  // Сбрасываем чтобы можно было повторить
-        });
+        gameLoadPromise = loadGame();
     }
-
+    
     gameLoadPromise.then(() => {
         // Скрываем лоадер
         if (loader) loader.classList.remove('active');
+        
+        // После загрузки из БД синхронизируем с state (берём БОЛЬШЕЕ значение)
+        console.log('[initGame] После loadGame: gameState.coins=', gameState.coins, 'state.click_coins=', state.click_coins);
 
-        console.log('[initGame] loadGame завершён, grid:', gameState.grid?.length, 'строк');
-
-        // Синхронизируем state и gameState (берём максимум)
         const maxCoins = Math.max(state.click_coins || 0, Math.floor(gameState.coins || 0));
         const maxCrystals = Math.max(state.crystals || 0, Math.floor(gameState.crystals || 0));
         const maxStars = Math.max(state.stars || 0, Math.floor(gameState.stars || 0));
@@ -7633,10 +7658,9 @@ window.initGame = function() {
         gameState.crystals = maxCrystals;
         gameState.stars = maxStars;
 
-        console.log('[initGame] После синхронизации:', state.click_coins, gameState.coins);
+        console.log('[initGame] После синхронизации: state.click_coins=', state.click_coins, 'gameState.coins=', gameState.coins);
 
         updateUI();
-        renderGrid();  // Гарантированно отрисовываем grid после загрузки
         startPassiveEffects();
 
         // Показываем подсказку только если firstPlay === true
@@ -7650,7 +7674,7 @@ window.initGame = function() {
                 if (typeof saveGame === 'function') {
                     saveGame();
                 }
-            }, 300);
+            }, 500);
         } else {
             console.log('[initGame] Не первый запуск, firstPlay=', gameState.firstPlay);
         }
