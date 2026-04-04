@@ -1084,7 +1084,7 @@
         .rating-avatar {
             width: 36px;
             height: 36px;
-            border-radius: 50%;
+            border-radius: 10px;
             background: var(--gradient-primary);
             display: flex;
             align-items: center;
@@ -4151,8 +4151,14 @@ body {
         const casinoState = window.casinoState;
 
         // Форматирование больших чисел: 1000→1К, 1070→1,07К, 10000→10К, 1000000→1КК
-        function formatNumber(num) {
+        // Второй параметр — для звёзд: показываем N знаков после запятой
+        function formatNumber(num, starDigits) {
             if (!num || num === 0) return '0';
+            // Звёзды с фиксированным количеством знаков
+            if (starDigits) {
+                num = Math.round(num * Math.pow(10, starDigits)) / Math.pow(10, starDigits);
+                return num.toFixed(starDigits);
+            }
             num = Math.floor(num);
             if (num >= 1000000000) return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'ККК';
             if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'КК';
@@ -4552,15 +4558,15 @@ body {
                     const initials = getInitials(data.first_name || 'И');
                     modal.innerHTML = `
                         <div style="text-align:center;">
-                            <div style="width:64px;height:64px;border-radius:50%;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;margin:0 auto 12px;">${initials}</div>
+                            <div style="width:64px;height:64px;border-radius:14px;background:var(--gradient-primary);display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;margin:0 auto 12px;">${initials}</div>
                             <h3 style="margin:0 0 4px;">${data.first_name || 'Игрок'}</h3>
                             <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">@${data.username || 'unknown'}</div>
                             <div style="display:flex;justify-content:center;gap:16px;margin-bottom:16px;">
-                                <div><div style="font-size:18px;font-weight:700;color:var(--gold);">${(data.click_coins || 0).toLocaleString()}</div><div style="font-size:11px;color:var(--text-secondary);">🪙</div></div>
-                                <div><div style="font-size:18px;font-weight:700;color:#ff0000;">${(data.stars || 0).toFixed(2)}</div><div style="font-size:11px;color:var(--text-secondary);">⭐</div></div>
-                                <div><div style="font-size:18px;font-weight:700;color:var(--crystal);">${(data.crystals || 0).toLocaleString()}</div><div style="font-size:11px;color:var(--text-secondary);">💎</div></div>
+                                <div><div style="font-size:18px;font-weight:700;color:var(--gold);">${formatNumber(data.click_coins || 0)}</div><div style="font-size:11px;color:var(--text-secondary);">🪙</div></div>
+                                <div><div style="font-size:18px;font-weight:700;color:#ff0000;">${formatNumber(data.stars || 0, 5)}</div><div style="font-size:11px;color:var(--text-secondary);">⭐</div></div>
+                                <div><div style="font-size:18px;font-weight:700;color:var(--crystal);">${formatNumber(data.crystals || 0)}</div><div style="font-size:11px;color:var(--text-secondary);">💎</div></div>
                             </div>
-                            <div style="font-size:12px;color:var(--text-secondary);">Ур. ${data.level || 1} · ${(data.total_clicks || 0).toLocaleString()} кликов</div>
+                            <div style="font-size:12px;color:var(--text-secondary);">Ур. ${data.level || 1} · ${formatNumber(data.total_clicks || 0)} кликов</div>
                         </div>
                     `;
                 } else {
@@ -6741,7 +6747,7 @@ window.renderShopItems = function() {
         itemEl.innerHTML = `
             <div class="shop-item-preview block ${levelClass}" style="display:flex;align-items:center;justify-content:center;font-size:24px;position:relative;">${previewContent}</div>
             <div class="shop-item-name">${getBlockFullName(item)}</div>
-            <div class="shop-item-price">${item.price}🪙</div>
+            <div class="shop-item-price">${formatNumber(item.price)}🪙</div>
             <button class="shop-item-buy" onclick="buyShopItem(${index})" ${gameState.coins < item.price ? 'disabled' : ''}>Купить</button>
         `;
         container.appendChild(itemEl);
@@ -7005,6 +7011,13 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
+    // Эффекты касания блоков
+    const touchEffects = []; // {x, y, time, maxTime}
+
+    function addTouchEffect(x, y) {
+        touchEffects.push({x, y, time: 0, maxTime: 300}); // 300ms
+    }
+
     // Завершённые сегменты (общие для всех веток)
     const completedSegments = [];
     // Анимации — каждая ветка добавляет свою
@@ -7027,17 +7040,37 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
             if (t >= 1) finished.push(i);
         }
 
-        // Удаляем завершённые (в обратном порядке чтобы индексы не сбились)
+        // Обновляем эффекты касания
+        const finishedEffects = [];
+        for (let i = 0; i < touchEffects.length; i++) {
+            const eff = touchEffects[i];
+            eff.time += 16; // ~60fps
+            if (eff.time >= eff.maxTime) finishedEffects.push(i);
+        }
+        for (let i = finishedEffects.length - 1; i >= 0; i--) {
+            touchEffects.splice(finishedEffects[i], 1);
+        }
+
+        // Удаляем завершённые анимации
         for (let i = finished.length - 1; i >= 0; i--) {
             const idx = finished[i];
             const anim = activeAnimations[idx];
             activeAnimations.splice(idx, 1);
             completedSegments.push({x1: anim.x1, y1: anim.y1, x2: anim.x2, y2: anim.y2});
+            // Добавляем эффект касания в конце сегмента
+            addTouchEffect(anim.x2, anim.y2);
             if (anim.resolve) anim.resolve();
         }
 
         // Перерисовка
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Пульсация лазера
+        const pulse = 0.85 + 0.15 * Math.sin(timestamp * 0.008);
+        ctx.lineWidth = 3 * pulse;
+        ctx.shadowColor = '#e74c3c';
+        ctx.shadowBlur = 8 * pulse;
+
         for (const seg of completedSegments) {
             ctx.beginPath();
             ctx.moveTo(seg.x1, seg.y1);
@@ -7053,8 +7086,30 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
             ctx.stroke();
         }
 
-        // Если ещё есть анимации — продолжаем цикл
-        if (activeAnimations.length > 0) {
+        // Рисуем эффекты касания блоков (расходящиеся круги)
+        for (const eff of touchEffects) {
+            const t = eff.time / eff.maxTime;
+            const radius = 5 + t * 15;
+            const alpha = 1 - t;
+            ctx.beginPath();
+            ctx.arc(eff.x, eff.y, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(255, 200, 100, ${alpha * 0.8})`;
+            ctx.lineWidth = 2 * alpha;
+            ctx.stroke();
+            // Второй круг
+            ctx.beginPath();
+            ctx.arc(eff.x, eff.y, radius * 0.6, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.6})`;
+            ctx.lineWidth = 1.5 * alpha;
+            ctx.stroke();
+        }
+
+        // Сброс стилей
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 0;
+
+        // Если ещё есть анимации или эффекты — продолжаем цикл
+        if (activeAnimations.length > 0 || touchEffects.length > 0) {
             globalAnimFrameId = requestAnimationFrame(globalAnimLoop);
         }
     }
