@@ -4332,7 +4332,9 @@ body {
                         reactions: reactionsEl ? 'OK' : 'NULL'
                     });
                     if (blocksEl) {
-                        blocksEl.textContent = (data.blocks_placed || 0).toLocaleString();
+                        // Показываем текущее количество блоков на поле (НЕ максимальное!)
+                        const currentBlocks = countBlocksOnField();
+                        blocksEl.textContent = currentBlocks > 0 ? currentBlocks.toLocaleString() : (data.blocks_placed || 0).toLocaleString();
                         console.log('[loadProfile] Блоки:', blocksEl.textContent);
                     }
                     if (reactionsEl) {
@@ -5303,7 +5305,9 @@ body {
                         reactions: reactionsEl ? 'OK' : 'NULL'
                     });
                     if (blocksEl) {
-                        blocksEl.textContent = (data.blocks_placed || 0).toLocaleString();
+                        // Показываем текущее количество блоков на поле (НЕ максимальное!)
+                        const currentBlocks = countBlocksOnField();
+                        blocksEl.textContent = currentBlocks > 0 ? currentBlocks.toLocaleString() : (data.blocks_placed || 0).toLocaleString();
                         console.log('[loadProfile] Блоки:', blocksEl.textContent);
                     }
                     if (reactionsEl) {
@@ -5963,7 +5967,8 @@ let gameState = {
     totalTaps: 0, totalEarned: 0, playTime: 0, firstPlay: true,
     damageTaken: 0, lastDamageReset: Date.now(), coreBrokenUntil: 0,
     // Статистика фермы (загружается из БД)
-    reactor_level: 1, blocks_placed: 0, reactions_triggered: 0
+    reactor_level: 1, blocks_placed: 0, reactions_triggered: 0,
+    totalBlocksBought: 0
 };
 
 function initGrid() {
@@ -6660,59 +6665,47 @@ window.formatNumber = function(num) {
 // Глобальная функция отрисовки сетки
 window.renderGrid = function() {
     const gridEl = document.getElementById('fieldGrid');
-    if (!gridEl) {
-        console.error('[renderGrid] КРИТИЧЕСКАЯ ОШИБКА: fieldGrid элемент не найден!');
-        return;
-    }
+    if (!gridEl) return;
+    if (typeof gameState === 'undefined') return;
+    if (typeof FIELD_COLS === 'undefined' || typeof CELL_SIZE === 'undefined' || typeof GAP === 'undefined' || typeof CHARGE_COL === 'undefined') return;
 
-    console.log('[renderGrid] Начало: gameState.grid:', gameState.grid ? 'OK' : 'NULL', 'rows:', gameState.grid?.length, 'cols:', gameState.grid?.[0]?.length, 'fieldRows:', gameState.fieldRows);
-
-    // ВАЖНО: Проверяем что gameState определён
-    if (typeof gameState === 'undefined') {
-        console.error('[renderGrid] КРИТИЧЕСКАЯ ОШИБКА: gameState не определён!');
-        return;
-    }
-
-    // ВАЖНО: Проверяем что константы определены
-    if (typeof FIELD_COLS === 'undefined' || typeof CELL_SIZE === 'undefined' || typeof GAP === 'undefined' || typeof CHARGE_COL === 'undefined') {
-        console.error('[renderGrid] КРИТИЧЕСКАЯ ОШИБКА: Константы не определены!', { FIELD_COLS, CELL_SIZE, GAP, CHARGE_COL });
-        return;
-    }
-
-    // НЕ рендерим если grid ещё не загружен
     if (!gameState.grid || !Array.isArray(gameState.grid) || gameState.grid.length === 0 || !gameState.grid[0]) {
-        console.warn('[renderGrid] Grid ещё не загружен, создаём новый');
         initGrid();
     }
+    if (!gameState.grid || gameState.grid.length === 0) return;
 
-    // ВАЖНО: Ещё раз проверяем что grid создан после initGrid()
-    if (!gameState.grid || gameState.grid.length === 0) {
-        console.error('[renderGrid] КРИТИЧЕСКАЯ ОШИБКА: Grid пуст даже после initGrid()!');
-        return;
-    }
+    // Кэшируем значения
+    const fieldRows = gameState.fieldRows;
+    const grid = gameState.grid;
+    const selectedCell = gameState.selectedCell;
 
-    console.log('[renderGrid] Рендерим поле', gameState.fieldRows, 'x', FIELD_COLS, 'grid rows:', gameState.grid.length);
-    gridEl.innerHTML = '';
+    // Создаём фрагмент DOM для ускорения
+    const fragment = document.createDocumentFragment();
 
+    // Charge indicator
     const chargeIndicator = document.createElement('div');
     chargeIndicator.className = 'charge-start';
     const centerX = 10 + CHARGE_COL * (CELL_SIZE + GAP) + CELL_SIZE / 2;
     chargeIndicator.style.left = `${centerX}px`;
     chargeIndicator.innerHTML = '<div class="charge-start-arrow">▼</div>';
-    gridEl.appendChild(chargeIndicator);
+    fragment.appendChild(chargeIndicator);
 
-    for (let row = 0; row < gameState.fieldRows; row++) {
+    // Кэшируем часто используемые методы
+    const createElement = document.createElement.bind(document);
+
+    for (let row = 0; row < fieldRows; row++) {
+        const rowBlocks = grid[row];
+        if (!rowBlocks) continue;
         for (let col = 0; col < FIELD_COLS; col++) {
-            const cell = document.createElement('div');
+            const cell = createElement('div');
             cell.className = 'cell';
             cell.dataset.row = row;
             cell.dataset.col = col;
 
-            const block = gameState.grid[row][col];
+            const block = rowBlocks[col];
             if (block) {
-                const blockEl = document.createElement('div');
-                const levelClass = getLevelColorClass(block.level);
-                blockEl.className = `block ${levelClass}`;
+                const blockEl = createElement('div');
+                blockEl.className = `block ${getLevelColorClass(block.level)}`;
 
                 let blockContent = '';
                 if (block.type === BLOCK_TYPES.ROUTER) {
@@ -6729,23 +6722,40 @@ window.renderGrid = function() {
                 blockEl.innerHTML = blockContent;
                 cell.appendChild(blockEl);
 
-                if (gameState.selectedCell && gameState.selectedCell.row === row && gameState.selectedCell.col === col) {
+                if (selectedCell && selectedCell.row === row && selectedCell.col === col) {
                     cell.classList.add('selected');
                     cell.style.borderColor = '#f1c40f';
                     cell.style.boxShadow = '0 0 25px rgba(241, 196, 15, 0.5)';
                 }
             } else {
                 cell.classList.add('empty');
-                if (gameState.selectedCell) {
+                if (selectedCell) {
                     cell.style.borderColor = '#27ae60';
                     cell.style.background = 'rgba(39, 174, 96, 0.15)';
                 }
             }
 
-            cell.addEventListener('click', (e) => onCellClick(e, row, col));
-            gridEl.appendChild(cell);
+            fragment.appendChild(cell);
         }
     }
+
+    // Очищаем и добавляем всё сразу
+    gridEl.innerHTML = '';
+    gridEl.appendChild(fragment);
+}
+
+// Делегирование событий для grid (ОДИН обработчик вместо N на ячейку)
+if (!window._gridEventHandlerSetup) {
+    document.addEventListener('click', function(e) {
+        const cell = e.target.closest('.cell');
+        if (!cell) return;
+        const row = parseInt(cell.dataset.row);
+        const col = parseInt(cell.dataset.col);
+        if (!isNaN(row) && !isNaN(col)) {
+            window.onCellClick(e, row, col);
+        }
+    });
+    window._gridEventHandlerSetup = true;
 }
 
 // Глобальная функция для кнопки ядра
@@ -6959,7 +6969,6 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
             const oldBankCoins = gameState.bankCoins || 0;
             gameState.bankCoins = oldBankCoins + coins;
             gameState.totalEarned += coins;
-            console.log('[handleBlock] COIN: +'+coins+' 🪙, банк:', oldBankCoins, '→', gameState.bankCoins);
             showFloatingEarn(row, col, `+${Math.floor(coins * 100) / 100} 🪙`, 'coin');
             spawnCharge(x, y, dir, charge, processed, 5);
             updateBalance();
@@ -6970,7 +6979,6 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
             // Начисляем В БАНК фермы
             const oldBankCrystals = gameState.bankCrystals || 0;
             gameState.bankCrystals = oldBankCrystals + diamonds;
-            console.log('[handleBlock] DIAMOND: +'+diamonds+' 💎, банк:', oldBankCrystals, '→', gameState.bankCrystals);
             showFloatingEarn(row, col, `+${Math.floor(diamonds * 10000) / 10000} 💎`, 'diamond');
             spawnCharge(x, y, dir, charge, processed, 5);
             updateBalance();
@@ -6981,7 +6989,6 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
             // Начисляем В БАНК фермы
             const oldBankStars = gameState.bankStars || 0;
             gameState.bankStars = oldBankStars + stars;
-            console.log('[handleBlock] STAR: +'+stars+' ⭐, банк:', oldBankStars, '→', gameState.bankStars);
             showFloatingEarn(row, col, `+${Math.floor(stars * 1000000) / 1000000} ⭐`, 'star');
             spawnCharge(x, y, dir, charge, processed, 5);
             updateBalance();
@@ -7254,7 +7261,6 @@ window.buyShopItem = function(index) {
     const item = gameState.shopItems[index];
     if (!item) return;
 
-    // Проверяем монеты в gameState И state (берём минимум для безопасности)
     const availableCoins = Math.min(gameState.coins || 0, state.click_coins || 0);
     if (availableCoins < item.price) {
         showToast('Недостаточно монет!', 'error');
@@ -7287,13 +7293,8 @@ window.buyShopItem = function(index) {
     };
 
     gameState.grid[emptyCell.row][emptyCell.col] = newBlock;
-    
-    // Тратим монеты из ОБЕИХ источников (синхронизация)
     gameState.coins -= item.price;
     state.click_coins -= item.price;
-    
-    console.log('[buyShopItem] Куплен блок за', item.price, 'осталось:', gameState.coins, state.click_coins);
-    
     gameState.baseBlockPrice = Math.floor(gameState.baseBlockPrice * 1.1);
 
     gameState.shopItems.forEach(i => {
@@ -7393,6 +7394,7 @@ window.sellSelected = function() {
     // Продажа за монеты на основной баланс
     state.click_coins = (state.click_coins || 0) + sellPrice;
     gameState.grid[gameState.selectedCell.row][gameState.selectedCell.col] = null;
+    gameState.blocks_placed = countBlocksOnField(); // Обновляем счётчик
     gameState.selectedCell = null;  // Сбрасываем выбранный блок
     showToast(`+${sellPrice} 🪙`, 'success');
     if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
