@@ -6034,12 +6034,14 @@ function getBlockFullName(block) {
 
 // Глобальная функция загрузки игры
 window.loadGame = async function() {
-    console.log('[loadGame] Начало загрузки, userId:', userId);
+    console.log('[loadGame] Начало загрузки, userId:', userId, 'gameState:', typeof gameState);
 
     // ЗАГРУЖАЕМ ТОЛЬКО ИЗ БД (localStorage не используется!)
     if (userId) {
         try {
+            console.log('[loadGame] Запрос к /api/farm-state/' + userId);
             const response = await fetch(`/api/farm-state/${userId}`);
+            console.log('[loadGame] Ответ сервера:', response.status);
             if (response.ok) {
                 const dbData = await response.json();
                 console.log('[loadGame] Загружено из БД:', dbData);
@@ -7607,7 +7609,10 @@ window.initGame = function() {
 
     // Запускаем загрузку игры (не ждём userDataLoaded)
     if (!gameLoadPromise) {
-        gameLoadPromise = loadGame();
+        gameLoadPromise = loadGame().catch((e) => {
+            console.error('[initGame] loadGame ошибка:', e);
+            gameLoadPromise = null;  // Сбрасываем чтобы можно было повторить
+        });
     }
 
     gameLoadPromise.then(() => {

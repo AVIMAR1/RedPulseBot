@@ -511,6 +511,7 @@ async def get_farm_stats(user_id: int):
 @router.get("/api/farm-state/{user_id}")
 async def get_farm_state(user_id: int):
     """Загружает полное состояние фермы из БД"""
+    print(f'========== [API] ЗАПРОС /api/farm-state/{user_id} ==========')
     conn = get_db()
     cursor = conn.cursor()
 
