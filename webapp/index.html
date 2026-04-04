@@ -4774,12 +4774,17 @@ body {
                             state.click_coins = data.click_coins || 0;
                             state.stars = data.stars || 0;
                             state.crystals = data.crystals || 0;
+                            // ПРИНУДИТЕЛЬНО обновляем текст
                             const bc = document.getElementById('balance-coins');
                             const bs = document.getElementById('balance-stars');
                             const bcr = document.getElementById('balance-crystals');
-                            if (bc) bc.textContent = state.click_coins.toLocaleString();
-                            if (bs) bs.textContent = state.stars.toLocaleString();
-                            if (bcr) bcr.textContent = state.crystals.toLocaleString();
+                            if (bc) { bc.textContent = state.click_coins.toLocaleString(); bc.style.opacity = '1'; }
+                            if (bs) { bs.textContent = state.stars.toLocaleString(); bs.style.opacity = '1'; }
+                            if (bcr) { bcr.textContent = state.crystals.toLocaleString(); bcr.style.opacity = '1'; }
+                            // Обновляем prevBalance чтобы анимации работали
+                            prevBalance.coins = state.click_coins;
+                            prevBalance.stars = state.stars;
+                            prevBalance.crystals = state.crystals;
                         }
                     })
                     .catch(() => {});
