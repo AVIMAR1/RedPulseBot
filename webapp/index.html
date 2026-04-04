@@ -3046,45 +3046,32 @@ body {
     50% { transform: scale(1.3); opacity: 0.8; }
 }
 
-/* Laser beam segment */
-.laser-segment {
+.laser-canvas {
     position: absolute;
-    width: 10px;
-    height: 10px;
-    background: radial-gradient(circle, #ffffff 0%, #ff4d4d 40%, #e74c3c 80%);
-    border-radius: 50%;
-    box-shadow: 0 0 12px rgba(231, 76, 60, 1), 0 0 24px rgba(231, 76, 60, 0.7);
+    top: 0; left: 0;
+    width: 100%; height: 100%;
     pointer-events: none;
     z-index: 100;
+    transition: opacity 0.6s ease-out;
 }
 
-.laser-segment.pulse {
-    animation: laser-end-pulse 0.8s ease-in-out infinite;
-}
-
-@keyframes laser-end-pulse {
-    0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 12px rgba(231, 76, 60, 1); }
-    50% { transform: scale(1.4); opacity: 0.8; box-shadow: 0 0 20px rgba(231, 76, 60, 0.9); }
-}
-
-/* Laser earnings summary */
 .laser-summary {
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%) scale(0.9);
     background: rgba(20, 20, 20, 0.95);
-    padding: 14px 20px;
-    border-radius: 16px;
+    padding: 12px 18px;
+    border-radius: 14px;
     border: 2px solid rgba(231, 76, 60, 0.6);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 40px rgba(231, 76, 60, 0.3);
     z-index: 9999;
-    display: flex; gap: 18px;
+    display: flex; gap: 16px;
     animation: summary-pop 0.4s ease-out forwards;
     backdrop-filter: blur(8px);
 }
 .laser-summary-item { display: flex; flex-direction: column; align-items: center; }
-.laser-summary-icon { font-size: 22px; margin-bottom: 4px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); }
-.laser-summary-amount { font-size: 16px; font-weight: 800; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.8); }
+.laser-summary-icon { font-size: 20px; margin-bottom: 2px; }
+.laser-summary-amount { font-size: 14px; font-weight: 800; color: #fff; }
 @keyframes summary-pop {
     0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
     70% { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
@@ -6572,7 +6559,9 @@ window.updateUI = function() {
     if (xpNext) xpNext.textContent = formatNumber(gameState.xpToNext - gameState.xp);
 
     const shopLevelDisplay = document.getElementById('shopLevelDisplay');
-    if (shopLevelDisplay) shopLevelDisplay.textContent = `(ур. ${gameState.shopLevel || 1})`;
+    // Пересчитываем актуальный уровень магазина
+    const currentShopLevel = Math.floor((gameState.level - 1) / 5) + 1;
+    if (shopLevelDisplay) shopLevelDisplay.textContent = `(ур. ${currentShopLevel})`;
 
     const tempText = document.getElementById('tempText');
     const tempFill = document.getElementById('tempFill');
@@ -6918,7 +6907,7 @@ function launchCharge() {
     spawnLaser(startRow, startCol, x, y, dir, charge, new Set());
 }
 
-// Лазер — ползёт по клеткам, оставляет след, размножается, пульсирует в конце
+// Лазер — Canvas, сплошная красная линия
 function spawnLaser(row, col, x, y, dir, charge, processed) {
     const fieldGrid = document.getElementById('fieldGrid');
     if (!fieldGrid) { finishCharging(); return; }
@@ -6926,66 +6915,77 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
     const padding = 10;
     const cellStep = CELL_SIZE + GAP;
     const fieldRows = gameState.fieldRows;
+    const fieldW = fieldGrid.clientWidth || FIELD_COLS * cellStep + padding * 2;
+    const fieldH = fieldGrid.clientHeight || fieldRows * cellStep + padding * 2;
     const STEP_DELAY = 150;
 
     const checked = processed || new Set();
-    const allSegments = [];
     let earned = { coins: 0, diamonds: 0, stars: 0 };
 
-    // Одна ветка лазера — возвращает Promise когда завершится
+    const canvas = document.createElement('canvas');
+    canvas.classList.add('laser-canvas');
+    canvas.width = fieldW;
+    canvas.height = fieldH;
+    canvas.style.width = fieldW + 'px';
+    canvas.style.height = fieldH + 'px';
+    fieldGrid.appendChild(canvas);
+
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#e74c3c';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = '#e74c3c';
+    ctx.shadowBlur = 8;
+
+    const pts = [];
+    function addPoint(r, c) {
+        const px = padding + c * cellStep + CELL_SIZE / 2;
+        const py = padding + r * cellStep + CELL_SIZE / 2;
+        pts.push({ x: px, y: py });
+
+        // Перерисовываем ВЕСЬ путь каждый раз — одинаковая ширина без утолщений на стыках
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) {
+            ctx.lineTo(pts[i].x, pts[i].y);
+        }
+        ctx.stroke();
+    }
+
+    addPoint(row, col);
+
     function step(r, c, d, ch) {
         return new Promise((resolve) => {
-            // Выход за границы
             if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) { resolve(); return; }
-
             const blockKey = `${r}-${c}`;
-            // Врезался в себя
             if (checked.has(blockKey)) { resolve(); return; }
 
             checked.add(blockKey);
-
-            // Рисуем точку
-            const segX = padding + c * cellStep + CELL_SIZE / 2;
-            const segY = padding + r * cellStep + CELL_SIZE / 2;
-            const seg = document.createElement('div');
-            seg.className = 'laser-segment';
-            seg.style.left = `${segX - 5}px`;
-            seg.style.top = `${segY - 5}px`;
-            fieldGrid.appendChild(seg);
-            allSegments.push(seg);
+            addPoint(r, c);
 
             const block = gameState.grid[r]?.[c];
 
             if (!block) {
-                // Пустая клетка — продолжаем
                 setTimeout(() => step(r + d.y, c + d.x, d, ch).then(resolve), STEP_DELAY);
             } else {
                 switch (block.type) {
                     case BLOCK_TYPES.COIN:
                         earned.coins += ch * CONFIG.CONVERSION.COIN * block.level;
-                        gameState.bankCoins = (gameState.bankCoins || 0) + ch * CONFIG.CONVERSION.COIN * block.level;
-                        gameState.totalEarned += ch * CONFIG.CONVERSION.COIN * block.level;
                         setTimeout(() => step(r + d.y, c + d.x, d, ch).then(resolve), STEP_DELAY);
                         break;
-
                     case BLOCK_TYPES.DIAMOND:
-                        const dVal = (ch * block.level) / CONFIG.CONVERSION.DIAMOND;
-                        earned.diamonds += dVal;
-                        gameState.bankCrystals = (gameState.bankCrystals || 0) + dVal;
+                        earned.diamonds += (ch * block.level) / CONFIG.CONVERSION.DIAMOND;
                         setTimeout(() => step(r + d.y, c + d.x, d, ch).then(resolve), STEP_DELAY);
                         break;
-
                     case BLOCK_TYPES.STAR:
-                        const sVal = (ch * block.level) / CONFIG.CONVERSION.STAR;
-                        earned.stars += sVal;
-                        gameState.bankStars = (gameState.bankStars || 0) + sVal;
+                        earned.stars += (ch * block.level) / CONFIG.CONVERSION.STAR;
                         setTimeout(() => step(r + d.y, c + d.x, d, ch).then(resolve), STEP_DELAY);
                         break;
-
                     case BLOCK_TYPES.MULTIPLIER:
                         setTimeout(() => step(r + d.y, c + d.x, d, ch * block.value).then(resolve), STEP_DELAY);
                         break;
-
                     case BLOCK_TYPES.ROUTER: {
                         const hitPort = getHitPort(d);
                         const ports = block.routerConfig?.ports || [];
@@ -6993,17 +6993,13 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
                             const outPorts = ports.filter(p => p !== hitPort);
                             const boosted = ch * block.value;
                             const pDir = { 'top': {x:0,y:-1}, 'bottom': {x:0,y:1}, 'left': {x:-1,y:0}, 'right': {x:1,y:0} };
-                            // Ждём все ответвления
-                            const promises = outPorts.map(port => 
+                            const promises = outPorts.map(port =>
                                 new Promise(res => setTimeout(() => step(r + pDir[port].y, c + pDir[port].x, pDir[port], boosted).then(res), STEP_DELAY))
                             );
                             Promise.all(promises).then(resolve);
-                        } else {
-                            resolve();
-                        }
+                        } else { resolve(); }
                         break;
                     }
-
                     default:
                         setTimeout(() => step(r + d.y, c + d.x, d, ch).then(resolve), STEP_DELAY);
                 }
@@ -7011,15 +7007,15 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
         });
     }
 
-    // Запускаем и ждём завершения
     setTimeout(() => {
-        step(row, col, dir, charge).then(() => {
-            finishLaser();
-        });
+        step(row, col, dir, charge).then(() => finishLaser(canvas));
     }, 100);
 
-    function finishLaser() {
-        // Показываем итог
+    function finishLaser(canvas) {
+        gameState.bankCoins = (gameState.bankCoins || 0) + earned.coins;
+        gameState.bankCrystals = (gameState.bankCrystals || 0) + earned.diamonds;
+        gameState.bankStars = (gameState.bankStars || 0) + earned.stars;
+
         const summaryEl = document.createElement('div');
         summaryEl.className = 'laser-summary';
         summaryEl.innerHTML = `
@@ -7029,15 +7025,11 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
         `;
         fieldGrid.appendChild(summaryEl);
 
-        allSegments.forEach(seg => seg.classList.add('pulse'));
-
         setTimeout(() => {
-            summaryEl.style.transition = 'opacity 0.5s ease-out';
+            canvas.style.opacity = '0';
+            summaryEl.style.transition = 'opacity 0.5s';
             summaryEl.style.opacity = '0';
-            allSegments.forEach((seg, i) => {
-                setTimeout(() => { seg.style.transition = 'opacity 0.3s'; seg.style.opacity = '0'; setTimeout(() => seg.remove(), 300); }, i * 10);
-            });
-            setTimeout(() => { summaryEl.remove(); updateBalance(); finishCharging(); }, 500);
+            setTimeout(() => { canvas.remove(); summaryEl.remove(); updateBalance(); finishCharging(); }, 600);
         }, 2500);
     }
 }
