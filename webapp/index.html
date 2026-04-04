@@ -7239,9 +7239,9 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
         const summaryEl = document.createElement('div');
         summaryEl.className = 'laser-summary';
         summaryEl.innerHTML = `
-            <div class="laser-summary-item"><div class="laser-summary-icon">🪙</div><div class="laser-summary-amount">+${Math.floor(earned.coins).toLocaleString()}</div></div>
-            <div class="laser-summary-item"><div class="laser-summary-icon">💎</div><div class="laser-summary-amount">+${Math.floor(earned.diamonds * 100) / 100}</div></div>
-            <div class="laser-summary-item"><div class="laser-summary-icon">⭐</div><div class="laser-summary-amount">+${Math.floor(earned.stars * 100) / 100}</div></div>
+            <div class="laser-summary-item"><div class="laser-summary-icon">🪙</div><div class="laser-summary-amount">+${(Math.round(earned.coins * 100) / 100).toFixed(2)}</div></div>
+            <div class="laser-summary-item"><div class="laser-summary-icon">💎</div><div class="laser-summary-amount">+${(Math.round(earned.diamonds * 10000) / 10000).toFixed(4)}</div></div>
+            <div class="laser-summary-item"><div class="laser-summary-icon">⭐</div><div class="laser-summary-amount">+${(Math.round(earned.stars * 10000) / 10000).toFixed(4)}</div></div>
         `;
         fieldGrid.appendChild(summaryEl);
 
