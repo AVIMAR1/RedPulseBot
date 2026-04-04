@@ -58,6 +58,7 @@ async def get_service_worker():
 @router.get("/api/user/{user_id}")
 async def get_user_data(user_id: int):
     """Получение данных пользователя с логированием и проверкой регистрации"""
+    print(f'========== [get_user_data] ЗАПРОС userId={user_id} ==========')
     conn = get_db()
     cursor = conn.cursor()
 

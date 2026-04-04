@@ -4654,8 +4654,16 @@ body {
 
         // Загрузка данных пользователя — ТОЛЬКО ИЗ БД (только при первом запуске!)
         async function loadUserData() {
-            if (!userId || typeof userId === 'undefined') return;
-            if (window.userDataLoaded) return;
+            console.log('=== loadUserData START === userId:', userId);
+            if (!userId || typeof userId === 'undefined') {
+                console.log('=== loadUserData ABORT: no userId ===');
+                return;
+            }
+            if (window.userDataLoaded) {
+                console.log('=== loadUserData ABORT: already loaded ===');
+                return;
+            }
+            console.log('=== loadUserData: fetching /api/user/' + userId + ' ===');
 
             try {
                 const response = await fetch(`/api/user/${userId}`);
@@ -4663,11 +4671,13 @@ body {
 
                 if (response.ok) {
                     const data = await response.json();
+                    console.log('=== loadUserData: GOT DATA ===', data);
                     if (data.error === 'NOT_REGISTERED') return;
 
                     state.click_coins = data.click_coins || 0;
                     state.crystals = data.crystals || 0;
                     state.stars = data.stars || 0;
+                    console.log('=== loadUserData: state updated === coins:', state.click_coins, 'stars:', state.stars, 'crystals:', state.crystals);
                     state.total_clicks = data.total_clicks || 0;
                     state.level = data.level || 1;
                     state.click_power = data.click_power || 1;
@@ -4691,11 +4701,14 @@ body {
                     const bc = document.getElementById('balance-coins');
                     const bs = document.getElementById('balance-stars');
                     const bcr = document.getElementById('balance-crystals');
+                    console.log('=== loadUserData: balance elements === bc:', bc ? 'OK' : 'NULL', 'bs:', bs ? 'OK' : 'NULL', 'bcr:', bcr ? 'OK' : 'NULL');
                     if (bc) bc.textContent = state.click_coins.toLocaleString();
                     if (bs) bs.textContent = state.stars.toLocaleString();
                     if (bcr) bcr.textContent = state.crystals.toLocaleString();
+                    console.log('=== loadUserData: balance UPDATED ===');
 
                     updateUI();
+                    console.log('=== loadUserData: DONE ===');
                     return;
                 }
             } catch(e) {}
@@ -4735,8 +4748,15 @@ body {
             }
             // ============================================================
 
-            // Загружаем данные пользователя
-            loadUserData();
+            // Загружаем данные пользователя (ждём userId)
+            function waitForUserIdAndLoad() {
+                if (userId) {
+                    loadUserData();
+                } else {
+                    setTimeout(waitForUserIdAndLoad, 100);
+                }
+            }
+            waitForUserIdAndLoad();
         });
 
         // Обновление интерфейса
