@@ -4083,8 +4083,11 @@ body {
         // Звёзды НЕ сокращаются - показываются как есть
         function formatNumber(num, isStars) {
             if (!num || num === 0) return '0';
-            // Звёзды показываем как есть без сокращения
+            // Звёзды показываем с округлением до 2 знаков
             if (isStars) {
+                num = Math.round(num * 100) / 100; // Округляем до 2 знаков
+                if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'М';
+                if (num >= 10000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'К';
                 if (num >= 100) return Math.floor(num).toString();
                 if (num >= 10) return num.toFixed(1);
                 return num.toFixed(2);
@@ -4125,7 +4128,7 @@ body {
                 // ИСПОЛЬЗУЕМ сокращённый формат для больших чисел
                 if (balanceCoins) balanceCoins.textContent = formatNumber(state.click_coins);
                 if (balanceCrystals) balanceCrystals.textContent = formatNumber(state.crystals);
-                if (balanceStars) balanceStars.textContent = (state.stars || 0).toFixed(2);
+                if (balanceStars) balanceStars.textContent = formatNumber(state.stars, true);
             } catch (e) {
                 console.error('Ошибка updateMainBalance:', e);
             }
@@ -4449,7 +4452,7 @@ body {
                                         <div style="font-size:12px;color:var(--text-secondary);">@${player.username || 'unknown'}</div>
                                     </div>
                                 </div>
-                                <div style="font-weight:700;color:var(--gold);">${player.stars} ⭐</div>
+                                <div style="font-weight:700;color:var(--gold);">${formatNumber(Math.round(player.stars * 100) / 100, true)} ⭐</div>
                             </div>
                         `;
                     }).join('');
@@ -4508,21 +4511,10 @@ body {
                 syncWithFarm();
                 updateUI();
 
-                // Обновляем баланс на главной странице (ОБЯЗАТЕЛЬНО)
-                updateBalanceDisplay();
+                // Обновляем баланс на главной странице СРАЗУ в сокращённом формате
+                updateMainBalance();
 
-                // Анимация обновления баланса ТОЛЬКО если пришли с фермы
-                console.log('[showPage] wasOnClicker:', wasOnClicker);
-                if (wasOnClicker) {
-                    console.log('[showPage] Вызов updateMainBalanceWithAnimation()');
-                    updateMainBalanceWithAnimation();
-                    wasOnClicker = false;
-                } else {
-                    console.log('[showPage] Вызов updateMainBalance()');
-                    updateMainBalance();
-                }
-
-                // Обновление баланса в казино (если открыто)
+                // Обновляем баланс в казино (если открыто)
                 updateCasinoBalance();
             }
 
@@ -4679,9 +4671,9 @@ body {
             const bcr = document.getElementById('balance-crystals');
             
             if (bc && bs && bcr) {
-                bc.innerHTML = '<span>' + (state.click_coins || 0).toLocaleString() + '</span>';
-                bs.innerHTML = '<span>' + (state.stars || 0).toFixed(2) + '</span>';
-                bcr.innerHTML = '<span>' + (state.crystals || 0).toLocaleString() + '</span>';
+                bc.innerHTML = '<span>' + formatNumber(state.click_coins || 0) + '</span>';
+                bs.innerHTML = '<span>' + formatNumber(state.stars || 0, true) + '</span>';
+                bcr.innerHTML = '<span>' + formatNumber(state.crystals || 0) + '</span>';
             } else {
                 setTimeout(updateBalanceDisplay, 500);
             }
@@ -6493,12 +6485,12 @@ window.updateUI = function() {
         const bankCrystalsEl = document.getElementById('bankCrystals');
         const bankStarsEl = document.getElementById('bankStars');
 
-        if (coinsEl) coinsEl.textContent = (Math.floor(gameState.coins * 100) / 100).toFixed(2);
+        if (coinsEl) coinsEl.textContent = formatNumber(gameState.coins);
         if (crystalsEl) crystalsEl.textContent = formatNumber(gameState.crystals);
-        if (starsEl) starsEl.textContent = (gameState.stars || 0).toFixed(2);
-        if (bankCoinsEl) bankCoinsEl.textContent = (Math.floor((gameState.bankCoins || 0) * 100) / 100).toFixed(2);
-        if (bankCrystalsEl) bankCrystalsEl.textContent = (Math.floor((gameState.bankCrystals || 0) * 10000) / 10000).toFixed(4);
-        if (bankStarsEl) bankStarsEl.textContent = (gameState.bankStars || 0).toFixed(4);
+        if (starsEl) starsEl.textContent = formatNumber(gameState.stars || 0, true);
+        if (bankCoinsEl) bankCoinsEl.textContent = formatNumber(gameState.bankCoins || 0);
+        if (bankCrystalsEl) bankCrystalsEl.textContent = formatNumber(gameState.bankCrystals || 0);
+        if (bankStarsEl) bankStarsEl.textContent = formatNumber(gameState.bankStars || 0, true);
     }
 
     // Синхронизация с главным state для обновления баланса
