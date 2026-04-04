@@ -4061,7 +4061,7 @@ body {
         // ==========================================
         const CONFIG = {
             TEMP_PER_TAP: 15,
-            TEMP_COOLDOWN_RATE: 0.6,
+            TEMP_COOLDOWN_RATE: 0.3,
             TEMP_MAX_BASE: 100,
             TAP_COOLDOWN: 10000,
             BASE_CHARGE_POWER: 1,
@@ -7265,6 +7265,18 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
         summaryEl.style.transform = 'scale(0.8)';
         summaryEl.style.transition = 'opacity 0.4s ease-out, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
         fieldGrid.appendChild(summaryEl);
+
+        // Форматируем итоговый доход: если >1000 — сокращаем
+        function formatEarn(val, decimals) {
+            if (val >= 1000) return formatNumber(val);
+            return (Math.round(val * Math.pow(10, decimals)) / Math.pow(10, decimals)).toFixed(decimals);
+        }
+
+        summaryEl.innerHTML = `
+            <div class="laser-summary-item"><div class="laser-summary-icon">🪙</div><div class="laser-summary-amount">+${formatEarn(earned.coins, 2)}</div></div>
+            <div class="laser-summary-item"><div class="laser-summary-icon">💎</div><div class="laser-summary-amount">+${formatEarn(earned.diamonds, 4)}</div></div>
+            <div class="laser-summary-item"><div class="laser-summary-icon">⭐</div><div class="laser-summary-amount">+${formatEarn(earned.stars, 4)}</div></div>
+        `;
 
         // Trigger reflow then animate in
         requestAnimationFrame(() => {
