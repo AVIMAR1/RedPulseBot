@@ -4684,7 +4684,30 @@ body {
             }
             
             console.log('[DOMContentLoaded] Авторизация пройдена, загружаем данные...');
-            
+
+            // === ЗАГРУЗКА state из localStorage (если есть) ===
+            // Это нужно чтобы баланс отобразился СРАЗУ, до загрузки из БД
+            try {
+                const savedState = localStorage.getItem('redpulse_state');
+                if (savedState) {
+                    const parsed = JSON.parse(savedState);
+                    // Загружаем ТОЛЬКО если значения > 0 (чтобы не затереть нулями)
+                    if (parsed.click_coins > 0) state.click_coins = parsed.click_coins;
+                    if (parsed.crystals > 0) state.crystals = parsed.crystals;
+                    if (parsed.stars > 0) state.stars = parsed.stars;
+                    if (parsed.level > 1) state.level = parsed.level;
+                    if (parsed.xp > 0) state.xp = parsed.xp;
+                    if (parsed.total_clicks > 0) state.total_clicks = parsed.total_clicks;
+                    if (parsed.click_power > 1) state.click_power = parsed.click_power;
+                    console.log('[DOMContentLoaded] state загружен из localStorage');
+                }
+            } catch (e) {
+                console.warn('[DOMContentLoaded] Ошибка загрузки localStorage:', e);
+            }
+            // Сразу обновляем UI чтобы баланс отобразился
+            updateUI();
+            // ============================================================
+
             // === АВТОМАТИЧЕСКАЯ ОЧИСТКА localStorage для версии 0.1.6 ===
             const currentVersion = '0.1.6';  // Обновили версию
             const savedVersion = localStorage.getItem('appVersion');
@@ -6276,7 +6299,7 @@ async function saveFarmStats() {
             userId: userId,
             reactor_level: maxBlockLevel,
             blocks_placed: blocksCount,
-            reactions_triggered: gameState.totalTaps || 0,
+            reactions_triggered: gameState.reactions_triggered || 0,  // ИСПОЛЬЗУЕМ reactions_triggered а не totalTaps
             total_energy_produced: gameState.totalEarned || 0,
             // ВАЖНО: сохраняем валюту из state (главное состояние бота)
             click_coins: Math.floor(state.click_coins || 0),
@@ -6742,6 +6765,7 @@ window.tapCore = function tapCore() {
     gameState.temp = Math.min(gameState.temp + CONFIG.TEMP_PER_TAP, gameState.maxTemp);
     gameState.isCharging = true;
     gameState.totalTaps++;
+    gameState.reactions_triggered++;  // Считаем реакции
 
     launchCharge();
     addXP(CONFIG.XP.BASE_PER_TAP);
