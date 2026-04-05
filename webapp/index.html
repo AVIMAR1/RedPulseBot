@@ -7860,7 +7860,9 @@ window.toggleTrajectory = function() {
         canvas.style.display = 'block';
         canvas.width = grid.clientWidth;
         canvas.height = grid.clientHeight;
-        drawTrajectory();
+        console.log('[trajectory] Mode ON, canvas:', canvas.width, 'x', canvas.height);
+        // Ждём отрисовку сетки
+        setTimeout(drawTrajectory, 100);
     } else {
         btn.classList.remove('active');
         icon.className = 'fas fa-eye';
@@ -7874,19 +7876,31 @@ window.drawTrajectory = function() {
     if (!trajectoryMode) return;
     const canvas = document.getElementById('trajectoryCanvas');
     const grid = document.getElementById('fieldGrid');
-    if (!canvas || !grid) return;
+    if (!canvas || !grid) { console.warn('[trajectory] Canvas или grid не найдены'); return; }
 
     canvas.width = grid.clientWidth;
     canvas.height = grid.clientHeight;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Тестовая точка - проверяем что canvas работает
+    ctx.fillStyle = 'lime';
+    ctx.fillRect(5, 5, 10, 10);
+
+    if (!gameState || !gameState.grid || !gameState.grid[0]) {
+        console.warn('[trajectory] gameState.grid пуст');
+        return;
+    }
+
+    console.log('[trajectory] grid:', gameState.fieldRows, 'x', FIELD_COLS, 'CHARGE_COL:', CHARGE_COL);
+
     const result = calculateTrajectory();
+    console.log('[trajectory] result:', result);
     if (!result || !result.path || result.path.length < 2) return;
 
     // Рисуем пунктирную линию траектории
-    ctx.strokeStyle = 'rgba(255, 80, 80, 0.7)';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(255, 80, 80, 0.9)';
+    ctx.lineWidth = 4;
     ctx.setLineDash([8, 5]);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -7902,10 +7916,10 @@ window.drawTrajectory = function() {
     // Рисуем точки касания блоков
     for (const hit of result.hits || []) {
         ctx.beginPath();
-        ctx.arc(hit.x, hit.y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 200, 80, 0.7)';
+        ctx.arc(hit.x, hit.y, 7, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 200, 80, 0.9)';
         ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 200, 80, 0.9)';
+        ctx.strokeStyle = 'rgba(255, 200, 80, 1)';
         ctx.lineWidth = 2;
         ctx.stroke();
     }
@@ -7918,21 +7932,22 @@ function calculateTrajectory() {
     const fieldW = FIELD_COLS * cellStep + padding * 2;
     const fieldH = fieldRows * cellStep + padding * 2;
 
+    // Начальная позиция: row=0, col=CHARGE_COL
     let r = 0, c = CHARGE_COL;
-    let dr = 1, dc = 0; // направление: вниз
+    let dr = 1, dc = 0; // вниз
     const visited = new Set();
     const path = [];
     const hits = [];
 
     const startX = padding + c * cellStep + CELL_SIZE / 2;
     const startY = padding + r * cellStep + CELL_SIZE / 2;
-    path.push({ x: startX, y: startY });
 
     for (let steps = 0; steps < 200; steps++) {
+        // Стена
         if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) {
-            // Стена — последний сегмент
-            const endX = startX + dc * cellStep * 2;
-            const endY = startY + dr * cellStep * 2;
+            const last = path[path.length - 1];
+            const endX = last.x + dc * cellStep;
+            const endY = last.y + dr * cellStep;
             path.push({ x: Math.max(0, Math.min(fieldW, endX)), y: Math.max(0, Math.min(fieldH, endY)) });
             break;
         }
@@ -7952,33 +7967,38 @@ function calculateTrajectory() {
             c += dc;
         } else {
             hits.push({ x: px, y: py });
-            switch (block.type) {
-                case BLOCK_TYPES.COIN:
-                case BLOCK_TYPES.DIAMOND:
-                case BLOCK_TYPES.STAR:
-                case BLOCK_TYPES.MULTIPLIER:
-                    r += dr;
-                    c += dc;
-                    break;
-                case BLOCK_TYPES.ROUTER: {
-                    const hitPort = getHitPort({ x: dc, y: dr });
-                    const ports = block.routerConfig?.ports || [];
-                    if (ports.includes(hitPort)) {
-                        const outPorts = ports.filter(p => p !== hitPort);
-                        if (outPorts.length > 0) {
-                            const pDir = { 'top': {dr:-1,dc:0}, 'bottom': {dr:1,dc:0}, 'left': {dr:0,dc:-1}, 'right': {dr:0,dc:1} };
-                            const outDir = pDir[outPorts[0]];
-                            dr = outDir.dr;
-                            dc = outDir.dc;
-                            r += dr;
-                            c += dc;
-                        } else break;
+
+            if (block.type === 'coin' || block.type === 'diamond' || block.type === 'star') {
+                r += dr;
+                c += dc;
+            } else if (block.type === 'multiplier') {
+                r += dr;
+                c += dc;
+            } else if (block.type === 'router') {
+                // Определяем порт входа
+                let hitPort = null;
+                if (dr === 1 && dc === 0) hitPort = 'top';
+                else if (dr === -1 && dc === 0) hitPort = 'bottom';
+                else if (dc === 1 && dr === 0) hitPort = 'left';
+                else if (dc === -1 && dr === 0) hitPort = 'right';
+
+                const ports = block.routerConfig?.ports || [];
+                if (ports.includes(hitPort)) {
+                    const outPorts = ports.filter(p => p !== hitPort);
+                    if (outPorts.length > 0) {
+                        // Берём первый выходной порт
+                        const outPort = outPorts[0];
+                        if (outPort === 'top') { dr = -1; dc = 0; }
+                        else if (outPort === 'bottom') { dr = 1; dc = 0; }
+                        else if (outPort === 'left') { dr = 0; dc = -1; }
+                        else if (outPort === 'right') { dr = 0; dc = 1; }
+                        r += dr;
+                        c += dc;
                     } else break;
-                    break;
-                }
-                default:
-                    r += dr;
-                    c += dc;
+                } else break;
+            } else {
+                r += dr;
+                c += dc;
             }
         }
     }
