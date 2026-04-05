@@ -2906,6 +2906,23 @@ body {
     gap: 8px;
 }
 
+.trajectory-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: var(--text-secondary);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.2s;
+}
+.trajectory-btn:hover { background: rgba(231,76,60,0.2); color: var(--primary); }
+.trajectory-btn.active { background: var(--gradient-primary); color: #fff; border-color: var(--primary); }
+
 .field-grid {
     display: grid;
     grid-template-columns: repeat(7, var(--cell-size));
@@ -3108,6 +3125,14 @@ body {
     pointer-events: none;
     z-index: 50;
     animation: trail-fade 0.4s ease-out forwards;
+}
+
+.trajectory-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 99;
 }
 
 @keyframes trail-fade {
@@ -3754,8 +3779,13 @@ body {
                         <i class="fas fa-bolt" style="color: var(--primary);"></i>
                         Реактор
                     </div>
+                    <button class="trajectory-btn" id="trajectoryBtn" onclick="toggleTrajectory()" title="Показать траекторию">
+                        <i class="fas fa-eye" id="trajectoryIcon"></i>
+                    </button>
                 </div>
-                <div class="field-grid" id="fieldGrid"></div>
+                <div class="field-grid" id="fieldGrid">
+                    <canvas class="trajectory-canvas" id="trajectoryCanvas" style="display:none;"></canvas>
+                </div>
             </div>
 
             <!-- Bank -->
@@ -6948,6 +6978,15 @@ window.renderGrid = function() {
     gridEl.appendChild(fragment);
 }
 
+// Перерисовка траектории при изменении поля
+const _origRenderGrid = window.renderGrid || function(){};
+window.renderGrid = function() {
+    _origRenderGrid();
+    if (trajectoryMode) {
+        setTimeout(drawTrajectory, 50);
+    }
+}
+
 // Делегирование событий для grid (ОДИН обработчик вместо N на ячейку)
 if (!window._gridEventHandlerSetup) {
     document.addEventListener('click', function(e) {
@@ -7805,8 +7844,154 @@ function countBlocksOnField() {
     return count;
 }
 
+// ===== ТРАЕКТОРИЯ ЛАЗЕРА (ПРЕДПРОСМОТР) =====
+let trajectoryMode = false;
+
+window.toggleTrajectory = function() {
+    trajectoryMode = !trajectoryMode;
+    const btn = document.getElementById('trajectoryBtn');
+    const icon = document.getElementById('trajectoryIcon');
+    const canvas = document.getElementById('trajectoryCanvas');
+
+    if (trajectoryMode) {
+        btn.classList.add('active');
+        icon.className = 'fas fa-eye-slash';
+        canvas.style.display = 'block';
+        drawTrajectory();
+    } else {
+        btn.classList.remove('active');
+        icon.className = 'fas fa-eye';
+        canvas.style.display = 'none';
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+}
+
+window.drawTrajectory = function() {
+    if (!trajectoryMode) return;
+    const canvas = document.getElementById('trajectoryCanvas');
+    const fieldGrid = document.getElementById('fieldGrid');
+    if (!canvas || !fieldGrid) return;
+
+    canvas.width = fieldGrid.clientWidth;
+    canvas.height = fieldGrid.clientHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const padding = 10;
+    const cellStep = CELL_SIZE + GAP;
+    const fieldRows = gameState.fieldRows;
+
+    // Рисуем предполагаемую траекторию
+    const path = calculateTrajectory();
+    if (path.length < 2) return;
+
+    ctx.strokeStyle = 'rgba(255, 100, 100, 0.5)';
+    ctx.lineWidth = 4;
+    ctx.setLineDash([8, 6]);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(path[0].x, path[0].y);
+    for (let i = 1; i < path.length; i++) {
+        ctx.lineTo(path[i].x, path[i].y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Рисуем точки касания блоков
+    for (const hit of path.hits || []) {
+        ctx.beginPath();
+        ctx.arc(hit.x, hit.y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 200, 100, 0.6)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255, 200, 100, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+}
+
+function calculateTrajectory() {
+    const padding = 10;
+    const cellStep = CELL_SIZE + GAP;
+    const fieldRows = gameState.fieldRows;
+
+    // Стартовая точка
+    let r = 0, c = CHARGE_COL;
+    let d = { x: 0, y: 1 };
+    const visited = new Set();
+    const path = [];
+    const hits = [];
+
+    const startX = padding + c * cellStep + CELL_SIZE / 2;
+    const startY = padding + r * cellStep + CELL_SIZE / 2;
+    path.push({ x: startX, y: startY });
+
+    for (let steps = 0; steps < 500; steps++) {
+        // Стена
+        if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) {
+            const endX = Math.max(0, Math.min(FIELD_COLS * cellStep + padding * 2, startX + d.x * (CELL_SIZE + GAP)));
+            const endY = Math.max(0, Math.min(fieldRows * cellStep + padding * 2, startY + d.y * (CELL_SIZE + GAP)));
+            path.push({ x: endX, y: endY });
+            break;
+        }
+
+        const blockKey = `${r}-${c}`;
+        if (visited.has(blockKey)) break;
+        visited.add(blockKey);
+
+        const px = padding + c * cellStep + CELL_SIZE / 2;
+        const py = padding + r * cellStep + CELL_SIZE / 2;
+        const block = gameState.grid[r]?.[c];
+
+        if (!block) {
+            r += d.y;
+            c += d.x;
+        } else {
+            hits.push({ x: px, y: py });
+            switch (block.type) {
+                case BLOCK_TYPES.COIN:
+                case BLOCK_TYPES.DIAMOND:
+                case BLOCK_TYPES.STAR:
+                    r += d.y;
+                    c += d.x;
+                    break;
+                case BLOCK_TYPES.MULTIPLIER:
+                    r += d.y;
+                    c += d.x;
+                    break;
+                case BLOCK_TYPES.ROUTER: {
+                    const hitPort = getHitPort(d);
+                    const ports = block.routerConfig?.ports || [];
+                    if (ports.includes(hitPort)) {
+                        const outPorts = ports.filter(p => p !== hitPort);
+                        if (outPorts.length > 0) {
+                            // Для предпросмотра берём первый выходной порт
+                            const pDir = { 'top': {x:0,y:-1}, 'bottom': {x:0,y:1}, 'left': {x:-1,y:0}, 'right': {x:1,y:0} };
+                            const outPort = outPorts[0];
+                            d = pDir[outPort];
+                            r += d.y;
+                            c += d.x;
+                        }
+                    }
+                    break;
+                }
+                default:
+                    r += d.y;
+                    c += d.x;
+            }
+        }
+    }
+
+    return { path, hits };
+}
+
 // Глобальная функция для клика по ячейке
 window.onCellClick = function(e, row, col) {
+    // Блокируем клики во время работы лазера
+    if (typeof activeAnimations !== 'undefined' && activeAnimations.length > 0) return;
+
     const block = gameState.grid[row][col];
 
     if (selectedForMove) {
