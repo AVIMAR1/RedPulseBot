@@ -3773,7 +3773,7 @@ body {
             </div>
 
             <!-- Field -->
-            <div class="field-wrapper">
+            <div class="field-wrapper" style="position:relative;">
                 <div class="field-header">
                     <div class="field-title">
                         <i class="fas fa-bolt" style="color: var(--primary);"></i>
@@ -3783,9 +3783,8 @@ body {
                         <i class="fas fa-eye" id="trajectoryIcon"></i>
                     </button>
                 </div>
-                <div class="field-grid" id="fieldGrid">
-                    <canvas class="trajectory-canvas" id="trajectoryCanvas" style="display:none;"></canvas>
-                </div>
+                <div class="field-grid" id="fieldGrid"></div>
+                <canvas id="trajectoryCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99;display:none;"></canvas>
             </div>
 
             <!-- Bank -->
@@ -6991,7 +6990,7 @@ window.renderGrid = function() {
 if (!window._gridEventHandlerSetup) {
     document.addEventListener('click', function(e) {
         // Блокируем клики пока лазер работает
-        if (typeof activeAnimations !== 'undefined' && activeAnimations.length > 0) return;
+        if (gameState.isCharging) return;
         const cell = e.target.closest('.cell');
         if (!cell) return;
         const row = parseInt(cell.dataset.row);
@@ -7857,6 +7856,10 @@ window.toggleTrajectory = function() {
         btn.classList.add('active');
         icon.className = 'fas fa-eye-slash';
         canvas.style.display = 'block';
+        // Устанавливаем размер canvas
+        const wrapper = document.querySelector('.field-wrapper');
+        canvas.width = wrapper.clientWidth;
+        canvas.height = wrapper.clientHeight;
         drawTrajectory();
     } else {
         btn.classList.remove('active');
@@ -7870,43 +7873,39 @@ window.toggleTrajectory = function() {
 window.drawTrajectory = function() {
     if (!trajectoryMode) return;
     const canvas = document.getElementById('trajectoryCanvas');
-    const fieldGrid = document.getElementById('fieldGrid');
-    if (!canvas || !fieldGrid) return;
+    if (!canvas) return;
 
-    canvas.width = fieldGrid.clientWidth;
-    canvas.height = fieldGrid.clientHeight;
+    const wrapper = document.querySelector('.field-wrapper');
+    canvas.width = wrapper.clientWidth;
+    canvas.height = wrapper.clientHeight;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const padding = 10;
-    const cellStep = CELL_SIZE + GAP;
-    const fieldRows = gameState.fieldRows;
+    const result = calculateTrajectory();
+    if (!result || !result.path || result.path.length < 2) return;
 
-    // Рисуем предполагаемую траекторию
-    const path = calculateTrajectory();
-    if (path.length < 2) return;
-
-    ctx.strokeStyle = 'rgba(255, 100, 100, 0.5)';
-    ctx.lineWidth = 4;
-    ctx.setLineDash([8, 6]);
+    // Рисуем пунктирную линию траектории
+    ctx.strokeStyle = 'rgba(255, 80, 80, 0.7)';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([8, 5]);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
     ctx.beginPath();
-    ctx.moveTo(path[0].x, path[0].y);
-    for (let i = 1; i < path.length; i++) {
-        ctx.lineTo(path[i].x, path[i].y);
+    ctx.moveTo(result.path[0].x, result.path[0].y);
+    for (let i = 1; i < result.path.length; i++) {
+        ctx.lineTo(result.path[i].x, result.path[i].y);
     }
     ctx.stroke();
     ctx.setLineDash([]);
 
     // Рисуем точки касания блоков
-    for (const hit of path.hits || []) {
+    for (const hit of result.hits || []) {
         ctx.beginPath();
-        ctx.arc(hit.x, hit.y, 8, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 200, 100, 0.6)';
+        ctx.arc(hit.x, hit.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 200, 80, 0.7)';
         ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 200, 100, 0.8)';
+        ctx.strokeStyle = 'rgba(255, 200, 80, 0.9)';
         ctx.lineWidth = 2;
         ctx.stroke();
     }
@@ -7916,10 +7915,11 @@ function calculateTrajectory() {
     const padding = 10;
     const cellStep = CELL_SIZE + GAP;
     const fieldRows = gameState.fieldRows;
+    const fieldW = FIELD_COLS * cellStep + padding * 2;
+    const fieldH = fieldRows * cellStep + padding * 2;
 
-    // Стартовая точка
     let r = 0, c = CHARGE_COL;
-    let d = { x: 0, y: 1 };
+    let dr = 1, dc = 0; // направление: вниз
     const visited = new Set();
     const path = [];
     const hits = [];
@@ -7928,12 +7928,12 @@ function calculateTrajectory() {
     const startY = padding + r * cellStep + CELL_SIZE / 2;
     path.push({ x: startX, y: startY });
 
-    for (let steps = 0; steps < 500; steps++) {
-        // Стена
+    for (let steps = 0; steps < 200; steps++) {
         if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) {
-            const endX = Math.max(0, Math.min(FIELD_COLS * cellStep + padding * 2, startX + d.x * (CELL_SIZE + GAP)));
-            const endY = Math.max(0, Math.min(fieldRows * cellStep + padding * 2, startY + d.y * (CELL_SIZE + GAP)));
-            path.push({ x: endX, y: endY });
+            // Стена — последний сегмент
+            const endX = startX + dc * cellStep * 2;
+            const endY = startY + dr * cellStep * 2;
+            path.push({ x: Math.max(0, Math.min(fieldW, endX)), y: Math.max(0, Math.min(fieldH, endY)) });
             break;
         }
 
@@ -7943,43 +7943,42 @@ function calculateTrajectory() {
 
         const px = padding + c * cellStep + CELL_SIZE / 2;
         const py = padding + r * cellStep + CELL_SIZE / 2;
+        path.push({ x: px, y: py });
+
         const block = gameState.grid[r]?.[c];
 
         if (!block) {
-            r += d.y;
-            c += d.x;
+            r += dr;
+            c += dc;
         } else {
             hits.push({ x: px, y: py });
             switch (block.type) {
                 case BLOCK_TYPES.COIN:
                 case BLOCK_TYPES.DIAMOND:
                 case BLOCK_TYPES.STAR:
-                    r += d.y;
-                    c += d.x;
-                    break;
                 case BLOCK_TYPES.MULTIPLIER:
-                    r += d.y;
-                    c += d.x;
+                    r += dr;
+                    c += dc;
                     break;
                 case BLOCK_TYPES.ROUTER: {
-                    const hitPort = getHitPort(d);
+                    const hitPort = getHitPort({ x: dc, y: dr });
                     const ports = block.routerConfig?.ports || [];
                     if (ports.includes(hitPort)) {
                         const outPorts = ports.filter(p => p !== hitPort);
                         if (outPorts.length > 0) {
-                            // Для предпросмотра берём первый выходной порт
-                            const pDir = { 'top': {x:0,y:-1}, 'bottom': {x:0,y:1}, 'left': {x:-1,y:0}, 'right': {x:1,y:0} };
-                            const outPort = outPorts[0];
-                            d = pDir[outPort];
-                            r += d.y;
-                            c += d.x;
-                        }
-                    }
+                            const pDir = { 'top': {dr:-1,dc:0}, 'bottom': {dr:1,dc:0}, 'left': {dr:0,dc:-1}, 'right': {dr:0,dc:1} };
+                            const outDir = pDir[outPorts[0]];
+                            dr = outDir.dr;
+                            dc = outDir.dc;
+                            r += dr;
+                            c += dc;
+                        } else break;
+                    } else break;
                     break;
                 }
                 default:
-                    r += d.y;
-                    c += d.x;
+                    r += dr;
+                    c += dc;
             }
         }
     }
@@ -7987,10 +7986,19 @@ function calculateTrajectory() {
     return { path, hits };
 }
 
+// Обновляем trajectory при изменении поля
+const _renderGridOrig = window.renderGrid || function(){};
+window.renderGrid = function() {
+    _renderGridOrig();
+    if (trajectoryMode) {
+        setTimeout(drawTrajectory, 60);
+    }
+}
+
 // Глобальная функция для клика по ячейке
 window.onCellClick = function(e, row, col) {
     // Блокируем клики во время работы лазера
-    if (typeof activeAnimations !== 'undefined' && activeAnimations.length > 0) return;
+    if (gameState.isCharging) return;
 
     const block = gameState.grid[row][col];
 
