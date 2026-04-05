@@ -3779,12 +3779,14 @@ body {
                         <i class="fas fa-bolt" style="color: var(--primary);"></i>
                         Реактор
                     </div>
-                    <button class="trajectory-btn" id="trajectoryBtn" onclick="toggleTrajectory()" title="Показать траекторию">
-                        <i class="fas fa-eye" id="trajectoryIcon"></i>
-                    </button>
-                    <button class="trajectory-btn" id="powerCalcBtn" onclick="togglePowerCalc()" title="Расчёт мощности" style="display:none;margin-left:4px;">
-                        <i class="fas fa-chart-line" id="powerCalcIcon"></i>
-                    </button>
+                    <div class="trajectory-buttons" style="display:flex;align-items:center;gap:4px;">
+                        <button class="trajectory-btn" id="trajectoryBtn" onclick="toggleTrajectory()" title="Показать траекторию">
+                            <i class="fas fa-eye" id="trajectoryIcon"></i>
+                        </button>
+                        <button class="trajectory-btn" id="powerCalcBtn" onclick="togglePowerCalc()" title="Расчёт мощности" style="display:none;">
+                            <i class="fas fa-chart-line" id="powerCalcIcon"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="field-grid" id="fieldGrid" style="position:relative;z-index:1;"></div>
                 <canvas id="trajectoryCanvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:100;display:none;"></canvas>
