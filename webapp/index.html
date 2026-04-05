@@ -7906,18 +7906,13 @@ window.drawTrajectory = function() {
     // Рисуем все пути
     allPaths.forEach((pathData, pathIdx) => {
         const path = pathData.path;
-        const hits = pathData.hits || [];
 
         if (path.length < 2) return;
 
-        // Свечение
-        ctx.shadowColor = 'rgba(255, 80, 80, 0.6)';
-        ctx.shadowBlur = 12;
-
-        // Основной луч
-        ctx.strokeStyle = pathIdx === 0 ? 'rgba(255, 100, 100, 0.9)' : 'rgba(255, 150, 100, 0.7)';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([]);
+        // Основной луч — тонкий
+        ctx.strokeStyle = pathIdx === 0 ? 'rgba(255, 80, 80, 0.6)' : 'rgba(255, 140, 80, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
@@ -7927,49 +7922,15 @@ window.drawTrajectory = function() {
             ctx.lineTo(path[i].x, path[i].y);
         }
         ctx.stroke();
-
-        // Пунктир поверх
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = 'rgba(255, 220, 180, 0.4)';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([6, 4]);
-
-        ctx.beginPath();
-        ctx.moveTo(path[0].x, path[0].y);
-        for (let i = 1; i < path.length; i++) {
-            ctx.lineTo(path[i].x, path[i].y);
-        }
-        ctx.stroke();
         ctx.setLineDash([]);
-
-        // Точки касания
-        for (let i = 0; i < hits.length; i++) {
-            const hit = hits[i];
-            // Внешний круг
-            ctx.beginPath();
-            ctx.arc(hit.x, hit.y, 8, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 180, 60, 0.3)';
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(255, 200, 100, 0.8)';
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-            // Внутренний круг
-            ctx.beginPath();
-            ctx.arc(hit.x, hit.y, 4, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 220, 150, 0.9)';
-            ctx.fill();
-        }
     });
 
-    // Точка старта — яркий круг
+    // Точка старта — маленький яркий круг
     if (allPaths.length > 0) {
         const start = allPaths[0].path[0];
-        const gradient = ctx.createRadialGradient(start.x, start.y, 0, start.x, start.y, 12);
-        gradient.addColorStop(0, 'rgba(255, 100, 100, 0.9)');
-        gradient.addColorStop(1, 'rgba(255, 100, 100, 0)');
-        ctx.fillStyle = gradient;
+        ctx.fillStyle = 'rgba(255, 100, 100, 0.7)';
         ctx.beginPath();
-        ctx.arc(start.x, start.y, 12, 0, Math.PI * 2);
+        ctx.arc(start.x, start.y, 5, 0, Math.PI * 2);
         ctx.fill();
     }
 }
