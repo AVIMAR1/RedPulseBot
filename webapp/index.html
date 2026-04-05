@@ -3783,9 +3783,8 @@ body {
                         <i class="fas fa-eye" id="trajectoryIcon"></i>
                     </button>
                 </div>
-                <div class="field-grid" id="fieldGrid" style="position:relative;">
-                    <canvas id="trajectoryCanvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:99;display:none;"></canvas>
-                </div>
+                <div class="field-grid" id="fieldGrid" style="position:relative;z-index:1;"></div>
+                <canvas id="trajectoryCanvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:100;display:none;"></canvas>
             </div>
 
             <!-- Bank -->
@@ -6982,7 +6981,7 @@ window.renderGrid = function() {
 const _origRenderGrid = window.renderGrid || function(){};
 window.renderGrid = function() {
     _origRenderGrid();
-    if (trajectoryMode) {
+    if (window.trajectoryMode) {
         setTimeout(drawTrajectory, 50);
     }
 }
@@ -7845,22 +7844,28 @@ function countBlocksOnField() {
 }
 
 // ===== ТРАЕКТОРИЯ ЛАЗЕРА (ПРЕДПРОСМОТР) =====
-let trajectoryMode = false;
+window.trajectoryMode = false;
 
 window.toggleTrajectory = function() {
-    trajectoryMode = !trajectoryMode;
+    window.trajectoryMode = !window.trajectoryMode;
     const btn = document.getElementById('trajectoryBtn');
     const icon = document.getElementById('trajectoryIcon');
     const canvas = document.getElementById('trajectoryCanvas');
     const grid = document.getElementById('fieldGrid');
 
-    if (trajectoryMode) {
+    if (window.trajectoryMode) {
         btn.classList.add('active');
         icon.className = 'fas fa-eye-slash';
+        // Позиционируем canvas точно над grid
+        const rect = grid.getBoundingClientRect();
+        const wrapper = grid.closest('.field-wrapper').getBoundingClientRect();
         canvas.style.display = 'block';
+        canvas.style.position = 'absolute';
+        canvas.style.top = (rect.top - wrapper.top) + 'px';
+        canvas.style.left = (rect.left - wrapper.left) + 'px';
         canvas.width = grid.clientWidth;
         canvas.height = grid.clientHeight;
-        console.log('[trajectory] Mode ON, canvas:', canvas.width, 'x', canvas.height);
+        console.log('[trajectory] Canvas pos:', canvas.style.top, canvas.style.left, 'size:', canvas.width, 'x', canvas.height);
         // Ждём отрисовку сетки
         setTimeout(drawTrajectory, 100);
     } else {
@@ -7873,19 +7878,28 @@ window.toggleTrajectory = function() {
 }
 
 window.drawTrajectory = function() {
-    if (!trajectoryMode) return;
+    if (!window.trajectoryMode) return;
     const canvas = document.getElementById('trajectoryCanvas');
     const grid = document.getElementById('fieldGrid');
     if (!canvas || !grid) { console.warn('[trajectory] Canvas или grid не найдены'); return; }
 
+    // Обновляем позицию и размер
+    const rect = grid.getBoundingClientRect();
+    const wrapper = grid.closest('.field-wrapper').getBoundingClientRect();
+    canvas.style.top = (rect.top - wrapper.top) + 'px';
+    canvas.style.left = (rect.left - wrapper.left) + 'px';
     canvas.width = grid.clientWidth;
     canvas.height = grid.clientHeight;
+
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Тестовая точка - проверяем что canvas работает
+    // Тестовая точка
     ctx.fillStyle = 'lime';
-    ctx.fillRect(5, 5, 10, 10);
+    ctx.fillRect(5, 5, 15, 15);
+    ctx.fillStyle = 'red';
+    ctx.font = '14px sans-serif';
+    ctx.fillText('TEST', 25, 18);
 
     if (!gameState || !gameState.grid || !gameState.grid[0]) {
         console.warn('[trajectory] gameState.grid пуст');
@@ -7895,10 +7909,10 @@ window.drawTrajectory = function() {
     console.log('[trajectory] grid:', gameState.fieldRows, 'x', FIELD_COLS, 'CHARGE_COL:', CHARGE_COL);
 
     const result = calculateTrajectory();
-    console.log('[trajectory] result:', result);
+    console.log('[trajectory] path points:', result ? result.path.length : 0);
     if (!result || !result.path || result.path.length < 2) return;
 
-    // Рисуем пунктирную линию траектории
+    // Рисуем пунктирную линию
     ctx.strokeStyle = 'rgba(255, 80, 80, 0.9)';
     ctx.lineWidth = 4;
     ctx.setLineDash([8, 5]);
@@ -7913,7 +7927,7 @@ window.drawTrajectory = function() {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Рисуем точки касания блоков
+    // Точки касания
     for (const hit of result.hits || []) {
         ctx.beginPath();
         ctx.arc(hit.x, hit.y, 7, 0, Math.PI * 2);
@@ -8010,7 +8024,7 @@ function calculateTrajectory() {
 const _renderGridOrig = window.renderGrid || function(){};
 window.renderGrid = function() {
     _renderGridOrig();
-    if (trajectoryMode) {
+    if (window.trajectoryMode) {
         setTimeout(drawTrajectory, 60);
     }
 }
