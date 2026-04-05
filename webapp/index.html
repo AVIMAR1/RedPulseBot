@@ -7894,48 +7894,83 @@ window.drawTrajectory = function() {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Тестовая точка
-    ctx.fillStyle = 'lime';
-    ctx.fillRect(5, 5, 15, 15);
-    ctx.fillStyle = 'red';
-    ctx.font = '14px sans-serif';
-    ctx.fillText('TEST', 25, 18);
-
     if (!gameState || !gameState.grid || !gameState.grid[0]) {
         console.warn('[trajectory] gameState.grid пуст');
         return;
     }
 
-    console.log('[trajectory] grid:', gameState.fieldRows, 'x', FIELD_COLS, 'CHARGE_COL:', CHARGE_COL);
+    // Рассчитываем все пути
+    const allPaths = calculateTrajectory();
+    if (!allPaths || allPaths.length === 0) return;
 
-    const result = calculateTrajectory();
-    console.log('[trajectory] path points:', result ? result.path.length : 0);
-    if (!result || !result.path || result.path.length < 2) return;
+    // Рисуем все пути
+    allPaths.forEach((pathData, pathIdx) => {
+        const path = pathData.path;
+        const hits = pathData.hits || [];
 
-    // Рисуем пунктирную линию
-    ctx.strokeStyle = 'rgba(255, 80, 80, 0.9)';
-    ctx.lineWidth = 4;
-    ctx.setLineDash([8, 5]);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+        if (path.length < 2) return;
 
-    ctx.beginPath();
-    ctx.moveTo(result.path[0].x, result.path[0].y);
-    for (let i = 1; i < result.path.length; i++) {
-        ctx.lineTo(result.path[i].x, result.path[i].y);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
+        // Свечение
+        ctx.shadowColor = 'rgba(255, 80, 80, 0.6)';
+        ctx.shadowBlur = 12;
 
-    // Точки касания
-    for (const hit of result.hits || []) {
+        // Основной луч
+        ctx.strokeStyle = pathIdx === 0 ? 'rgba(255, 100, 100, 0.9)' : 'rgba(255, 150, 100, 0.7)';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([]);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
         ctx.beginPath();
-        ctx.arc(hit.x, hit.y, 7, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 200, 80, 0.9)';
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 200, 80, 1)';
-        ctx.lineWidth = 2;
+        ctx.moveTo(path[0].x, path[0].y);
+        for (let i = 1; i < path.length; i++) {
+            ctx.lineTo(path[i].x, path[i].y);
+        }
         ctx.stroke();
+
+        // Пунктир поверх
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255, 220, 180, 0.4)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 4]);
+
+        ctx.beginPath();
+        ctx.moveTo(path[0].x, path[0].y);
+        for (let i = 1; i < path.length; i++) {
+            ctx.lineTo(path[i].x, path[i].y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Точки касания
+        for (let i = 0; i < hits.length; i++) {
+            const hit = hits[i];
+            // Внешний круг
+            ctx.beginPath();
+            ctx.arc(hit.x, hit.y, 8, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 180, 60, 0.3)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 200, 100, 0.8)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            // Внутренний круг
+            ctx.beginPath();
+            ctx.arc(hit.x, hit.y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 220, 150, 0.9)';
+            ctx.fill();
+        }
+    });
+
+    // Точка старта — яркий круг
+    if (allPaths.length > 0) {
+        const start = allPaths[0].path[0];
+        const gradient = ctx.createRadialGradient(start.x, start.y, 0, start.x, start.y, 12);
+        gradient.addColorStop(0, 'rgba(255, 100, 100, 0.9)');
+        gradient.addColorStop(1, 'rgba(255, 100, 100, 0)');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(start.x, start.y, 12, 0, Math.PI * 2);
+        ctx.fill();
     }
 }
 
@@ -7946,61 +7981,93 @@ function calculateTrajectory() {
     const fieldW = FIELD_COLS * cellStep + padding * 2;
     const fieldH = fieldRows * cellStep + padding * 2;
 
-    // Начальная позиция: row=0, col=CHARGE_COL
-    let r = 0, c = CHARGE_COL;
-    let dr = 1, dc = 0; // вниз
-    const visited = new Set();
-    const path = [];
-    const hits = [];
+    // Все пути (для разветвлений)
+    const allPaths = [];
 
-    const startX = padding + c * cellStep + CELL_SIZE / 2;
-    const startY = padding + r * cellStep + CELL_SIZE / 2;
+    // BFS с ветвлениями
+    const queue = [];
+    // Начальное состояние
+    queue.push({
+        r: 0, c: CHARGE_COL,
+        dr: 1, dc: 0,
+        path: [{ x: padding + CHARGE_COL * cellStep + CELL_SIZE/2, y: padding + 0 * cellStep + CELL_SIZE/2 }],
+        hits: [],
+        visited: new Set()
+    });
 
-    for (let steps = 0; steps < 200; steps++) {
-        // Стена
-        if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) {
-            const last = path[path.length - 1];
-            const endX = last.x + dc * cellStep;
-            const endY = last.y + dr * cellStep;
-            path.push({ x: Math.max(0, Math.min(fieldW, endX)), y: Math.max(0, Math.min(fieldH, endY)) });
-            break;
-        }
+    let iterations = 0;
+    const maxIterations = 500;
 
-        const blockKey = `${r}-${c}`;
-        if (visited.has(blockKey)) break;
-        visited.add(blockKey);
+    while (queue.length > 0 && iterations < maxIterations) {
+        iterations++;
+        const state = queue.shift();
+        let { r, c, dr, dc, path, hits, visited } = state;
 
-        const px = padding + c * cellStep + CELL_SIZE / 2;
-        const py = padding + r * cellStep + CELL_SIZE / 2;
-        path.push({ x: px, y: py });
+        for (let steps = 0; steps < 100; steps++) {
+            // Стена
+            if (r < 0 || r >= fieldRows || c < 0 || c >= FIELD_COLS) {
+                const last = path[path.length - 1];
+                const endX = last.x + dc * cellStep;
+                const endY = last.y + dr * cellStep;
+                path.push({ x: Math.max(0, Math.min(fieldW, endX)), y: Math.max(0, Math.min(fieldH, endY)) });
+                allPaths.push({ path, hits });
+                break;
+            }
 
-        const block = gameState.grid[r]?.[c];
+            const blockKey = `${r}-${c}`;
+            if (visited.has(blockKey)) {
+                allPaths.push({ path, hits });
+                break;
+            }
+            visited.add(blockKey);
 
-        if (!block) {
-            r += dr;
-            c += dc;
-        } else {
-            hits.push({ x: px, y: py });
+            const px = padding + c * cellStep + CELL_SIZE / 2;
+            const py = padding + r * cellStep + CELL_SIZE / 2;
+            path.push({ x: px, y: py });
 
-            if (block.type === 'coin' || block.type === 'diamond' || block.type === 'star') {
+            const block = gameState.grid[r]?.[c];
+
+            if (!block) {
                 r += dr;
                 c += dc;
-            } else if (block.type === 'multiplier') {
-                r += dr;
-                c += dc;
-            } else if (block.type === 'router') {
-                // Определяем порт входа
-                let hitPort = null;
-                if (dr === 1 && dc === 0) hitPort = 'top';
-                else if (dr === -1 && dc === 0) hitPort = 'bottom';
-                else if (dc === 1 && dr === 0) hitPort = 'left';
-                else if (dc === -1 && dr === 0) hitPort = 'right';
+            } else {
+                hits.push({ x: px, y: py });
 
-                const ports = block.routerConfig?.ports || [];
-                if (ports.includes(hitPort)) {
+                if (block.type === 'router') {
+                    // Определяем порт входа
+                    let hitPort = null;
+                    if (dr === 1 && dc === 0) hitPort = 'top';
+                    else if (dr === -1 && dc === 0) hitPort = 'bottom';
+                    else if (dc === 1 && dr === 0) hitPort = 'left';
+                    else if (dc === -1 && dr === 0) hitPort = 'right';
+
+                    const ports = block.routerConfig?.ports || [];
                     const outPorts = ports.filter(p => p !== hitPort);
-                    if (outPorts.length > 0) {
-                        // Берём первый выходной порт
+
+                    if (outPorts.length > 1) {
+                        // РАЗВЕТВЛЕНИЕ — создаём новые пути для каждого выхода
+                        for (let i = 0; i < outPorts.length; i++) {
+                            const outPort = outPorts[i];
+                            let ndr = dr, ndc = dc;
+                            if (outPort === 'top') { ndr = -1; ndc = 0; }
+                            else if (outPort === 'bottom') { ndr = 1; ndc = 0; }
+                            else if (outPort === 'left') { ndr = 0; ndc = -1; }
+                            else if (outPort === 'right') { ndr = 0; ndc = 1; }
+
+                            const newPath = path.slice();
+                            const newHits = hits.slice();
+                            const newVisited = new Set(visited);
+
+                            queue.push({
+                                r: r + ndr, c: c + ndc,
+                                dr: ndr, dc: ndc,
+                                path: newPath,
+                                hits: newHits,
+                                visited: newVisited
+                            });
+                        }
+                        break;
+                    } else if (outPorts.length === 1) {
                         const outPort = outPorts[0];
                         if (outPort === 'top') { dr = -1; dc = 0; }
                         else if (outPort === 'bottom') { dr = 1; dc = 0; }
@@ -8008,16 +8075,26 @@ function calculateTrajectory() {
                         else if (outPort === 'right') { dr = 0; dc = 1; }
                         r += dr;
                         c += dc;
-                    } else break;
-                } else break;
-            } else {
-                r += dr;
-                c += dc;
+                    } else {
+                        // Нет выходных портов — стоп
+                        allPaths.push({ path, hits });
+                        break;
+                    }
+                } else {
+                    // Остальные блоки — проходим насквозь
+                    r += dr;
+                    c += dc;
+                }
             }
+        }
+
+        // Если вышли из цикла по лимиту шагов
+        if (path.length > 0 && !allPaths.some(p => p.path === path)) {
+            allPaths.push({ path, hits });
         }
     }
 
-    return { path, hits };
+    return allPaths;
 }
 
 // Обновляем trajectory при изменении поля
