@@ -63,7 +63,7 @@ async def login_submit(request: Request, username: str = Form(...), password: st
     if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
         session_token = secrets.token_hex(32)
         admin_sessions[session_token] = datetime.now() + timedelta(hours=12)
-        response = RedirectResponse(url="/", status_code=303)
+        response = RedirectResponse(url="/?just_logged_in=1", status_code=303)
         response.set_cookie(key="admin_session", value=session_token, httponly=True, max_age=43200)
         return response
     return templates.TemplateResponse("admin_login.html", {"request": request, "error": "Неверный логин или пароль"})

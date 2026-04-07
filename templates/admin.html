@@ -878,7 +878,7 @@
         <ul class="sidebar-nav">
             <div class="sidebar-section">Важное</div>
             <li class="nav-item">
-                <a href="/" class="nav-link {% if page == 'dashboard' %}active{% endif %}">
+                <a href="/" class="nav-link {% if page == 'dashboard' %}active{% endif %}" onclick="doNavTransition('/');return false;">
                     <i class="bi bi-speedometer2"></i> Дашборд
                 </a>
             </li>
@@ -3357,12 +3357,17 @@
         const canvas=document.getElementById('adminLoaderCanvas');
 
         if(loader && canvas){
-            // Skip loader if we already saw it (page transition, not fresh login)
-            if(sessionStorage.getItem('adminLoaded')){
+            // Show loader ONLY when ?just_logged_in=1
+            const params=new URLSearchParams(window.location.search);
+            const justLoggedIn=params.get('just_logged_in')==='1';
+            // Clean URL
+            if(justLoggedIn){
+                history.replaceState(null,'',window.location.pathname);
+            }
+            if(!justLoggedIn){
                 loader.style.display='none';
                 return;
             }
-            sessionStorage.setItem('adminLoaded','1');
             const ctx=canvas.getContext('2d');
             canvas.width=window.innerWidth;
             canvas.height=window.innerHeight;
