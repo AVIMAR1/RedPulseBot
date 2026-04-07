@@ -2935,7 +2935,8 @@ body {
     padding: 10px;
     border-radius: var(--border-radius);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    z-index: 999;
+    z-index: 10;
+    overflow: visible;
 }
 
 .charge-start {
@@ -3018,6 +3019,7 @@ body {
     justify-content: center;
     font-size: 28px;
     position: relative;
+    z-index: 15;
     border: 2px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5), inset 0 2px 10px rgba(255,255,255,0.15);
     pointer-events: none;
@@ -3044,6 +3046,57 @@ body {
 .block.legendary { background: linear-gradient(135deg, #f1c40f, #d4ac0d); border: 3px solid #f9e79f; box-shadow: 0 4px 25px rgba(241, 196, 15, 0.7), inset 0 2px 10px rgba(255,255,255,0.2); animation: legendary-glow 2.5s ease-in-out infinite; }
 .block.mythic { background: linear-gradient(135deg, #9b59b6, #8e44ad); border: 3px solid #bb8fce; box-shadow: 0 4px 25px rgba(155, 89, 182, 0.7), inset 0 2px 10px rgba(255,255,255,0.2); animation: mythic-pulse 2s ease-in-out infinite; }
 .block.splitter { background: linear-gradient(135deg, #c0392b, #922b21); border: 3px solid #e74c3c; box-shadow: 0 4px 20px rgba(192, 57, 43, 0.7), inset 0 2px 10px rgba(255,255,255,0.2); }
+
+/* Сломанный блок */
+.block-broken {
+    background: linear-gradient(135deg, #4a0e0e, #2c0808) !important;
+    border: 3px solid #6b1a1a !important;
+    box-shadow: 0 4px 15px rgba(107, 26, 26, 0.7), inset 0 2px 10px rgba(255,0,0,0.1) !important;
+    filter: grayscale(0.7) brightness(0.5) !important;
+    animation: broken-smoke 3s ease-in-out infinite !important;
+}
+
+@keyframes broken-smoke {
+    0%, 100% { filter: grayscale(0.7) brightness(0.5); }
+    50% { filter: grayscale(0.5) brightness(0.6); }
+}
+
+/* Повреждённый блок (низкая прочность) */
+.block-damaged {
+    border-color: #f39c12 !important;
+    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4), inset 0 2px 10px rgba(255,255,255,0.15) !important;
+}
+
+/* Конденсатор */
+.block.condenser {
+    background: linear-gradient(135deg, #1a5276, #154360) !important;
+    border: 3px solid #2980b9 !important;
+    box-shadow: 0 4px 20px rgba(41, 128, 185, 0.6), inset 0 2px 10px rgba(255,255,255,0.2) !important;
+}
+
+.condenser-value {
+    font-size: 7px;
+    font-weight: 700;
+    color: #85c1e9;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+
+/* Точка здоровья блока */
+.hp-dot {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    z-index: 5;
+    pointer-events: none;
+}
+
+/* Полоска прочности (убрана, заменена на точку) */
+.durability-bar {
+    display: none;
+}
 
 @keyframes legendary-glow {
     0%, 100% { box-shadow: 0 4px 25px rgba(241, 196, 15, 0.6), inset 0 2px 10px rgba(255,255,255,0.2); }
@@ -3257,8 +3310,8 @@ body {
 
 /* Actions */
 .actions {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 12px;
 }
@@ -3768,6 +3821,7 @@ body {
                             <div class="cooldown-overlay hidden" id="cooldownOverlay"></div>
                         </button>
                         <div style="text-align: center; margin-top: 8px; font-size: 13px; color: var(--text-secondary);" id="corePower">x1.00</div>
+                        <div style="text-align: center; font-size: 11px; color: #e74c3c; font-weight: 600;" id="coreLaunchTemp">🔥 +5°C</div>
                     </div>
                 </div>
             </div>
@@ -3788,8 +3842,25 @@ body {
                         </button>
                     </div>
                 </div>
-                <div class="field-grid" id="fieldGrid" style="position:relative;z-index:1;"></div>
-                <canvas id="trajectoryCanvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:100;display:none;"></canvas>
+                <!-- Расчёт нагрева -->
+                <div id="heatCalc" style="display:none;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:10px;padding:8px 12px;margin:8px 0;font-size:12px;line-height:1.6;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <span style="color:#e74c3c;">🔥 Нагрев за тап:</span>
+                            <span id="heatReactor" style="color:#f39c12;font-weight:700;"></span>
+                            <span style="color:#888;">+</span>
+                            <span id="heatBlocks" style="color:#3498db;font-weight:700;"></span>
+                            <span style="color:#888;">=</span>
+                            <span id="heatTotal" style="color:#e74c3c;font-weight:700;font-size:14px;"></span>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="color:#888;">Температура:</div>
+                            <div><span id="heatCurrentTemp" style="color:#f39c12;font-weight:700;"></span><span style="color:#888;"> → </span><span id="heatNextTemp" style="color:#e74c3c;font-weight:700;"></span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="field-grid" id="fieldGrid" style="position:relative;z-index:10;"></div>
+                <canvas id="trajectoryCanvas" style="position:absolute;top:0;left:0;pointer-events:none;z-index:20;display:none;"></canvas>
             </div>
 
             <!-- Bank -->
@@ -3823,6 +3894,10 @@ body {
                 <button class="action-btn sell" id="sellBtn" onclick="sellSelected()">
                     <i class="fas fa-tag"></i>
                     Продать
+                </button>
+                <button class="action-btn" id="repairBlockBtn" onclick="repairBlock()" style="display: none; background: linear-gradient(135deg, #27ae60, #1e8449); border: 2px solid #2ecc71; box-shadow: 0 0 20px rgba(39,174,96,0.4); width: 100%; justify-content: center; font-size: 14px; font-weight: 700; padding: 12px 16px; order: -1; margin-bottom: 4px;">
+                    <i class="fas fa-wrench"></i>
+                    Починить
                 </button>
                 <button class="action-btn" id="repairBtn" onclick="repairCore()" style="display: none; background: linear-gradient(135deg, #27ae60, #1e8449);">
                     <i class="fas fa-tools"></i>
@@ -4094,22 +4169,27 @@ body {
         // КОНФИГУРАЦИЯ (должна быть определена ДО всех функций)
         // ==========================================
         const CONFIG = {
-            TEMP_PER_TAP: 15,
+            TEMP_PER_TAP: 5,
+            TEMP_PER_BLOCK: 1,
             TEMP_COOLDOWN_RATE: 0.3,
             TEMP_MAX_BASE: 100,
             TAP_COOLDOWN: 10000,
             BASE_CHARGE_POWER: 1,
             CHARGE_PER_LEVEL: 0.25,
-            DROP_RATES: { COIN: 50, ROUTER: 15, MULTIPLIER: 5, DIAMOND: 15, STAR: 5 },
+            DROP_RATES: { COIN: 40, ROUTER: 12, MULTIPLIER: 5, DIAMOND: 15, STAR: 5, CONDENSER: 8 },
             MULTIPLIER_VALUES: [1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0],
             MULTIPLIER_CHANCES: [35, 25, 18, 10, 6, 3, 2, 1],
             ROUTER_VALUES: [1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0],
-            RARITY_PRICE_MULT: { COIN: 1.0, ROUTER: 2.0, MULTIPLIER: 2.5, DIAMOND: 1.4, STAR: 1.5 },
+            CONDENSER_COOLING_BASE: 10,
+            CONDENSER_COOLING_PER_LEVEL: 5,
+            RARITY_PRICE_MULT: { COIN: 1.0, ROUTER: 2.0, MULTIPLIER: 2.5, DIAMOND: 1.4, STAR: 1.5, CONDENSER: 2.0 },
             PRICES: { BLOCK_BASE: 25, BLOCK_GROWTH: 1.25, BLOCK_ADD: 8, REROLL_BASE: 100, REROLL_GROWTH: 1.15, REROLL_ADD: 15, EXPAND_BASE: 2000, EXPAND_GROWTH: 1.35, EXPAND_ADD: 800 },
-            XP: { BASE_PER_TAP: 10, BASE_PER_LEVEL: 100, GROWTH: 1.15, LEVEL_BONUS_CHARGE: 0.05, LEVEL_BONUS_TEMP: 10 },
+            XP: { BASE_PER_TAP: 5, BASE_PER_LEVEL: 200, GROWTH: 1.35, LEVEL_BONUS_CHARGE: 0.05, LEVEL_BONUS_TEMP: 10 },
             CONVERSION: { COIN: 1, DIAMOND: 3000, STAR: 50000 },
             SELL_BASE: 20,
             SELL_LEVEL_MULT: 1.5,
+            // Деградация блоков
+            DURABILITY: { BASE_PER_LEVEL: 50, REPAIR_BASE: 200 },
             // Константы для ядра
             MIN_TEMP_FOR_TAP: 10,
             MIN_COOLDOWN: 5000,
@@ -4135,7 +4215,7 @@ body {
         const CHARGE_COL = 3;
 
         // Типы блоков
-        const BLOCK_TYPES = { COIN: 'coin', DIAMOND: 'diamond', STAR: 'star', ROUTER: 'router', MULTIPLIER: 'multiplier' };
+        const BLOCK_TYPES = { COIN: 'coin', DIAMOND: 'diamond', STAR: 'star', ROUTER: 'router', MULTIPLIER: 'multiplier', CONDENSER: 'condenser' };
         const ROUTER_TYPES = { DIRECTOR: 'director', MULTIPLIER: 'multi' };
         const ROUTER_CONFIGS = [
             { type: ROUTER_TYPES.DIRECTOR, ports: ['top', 'right'] },
@@ -6215,12 +6295,16 @@ function initGrid() {
         }
     }
     gameState.grid[0][CHARGE_COL] = createBlock(BLOCK_TYPES.COIN, 1, 1);
-    console.log('[initGrid] Создан блок в строке 0, колонке', CHARGE_COL);
     generateShopItems();
 }
 
 function createBlock(type, level, value = 1) {
     const block = { type, level: level || 1, value: parseFloat(value) || 1, id: Date.now() + Math.random() };
+    // Деградация: максимальная прочность и текущая
+    block.maxDurability = CONFIG.DURABILITY.BASE_PER_LEVEL * (level || 1);
+    block.durability = block.maxDurability;
+    block.isBroken = false;
+
     if (type === BLOCK_TYPES.ROUTER) {
         const randomConfig = ROUTER_CONFIGS[Math.floor(Math.random() * ROUTER_CONFIGS.length)];
         block.routerConfig = randomConfig;
@@ -6230,6 +6314,8 @@ function createBlock(type, level, value = 1) {
         block.value = parseFloat((1.5 + (level - 1) * 0.5).toFixed(1));
     } else if (type === BLOCK_TYPES.COIN || type === BLOCK_TYPES.DIAMOND || type === BLOCK_TYPES.STAR) {
         block.value = level;
+    } else if (type === BLOCK_TYPES.CONDENSER) {
+        block.value = CONFIG.CONDENSER_COOLING_BASE + (level - 1) * CONFIG.CONDENSER_COOLING_PER_LEVEL;
     }
     return block;
 }
@@ -6255,22 +6341,28 @@ function generateRandomBlock(maxLevel = 3) {
     else if (rand < CONFIG.DROP_RATES.STAR + CONFIG.DROP_RATES.DIAMOND) type = BLOCK_TYPES.DIAMOND;
     else if (rand < CONFIG.DROP_RATES.STAR + CONFIG.DROP_RATES.DIAMOND + CONFIG.DROP_RATES.ROUTER) type = BLOCK_TYPES.ROUTER;
     else if (rand < CONFIG.DROP_RATES.STAR + CONFIG.DROP_RATES.DIAMOND + CONFIG.DROP_RATES.ROUTER + CONFIG.DROP_RATES.MULTIPLIER) type = BLOCK_TYPES.MULTIPLIER;
+    else if (rand < CONFIG.DROP_RATES.STAR + CONFIG.DROP_RATES.DIAMOND + CONFIG.DROP_RATES.ROUTER + CONFIG.DROP_RATES.MULTIPLIER + CONFIG.DROP_RATES.CONDENSER) type = BLOCK_TYPES.CONDENSER;
     return createBlock(type, level);
 }
 
 function getBlockIcon(block) {
-    const icons = { [BLOCK_TYPES.COIN]: '🪙', [BLOCK_TYPES.DIAMOND]: '💎', [BLOCK_TYPES.STAR]: '⭐', [BLOCK_TYPES.ROUTER]: '🔀', [BLOCK_TYPES.MULTIPLIER]: '×' + block.value };
+    const icons = { [BLOCK_TYPES.COIN]: '🪙', [BLOCK_TYPES.DIAMOND]: '💎', [BLOCK_TYPES.STAR]: '⭐', [BLOCK_TYPES.ROUTER]: '🔀', [BLOCK_TYPES.MULTIPLIER]: '×' + block.value, [BLOCK_TYPES.CONDENSER]: '❄️' };
     return icons[block.type] || '❓';
 }
 
 function getBlockName(block) {
-    const names = { [BLOCK_TYPES.COIN]: 'Монета', [BLOCK_TYPES.DIAMOND]: 'Алмаз', [BLOCK_TYPES.STAR]: 'Звезда', [BLOCK_TYPES.ROUTER]: 'Маршрутизатор', [BLOCK_TYPES.MULTIPLIER]: 'Множитель' };
+    const names = { [BLOCK_TYPES.COIN]: 'Монета', [BLOCK_TYPES.DIAMOND]: 'Алмаз', [BLOCK_TYPES.STAR]: 'Звезда', [BLOCK_TYPES.ROUTER]: 'Маршрутизатор', [BLOCK_TYPES.MULTIPLIER]: 'Множитель', [BLOCK_TYPES.CONDENSER]: 'Конденсатор' };
     return names[block.type] || 'Блок';
 }
 
 function getBlockFullName(block) {
     const name = getBlockName(block);
-    const levelStr = block.type === BLOCK_TYPES.MULTIPLIER || block.type === BLOCK_TYPES.ROUTER ? `x${block.value} Lvl${block.level}` : `Lvl${block.level}`;
+    let levelStr = `Lvl${block.level}`;
+    if (block.type === BLOCK_TYPES.MULTIPLIER || block.type === BLOCK_TYPES.ROUTER) levelStr = `x${block.value} Lvl${block.level}`;
+    if (block.type === BLOCK_TYPES.CONDENSER) levelStr = `-${block.value}°C Lvl${block.level}`;
+    // Индикатор состояния
+    if (block.isBroken) levelStr += ' 💥';
+    else if (block.durability < block.maxDurability * 0.3) levelStr += ' ⚠️';
     return `${name} ${levelStr}`;
 }
 
@@ -6361,6 +6453,24 @@ window.loadGame = async function() {
                         console.log('[loadGame] Загружаем grid из БД:', dbData.grid.length, 'строк');
                         gameState.grid = dbData.grid;
                         gameState.fieldRows = dbData.grid.length;
+
+                        // Инициализируем durability для всех блоков (если старые данные)
+                        for (let r = 0; r < gameState.grid.length; r++) {
+                            if (!gameState.grid[r]) continue;
+                            for (let c = 0; c < (gameState.grid[r].length || 0); c++) {
+                                const block = gameState.grid[r][c];
+                                if (!block) continue;
+                                if (typeof block.maxDurability !== 'number' || block.maxDurability === undefined) {
+                                    block.maxDurability = CONFIG.DURABILITY.BASE_PER_LEVEL * (block.level || 1);
+                                }
+                                if (typeof block.durability !== 'number' || block.durability === undefined) {
+                                    block.durability = block.maxDurability;
+                                }
+                                if (typeof block.isBroken !== 'boolean') {
+                                    block.isBroken = false;
+                                }
+                            }
+                        }
                     }
 
                     if (dbData.shopItems && Array.isArray(dbData.shopItems) && dbData.shopItems.length > 0) {
@@ -6634,14 +6744,18 @@ async function saveFarmState() {
         const cleanGrid = gameState.grid ? gameState.grid.map(row =>
             row.map(block => {
                 if (!block) return null;
-                // Сохраняем только простые свойства
+                // Сохраняем только важные свойства + деградацию
                 return {
                     type: block.type,
                     level: block.level,
                     value: block.value,
                     id: block.id,
                     routerConfig: block.routerConfig ? {...block.routerConfig} : null,
-                    routerType: block.routerType || null
+                    routerType: block.routerType || null,
+                    // Деградация
+                    maxDurability: block.maxDurability || 0,
+                    durability: block.durability || 0,
+                    isBroken: block.isBroken || false
                 };
             })
         ) : [];
@@ -6656,7 +6770,10 @@ async function saveFarmState() {
                 price: item.price,
                 id: item.id,
                 routerConfig: item.routerConfig ? {...item.routerConfig} : null,
-                routerType: item.routerType || null
+                routerType: item.routerType || null,
+                maxDurability: item.maxDurability || 0,
+                durability: item.durability || 0,
+                isBroken: item.isBroken || false
             };
         }) : [];
 
@@ -6834,6 +6951,10 @@ window.updateUI = function() {
     const corePowerEl = document.getElementById('corePower');
     if (corePowerEl) corePowerEl.textContent = `x${(gameState.chargePower || 1).toFixed(2)}`;
 
+    // Температура запуска от реактора
+    const coreLaunchTempEl = document.getElementById('coreLaunchTemp');
+    if (coreLaunchTempEl) coreLaunchTempEl.textContent = `🔥 +${CONFIG.TEMP_PER_TAP}°C`;
+
     const coreBtn = document.getElementById('coreBtn');
     const cooldownOverlay = document.getElementById('cooldownOverlay');
     const now = Date.now();
@@ -6853,6 +6974,24 @@ window.updateUI = function() {
     document.getElementById('rerollBtn').disabled = (gameState.coins || 0) < (gameState.rerollCost || CONFIG.PRICES.REROLL_BASE);
     document.getElementById('withdrawBtn').disabled = (gameState.bankCoins || 0) < 1 && (gameState.bankCrystals || 0) < 1 && (gameState.bankStars || 0) < 0.01;
     document.getElementById('sellBtn').disabled = !gameState.selectedCell;
+
+    // Показываем кнопку ремонта блока если выбран повреждённый/сломанный блок
+    const repairBlockBtn = document.getElementById('repairBlockBtn');
+    if (gameState.selectedCell) {
+        const selBlock = gameState.grid[gameState.selectedCell.row]?.[gameState.selectedCell.col];
+        if (selBlock && (selBlock.isBroken || selBlock.durability < selBlock.maxDurability)) {
+            const reactorLevel = gameState.reactor_level || 1;
+            const repairCost = CONFIG.DURABILITY.REPAIR_BASE * Math.pow(selBlock.level, 2) * Math.pow(reactorLevel, 3);
+            const pct = Math.round((selBlock.durability / selBlock.maxDurability) * 100);
+            repairBlockBtn.style.display = 'flex';
+            repairBlockBtn.innerHTML = `<i class="fas fa-wrench"></i> Починить — ${formatNumber(repairCost)} 🪙 <span style="font-size:9px;color:#aaa;">(${pct}%)</span>`;
+        } else {
+            repairBlockBtn.style.display = 'none';
+        }
+    } else {
+        repairBlockBtn.style.display = 'none';
+    }
+
     renderShopItems();
 }
 
@@ -6905,7 +7044,10 @@ window.renderGrid = function() {
     const gridEl = document.getElementById('fieldGrid');
     if (!gridEl) return;
     if (typeof gameState === 'undefined') return;
-    if (typeof FIELD_COLS === 'undefined' || typeof CELL_SIZE === 'undefined' || typeof GAP === 'undefined' || typeof CHARGE_COL === 'undefined') return;
+    if (typeof FIELD_COLS === 'undefined' || typeof CELL_SIZE === 'undefined' || typeof GAP === 'undefined' || typeof CHARGE_COL === 'undefined') {
+        console.error('[renderGrid] Константы не определены:', {FIELD_COLS, CELL_SIZE, GAP, CHARGE_COL});
+        return;
+    }
 
     if (!gameState.grid || !Array.isArray(gameState.grid) || gameState.grid.length === 0 || !gameState.grid[0]) {
         initGrid();
@@ -6943,7 +7085,11 @@ window.renderGrid = function() {
             const block = rowBlocks[col];
             if (block) {
                 const blockEl = createElement('div');
-                blockEl.className = `block ${getLevelColorClass(block.level)}`;
+                // Сломанный блок — красный, низкая прочность — жёлтый
+                let blockClass = `block ${getLevelColorClass(block.level)}`;
+                if (block.isBroken) blockClass += ' block-broken';
+                else if ((block.maxDurability || 1) > 0 && block.durability < block.maxDurability * 0.3) blockClass += ' block-damaged';
+                blockEl.className = blockClass;
 
                 let blockContent = '';
                 if (block.type === BLOCK_TYPES.ROUTER) {
@@ -6953,8 +7099,21 @@ window.renderGrid = function() {
                     }
                 } else if (block.type === BLOCK_TYPES.MULTIPLIER) {
                     blockContent = `<span class="multiplier-value">x${block.value}</span><span class="block-level-badge">${block.level}</span>`;
+                } else if (block.type === BLOCK_TYPES.CONDENSER) {
+                    blockContent = `<span class="block-icon">${getBlockIcon(block)}</span><span class="block-level-badge">${block.level}</span><span class="condenser-value">-${block.value}°C</span>`;
                 } else {
                     blockContent = `<span class="block-icon">${getBlockIcon(block)}</span><span class="block-level-badge">${block.level}</span>`;
+                }
+
+                // Точка здоровья в верхнем левом углу
+                if (block.maxDurability && block.maxDurability > 0) {
+                    const pct = (block.durability || 0) / block.maxDurability;
+                    let dotColor;
+                    if (block.isBroken) dotColor = '#1a1a1a';
+                    else if (pct > 0.5) dotColor = '#27ae60';
+                    else if (pct > 0.2) dotColor = '#f39c12';
+                    else dotColor = '#e74c3c';
+                    blockContent += `<div class="hp-dot" style="background:${dotColor};box-shadow:0 0 4px ${dotColor}"></div>`;
                 }
 
                 blockEl.innerHTML = blockContent;
@@ -7097,7 +7256,10 @@ window.tapCore = function tapCore() {
     // Normal tap
     gameState.currentCooldown = Math.floor(Math.random() * (CONFIG.MAX_COOLDOWN - CONFIG.MIN_COOLDOWN + 1)) + CONFIG.MIN_COOLDOWN;
     gameState.lastTapTime = now;
+
+    // Мгновенный нагрев ТОЛЬКО от реактора (без блоков)
     gameState.temp = Math.min(gameState.temp + CONFIG.TEMP_PER_TAP, gameState.maxTemp);
+
     gameState.isCharging = true;
     gameState.totalTaps++;
     gameState.reactions_triggered++;  // Считаем реакции
@@ -7374,6 +7536,30 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
         if (!block) {
             await step(r + d.y, c + d.x, d, ch, px, py);
         } else {
+            // Проверка: блок сломан?
+            if (block.isBroken) {
+                showFloatingEarn(r, c, '💥 Сломан!', 'broken');
+                await step(r + d.y, c + d.x, d, ch, px, py);
+                branchDone();
+                return;
+            }
+
+            // Деградация: уменьшаем прочность
+            block.durability = Math.max(0, block.durability - 1);
+            if (block.durability <= 0) {
+                block.isBroken = true;
+                showFloatingEarn(r, c, '💥 Сломался!', 'broken');
+                // Обновляем точку HP напрямую через DOM, НЕ вызывая renderGrid
+                updateBlockDot(r, c);
+                // Лазер продолжает лететь БЕЗ начисления наград
+                await step(r + d.y, c + d.x, d, ch, px, py);
+                branchDone();
+                return;
+            }
+
+            // Постепенный нагрев: +1°C при каждом касании блока лазером
+            gameState.temp = Math.min(gameState.temp + CONFIG.TEMP_PER_BLOCK, gameState.maxTemp);
+
             switch (block.type) {
                 case BLOCK_TYPES.COIN:
                     earned.coins += ch * CONFIG.CONVERSION.COIN * block.level;
@@ -7396,6 +7582,17 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
                 case BLOCK_TYPES.MULTIPLIER:
                     gameState.reactions_triggered++;
                     await step(r + d.y, c + d.x, d, ch * block.value, px, py);
+                    break;
+                case BLOCK_TYPES.CONDENSER:
+                    // Охлаждение: снижаем температуру, но не ниже, чем было до тапа
+                    const tempBeforeTap = Math.max(0, gameState.temp - (CONFIG.TEMP_PER_TAP + countBlocksOnField() * CONFIG.TEMP_PER_BLOCK));
+                    const coolingAmount = block.value;
+                    const newTemp = Math.max(tempBeforeTap, gameState.temp - coolingAmount);
+                    const actualCooling = gameState.temp - newTemp;
+                    gameState.temp = newTemp;
+                    gameState.reactions_triggered++;
+                    showFloatingEarn(r, c, `-${actualCooling.toFixed(1)}°C ❄️`, 'condenser');
+                    await step(r + d.y, c + d.x, d, ch, px, py);
                     break;
                 case BLOCK_TYPES.ROUTER: {
                         const hitPort = getHitPort(d);
@@ -7442,6 +7639,26 @@ function handleBlock(block, row, col, charge, dir, processed, x, y) {
     const cellX = padding + col * (CELL_SIZE + GAP);
     const cellY = padding + row * (CELL_SIZE + GAP);
 
+    // Проверка: блок сломан?
+    if (block.isBroken) {
+        showFloatingEarn(row, col, '💥 Сломан!', 'broken');
+        spawnCharge(row, col, x, y, dir, charge, processed);
+        return;
+    }
+
+    // Деградация
+    block.durability = Math.max(0, block.durability - 1);
+    if (block.durability <= 0) {
+        block.isBroken = true;
+        showFloatingEarn(row, col, '💥 Сломался!', 'broken');
+        updateBlockDot(row, col);
+        spawnCharge(row, col, x, y, dir, charge, processed);
+        return;
+    }
+
+    // Постепенный нагрев: +1°C при касании блока
+    gameState.temp = Math.min(gameState.temp + CONFIG.TEMP_PER_BLOCK, gameState.maxTemp);
+
     switch (block.type) {
         case BLOCK_TYPES.COIN:
             const coins = charge * CONFIG.CONVERSION.COIN * block.level;
@@ -7475,8 +7692,17 @@ function handleBlock(block, row, col, charge, dir, processed, x, y) {
             const newCharge = charge * block.value;
             const multDisplay = Math.round(block.value * 100) / 100;
             showFloatingEarn(row, col, `×${multDisplay.toFixed(2)}!`, 'multiplier');
-            // Выпускаем снаряд из ЦЕНТРА блока
             setTimeout(() => spawnCharge(row, col, x, y, dir, newCharge, processed), 50);
+            break;
+
+        case BLOCK_TYPES.CONDENSER:
+            const tempBefore = Math.max(0, gameState.temp - (CONFIG.TEMP_PER_TAP + countBlocksOnField() * CONFIG.TEMP_PER_BLOCK));
+            const coolAmt = block.value;
+            const newTemp = Math.max(tempBefore, gameState.temp - coolAmt);
+            const actualCool = gameState.temp - newTemp;
+            gameState.temp = newTemp;
+            showFloatingEarn(row, col, `-${actualCool.toFixed(1)}°C ❄️`, 'condenser');
+            spawnCharge(row, col, x, y, dir, charge, processed);
             break;
 
         case BLOCK_TYPES.ROUTER:
@@ -7587,32 +7813,30 @@ function getHitPort(dir) {
 
 function finishCharging() {
     gameState.isCharging = false;
+    renderGrid();
     updateUI();
     saveGame();
 }
 
 function addXP(amount) {
-    const xpMultiplier = gameState.level >= 20 ? 2 : 1;
-    const xpGained = amount * xpMultiplier;
+    const xpGained = amount;
     gameState.xp = (gameState.xp || 0) + xpGained;
     while (gameState.xp >= gameState.xpToNext) levelUp();
     updateBalance();
 }
 
 function levelUp() {
-    const xpBefore = gameState.xp;
-    gameState.xp -= gameState.xpToNext;
     gameState.level++;
+    gameState.xp = 0; // Полностью сбрасываем XP в 0
     gameState.xpToNext = Math.round(CONFIG.XP.BASE_PER_LEVEL * Math.pow(CONFIG.XP.GROWTH, gameState.level - 1));
     const oldChargePower = gameState.chargePower;
     gameState.chargePower = CONFIG.BASE_CHARGE_POWER + (gameState.level - 1) * CONFIG.CHARGE_PER_LEVEL;
     const newChargePower = gameState.chargePower;
     gameState.maxTemp = CONFIG.TEMP_MAX_BASE + (gameState.level - 1) * CONFIG.XP.LEVEL_BONUS_TEMP;
-    showToast(`🎉 Уровень ${gameState.level}!`, 'success');
+    showToast(`🎉 Уровень ${gameState.level}! Нужно: ${formatNumber(gameState.xpToNext)} XP`, 'success');
     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
     const benefit = CONFIG.LEVEL_BENEFITS.find(b => b.level === gameState.level);
     if (benefit) setTimeout(() => showToast(benefit.benefit, 'info'), 1000);
-    // Показываем увеличение силы заряда
     const chargeDiff = (newChargePower - oldChargePower).toFixed(2);
     if (chargeDiff > 0) {
         setTimeout(() => showToast(`⚡ Сила ядра +${chargeDiff}!`, 'info'), 1500);
@@ -7753,17 +7977,63 @@ window.sellSelected = function() {
             return;
         }
     }
-    const sellPrice = Math.floor(CONFIG.SELL_BASE * Math.pow(CONFIG.SELL_LEVEL_MULT, block.level - 1));
+
+    // Новая формула: базовая цена * прочность% * уровень ядра
+    const durabilityRatio = block.isBroken ? 0.1 : (block.durability / block.maxDurability);
+    const reactorLevel = gameState.reactor_level || 1;
+    const basePrice = CONFIG.SELL_BASE * Math.pow(CONFIG.SELL_LEVEL_MULT, block.level - 1);
+    const sellPrice = Math.floor(basePrice * durabilityRatio * (1 + reactorLevel * 0.1));
+
     // Продажа за монеты на основной баланс
     state.click_coins = (state.click_coins || 0) + sellPrice;
     gameState.grid[gameState.selectedCell.row][gameState.selectedCell.col] = null;
-    gameState.blocks_placed = countBlocksOnField(); // Обновляем счётчик
-    gameState.selectedCell = null;  // Сбрасываем выбранный блок
-    showToast(`+${sellPrice} 🪙`, 'success');
+    gameState.blocks_placed = countBlocksOnField();
+    gameState.selectedCell = null;
+    showToast(`+${formatNumber(sellPrice)} 🪙`, 'success');
     if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
     updateBalance();
     renderGrid();
-    // Сохраняем в БД сразу после продажи
+    if (typeof saveGame === 'function') saveGame();
+}
+
+// Глобальная функция для ремонта блока
+window.repairBlock = function() {
+    if (!gameState.selectedCell) {
+        showToast('Выберите блок!', 'warning');
+        return;
+    }
+    const block = gameState.grid[gameState.selectedCell.row][gameState.selectedCell.col];
+    if (!block) {
+        showToast('Здесь пусто!', 'error');
+        return;
+    }
+    if (!block.isBroken && block.durability >= block.maxDurability) {
+        showToast('Блок в отличном состоянии!', 'info');
+        return;
+    }
+
+    // Стоимость ремонта: REPAIR_BASE * level^2 * reactorLevel^3
+    const reactorLevel = gameState.reactor_level || 1;
+    const repairCost = CONFIG.DURABILITY.REPAIR_BASE * Math.pow(block.level, 2) * Math.pow(reactorLevel, 3);
+
+    const availableCoins = Math.min(gameState.coins || 0, state.click_coins || 0);
+    if (availableCoins < repairCost) {
+        showToast(`Недостаточно монет! Нужно: ${formatNumber(repairCost)} 🪙`, 'error');
+        return;
+    }
+
+    // Списываем монеты
+    state.click_coins = (state.click_coins || 0) - repairCost;
+    if (gameState.coins > 0) gameState.coins -= repairCost;
+
+    // Ремонтируем
+    block.isBroken = false;
+    block.durability = block.maxDurability;
+
+    showToast(`🔧 Блок отремонтирован! −${formatNumber(repairCost)} 🪙`, 'success');
+    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('success');
+    updateBalance();
+    renderGrid();
     if (typeof saveGame === 'function') saveGame();
 }
 
@@ -7831,7 +8101,30 @@ window.repairCore = function() {
     }
 }
 
+// === ПЕРЕМЕЩЕНИЕ БЛОКОВ ===
 let selectedForMove = null;
+
+// Обновить точку HP конкретного блока (без полного ререндера)
+function updateBlockDot(row, col) {
+    const block = gameState.grid?.[row]?.[col];
+    if (!block || !block.maxDurability) return;
+    const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
+    if (!cell) return;
+    let dot = cell.querySelector('.hp-dot');
+    if (!dot) {
+        dot = document.createElement('div');
+        dot.className = 'hp-dot';
+        cell.appendChild(dot);
+    }
+    const pct = (block.durability || 0) / block.maxDurability;
+    let dotColor;
+    if (block.isBroken) dotColor = '#1a1a1a';
+    else if (pct > 0.5) dotColor = '#27ae60';
+    else if (pct > 0.2) dotColor = '#f39c12';
+    else dotColor = '#e74c3c';
+    dot.style.background = dotColor;
+    dot.style.boxShadow = `0 0 4px ${dotColor}`;
+}
 
 // Подсчёт блоков на поле
 function countBlocksOnField() {
@@ -7892,14 +8185,35 @@ window.togglePowerCalc = function() {
     window.powerCalcMode = !window.powerCalcMode;
     const btn = document.getElementById('powerCalcBtn');
     const icon = document.getElementById('powerCalcIcon');
+    const heatCalc = document.getElementById('heatCalc');
+
     if (window.powerCalcMode) {
         btn.classList.add('active');
         icon.className = 'fas fa-bolt';
+        heatCalc.style.display = 'block';
+        updateHeatCalc();
     } else {
         btn.classList.remove('active');
         icon.className = 'fas fa-chart-line';
+        heatCalc.style.display = 'none';
     }
     drawTrajectory();
+}
+
+function updateHeatCalc() {
+    const blocksOnField = countBlocksOnField();
+    const reactorHeat = CONFIG.TEMP_PER_TAP;
+    const blockHeat = blocksOnField * CONFIG.TEMP_PER_BLOCK;
+    const totalHeat = reactorHeat + blockHeat;
+    const tempBefore = gameState.temp;
+    const tempAfter = Math.min(gameState.temp + totalHeat, gameState.maxTemp);
+
+    const el = (id) => document.getElementById(id);
+    if (el('heatReactor')) el('heatReactor').textContent = `${reactorHeat}°C`;
+    if (el('heatBlocks')) el('heatBlocks').textContent = `${blockHeat}°C (${blocksOnField} бл.)`;
+    if (el('heatTotal')) el('heatTotal').textContent = `${totalHeat}°C`;
+    if (el('heatCurrentTemp')) el('heatCurrentTemp').textContent = `${Math.round(tempBefore)}°C`;
+    if (el('heatNextTemp')) el('heatNextTemp').textContent = `${Math.round(tempAfter)}°C / ${gameState.maxTemp}°C`;
 }
 
 function startTrajAnimLoop() {
@@ -8138,6 +8452,9 @@ window.onCellClick = function(e, row, col) {
                     const newLevel = block.level + 1;
                     block.level = newLevel;
                     block.value = parseFloat((1.1 + (newLevel - 1) * 0.1).toFixed(1));
+                    block.maxDurability = CONFIG.DURABILITY.BASE_PER_LEVEL * newLevel;
+                    block.durability = block.maxDurability;
+                    block.isBroken = false;
                     gameState.grid[selectedForMove.row][selectedForMove.col] = null;
                     createBreedingAnimation(row, col, newLevel);
                     showToast(`Скрещивание! Маршрутизатор ур. ${newLevel} (x${block.value})!`, 'success');
@@ -8161,6 +8478,10 @@ window.onCellClick = function(e, row, col) {
                 block.level = newLevel;
                 if (block.type === BLOCK_TYPES.ROUTER) block.value = parseFloat((1.1 + (newLevel - 1) * 0.1).toFixed(1));
                 else if (block.type === BLOCK_TYPES.MULTIPLIER) block.value = parseFloat((1.5 + (newLevel - 1) * 0.5).toFixed(1));
+                else if (block.type === BLOCK_TYPES.CONDENSER) block.value = CONFIG.CONDENSER_COOLING_BASE + (newLevel - 1) * CONFIG.CONDENSER_COOLING_PER_LEVEL;
+                block.maxDurability = CONFIG.DURABILITY.BASE_PER_LEVEL * newLevel;
+                block.durability = block.maxDurability;
+                block.isBroken = false;
                 gameState.grid[selectedForMove.row][selectedForMove.col] = null;
                 createBreedingAnimation(row, col, newLevel);
                 showToast(`Скрещивание! Уровень ${newLevel}!`, 'success');
@@ -8174,6 +8495,9 @@ window.onCellClick = function(e, row, col) {
                 const newLevel = block.level + 1;
                 block.level = newLevel;
                 block.value = newLevel;
+                block.maxDurability = CONFIG.DURABILITY.BASE_PER_LEVEL * newLevel;
+                block.durability = block.maxDurability;
+                block.isBroken = false;
                 gameState.grid[selectedForMove.row][selectedForMove.col] = null;
                 createBreedingAnimation(row, col, newLevel);
                 showToast(`Скрещивание! Уровень ${newLevel}!`, 'success');

@@ -110,9 +110,6 @@ async def get_user_data(user_id: int):
                 return default if v is None else v
 
             xp = int(get("xp", 0) or 0)
-            level = int(get("level", 1) or 1)
-            if xp <= 0:
-                xp = int(get("total_clicks", 0) or 0)
             p = progress_for_xp(xp)
 
             result = {
@@ -234,7 +231,7 @@ async def save_clicks(request: Request):
     final_crystals = max(old_crystals, crystals)
     
     delta_clicks = max(0, total_clicks - old_total_clicks)
-    xp_gain = delta_clicks
+    xp_gain = delta_clicks * 10  # 1 клик = 10 XP
 
     # Бонус общей казны
     try:
@@ -629,8 +626,9 @@ async def save_farm_state(request: Request):
             final_bank_coins = req_bank_coins
             final_bank_stars = req_bank_stars
             final_bank_crystals = req_bank_crystals
-            final_level = max(int(db_row["level"] or 1), req_level)
+            # XP: берём максимум, затем ПЕРЕСЧИТЫВАЕМ уровень из XP
             final_xp = max(int(db_row["xp"] or 0), req_xp)
+            final_level = progress_for_xp(final_xp)["level"]
             final_temp = int(db_row["temp"] or 0) if req_temp == 0 else req_temp
             final_max_temp = int(db_row["max_temp"] or 100) if req_max_temp == 100 else req_max_temp
             # first_play: если в запросе False, сохраняем 0
@@ -638,7 +636,7 @@ async def save_farm_state(request: Request):
             # lastTapTime сохраняем из запроса
             import time
             final_last_tap_time = farm_state.get('lastTapTime', int(time.time() * 1000))
-            
+
             print(f'[save-farm-state] max(): реакции {db_row["reactions_triggered"]} -> {final_reactions}, блоки {db_row["blocks_placed"]} -> {final_blocks}')
         else:
             # Нет данных в БД - используем значения из запроса
@@ -653,8 +651,8 @@ async def save_farm_state(request: Request):
             final_bank_coins = req_bank_coins
             final_bank_stars = req_bank_stars
             final_bank_crystals = req_bank_crystals
-            final_level = req_level
             final_xp = req_xp
+            final_level = progress_for_xp(final_xp)["level"]
             final_temp = req_temp
             final_max_temp = req_max_temp
             final_first_play = 0 if farm_state.get('firstPlay') is False else 1
