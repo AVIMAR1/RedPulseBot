@@ -37,7 +37,7 @@
         .sidebar {
             position: fixed;
             left: 0;
-            top: 0;
+            top: 28px;
             bottom: 0;
             width: var(--sidebar-width);
             background: var(--dark-light);
@@ -113,6 +113,7 @@
         .main-content {
             margin-left: var(--sidebar-width);
             padding: 2rem;
+            padding-top: calc(2rem + 28px);
             min-height: 100vh;
         }
         
@@ -790,6 +791,59 @@
 </head>
 <body>
     <div class="scan-line"></div>
+
+    <!-- Terminal ticker bar -->
+    <div id="tickerBar" style="position:fixed;top:0;left:0;right:0;height:28px;background:rgba(0,0,0,0.95);border-bottom:1px solid rgba(255,0,64,0.3);z-index:1000;overflow:hidden;display:flex;align-items:center;">
+        <div style="background:rgba(255,0,64,0.2);color:#ff0040;padding:0 12px;font-size:10px;font-weight:700;font-family:'Courier New',monospace;letter-spacing:2px;height:100%;display:flex;align-items:center;white-space:nowrap;z-index:2;">▸ LIVE</div>
+        <div style="flex:1;overflow:hidden;position:relative;">
+            <div id="tickerContent" style="position:absolute;white-space:nowrap;font-family:'Courier New',monospace;font-size:11px;color:#00ff41;animation:tickerScroll 60s linear infinite;"></div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes tickerScroll {
+            0% { transform: translateX(100vw); }
+            100% { transform: translateX(-200%); }
+        }
+    </style>
+
+    <!-- Loading overlay (shown after login) -->
+    <div id="adminLoader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0a0a;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+        <canvas id="adminLoaderCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
+        <div style="position:relative;z-index:10;text-align:center;">
+            <div id="adminLoaderText" style="font-family:'Courier New',monospace;color:#00ff41;font-size:18px;text-shadow:0 0 20px rgba(0,255,65,0.5);min-height:24px;letter-spacing:2px;"></div>
+            <div style="width:300px;height:3px;background:rgba(0,255,65,0.1);margin:20px auto 0;border-radius:2px;overflow:hidden;">
+                <div id="adminLoaderBar" style="width:0%;height:100%;background:#00ff41;box-shadow:0 0 10px #00ff41;transition:width 0.3s;"></div>
+            </div>
+        </div>
+    </div>
+    <div id="adminRedGlitch" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,0,0,0.97);z-index:100000;display:none;align-items:center;justify-content:center;flex-direction:column;">
+        <div style="font-family:'Courier New',monospace;font-size:56px;font-weight:900;color:#ff0040;text-shadow:-5px 0 #00ff41,5px 0 #0000ff,0 0 80px rgba(255,0,64,1);letter-spacing:10px;" id="adminGlitchText"></div>
+        <div style="font-family:'Courier New',monospace;font-size:13px;color:#ff0040;margin-top:20px;opacity:0.6;letter-spacing:5px;">BREACH DETECTED // SYSTEM SECURED</div>
+    </div>
+    <div id="adminFlash" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:99998;display:none;pointer-events:none;"></div>
+
+    <style>
+        @keyframes gBig {
+            0% { transform:translate(0); text-shadow:-5px 0 #00ff41,5px 0 #0000ff,0 0 80px rgba(255,0,64,1); }
+            15% { transform:translate(-10px,6px); text-shadow:8px 0 #ff0040,-8px 0 #00ff41,0 0 100px rgba(255,0,64,1); }
+            30% { transform:translate(10px,-6px); text-shadow:-8px 0 #0000ff,8px 0 #ff0040,0 0 60px rgba(0,255,65,0.8); }
+            45% { transform:translate(-6px,10px); text-shadow:6px 0 #00ff41,-6px 0 #0000ff,0 0 120px rgba(255,0,64,1); }
+            60% { transform:translate(6px,-10px); text-shadow:-6px 0 #ff0040,6px 0 #00ff41,0 0 80px rgba(0,255,65,0.6); }
+            75% { transform:translate(-10px,-6px); text-shadow:10px 0 #0000ff,-10px 0 #ff0040,0 0 100px rgba(255,0,64,0.8); }
+            100% { transform:translate(0); text-shadow:-5px 0 #00ff41,5px 0 #0000ff,0 0 80px rgba(255,0,64,1); }
+        }
+    </style>
+
+    <!-- Page transition overlay -->
+    <div id="pageTransOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(5,0,0,0.92);z-index:99997;display:none;align-items:center;justify-content:center;flex-direction:column;">
+        <div style="position:absolute;width:100%;height:100%;overflow:hidden;" id="pageTransBars"></div>
+        <div style="position:relative;z-index:10;font-family:'Courier New',monospace;font-size:16px;color:#ff0040;text-shadow:-2px 0 #00ff41,2px 0 #0000ff;letter-spacing:3px;" id="pageTransText"></div>
+        <div style="position:relative;z-index:10;width:200px;height:2px;background:rgba(255,0,64,0.1);margin-top:15px;border-radius:1px;overflow:hidden;">
+            <div id="pageTransBar" style="width:0%;height:100%;background:#ff0040;box-shadow:0 0 8px #ff0040;transition:width 0.15s;"></div>
+        </div>
+    </div>
+
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-brand">
@@ -3240,73 +3294,136 @@
         })();
     </script>
 
-    <!-- Terminal console at bottom -->
-    <div id="terminalConsole" style="position:fixed;bottom:0;left:var(--sidebar-width);right:0;height:120px;background:rgba(0,0,0,0.9);border-top:2px solid rgba(255,0,64,0.3);padding:8px 15px;font-family:'Courier New',monospace;font-size:11px;overflow:hidden;z-index:100;display:none;">
-        <div id="terminalLines" style="color:#00ff41;line-height:1.6;"></div>
-    </div>
-
-    <style>
-        @keyframes termBlink { 0%,50%{opacity:1} 51%,100%{opacity:0} }
-        .term-cursor { display:inline-block;width:7px;height:13px;background:#00ff41;animation:termBlink 0.8s infinite;vertical-align:middle;margin-left:2px; }
-    </style>
-
     <script>
     (function(){
-        const console=document.getElementById('terminalConsole');
-        const lines=document.getElementById('terminalLines');
-        if(!console||!lines)return;
-
-        const terminalMsgs=[
-            '[SYS] Admin session active',
-            '[NET] Monitoring incoming requests...',
-            '[AUTH] Token verified — admin@root',
-            '[DB] Connection pool: 4/10 active',
-            '[SCAN] No anomalies detected',
-            '[CRYPT] SSL tunnel stable',
-            '[MEM] Usage: 234MB / 2048MB',
-            '[CPU] Load: 12%',
-            '[NET] Latency: 23ms',
-            '[SYS] All services operational',
-            '[FIREWALL] 0 blocked attempts (last 5m)',
-            '[DB] Query avg: 4.2ms',
-            '[API] Rate limit: OK',
-            '[CACHE] Hit ratio: 94.7%',
-            '[SYS] Uptime: calculating...'
+        // ===== TICKER BAR =====
+        const tickerMsgs=[
+            '▸ SYS: All services operational',
+            '▸ NET: 23ms avg latency',
+            '▸ AUTH: Session pool active',
+            '▸ DB: Query avg 4.2ms',
+            '▸ CPU: 12% load',
+            '▸ MEM: 234MB / 2048MB',
+            '▸ FIREWALL: 0 blocked (5m)',
+            '▸ CACHE: Hit ratio 94.7%',
+            '▸ API: Rate limit OK',
+            '▸ SSL: Tunnel stable',
+            '▸ USERS: 1,247 online',
+            '▸ FARM: 89 reactors active',
+            '▸ SEASON: Day 7/14',
+            '▸ BROADCAST: Queue empty',
+            '▸ SUPPORT: 3 open tickets'
         ];
+        const tc=document.getElementById('tickerContent');
+        if(tc) tc.textContent=tickerMsgs.join('     ◆     ');
 
-        let msgIndex=0;
-        let lineCount=0;
-        const maxLines=6;
+        // ===== ADMIN LOADER (after login only) =====
+        const loader=document.getElementById('adminLoader');
+        const loaderText=document.getElementById('adminLoaderText');
+        const loaderBar=document.getElementById('adminLoaderBar');
+        const redGlitch=document.getElementById('adminRedGlitch');
+        const glitchTextEl=document.getElementById('adminGlitchText');
+        const flash=document.getElementById('adminFlash');
+        const canvas=document.getElementById('adminLoaderCanvas');
 
-        function addLine(){
-            const msg=terminalMsgs[msgIndex%terminalMsgs.length];
-            const now=new Date().toLocaleTimeString('en-US',{hour12:false});
-            const div=document.createElement('div');
-            div.style.color=msg.includes('ERR')||msg.includes('WARN')?'#ff0040':'#00ff41';
-            div.textContent='['+now+'] '+msg;
-            lines.appendChild(div);
-            lineCount++;
-            if(lineCount>maxLines){
-                lines.removeChild(lines.firstChild);
+        if(loader && canvas){
+            const ctx=canvas.getContext('2d');
+            canvas.width=window.innerWidth;
+            canvas.height=window.innerHeight;
+            const chars='アイウエオカキクケコ0123456789ABCDEF';
+            const fontSize=13;
+            const cols=Math.floor(canvas.width/fontSize);
+            const drops=Array(cols).fill(1);
+            function draw(){
+                ctx.fillStyle='rgba(0,0,0,0.05)';
+                ctx.fillRect(0,0,canvas.width,canvas.height);
+                ctx.fillStyle='#00ff41';
+                ctx.font=fontSize+'px monospace';
+                for(let i=0;i<drops.length;i++){
+                    const t=chars[Math.floor(Math.random()*chars.length)];
+                    ctx.fillText(t,i*fontSize,drops[i]*fontSize);
+                    if(drops[i]*fontSize>canvas.height&&Math.random()>0.975)drops[i]=0;
+                    drops[i]++;
+                }
             }
-            // Cursor
-            let cur=lines.querySelector('.term-cursor');
-            if(!cur){cur=document.createElement('span');cur.className='term-cursor';lines.appendChild(cur);}
-            console.scrollTop=console.scrollHeight;
-            msgIndex++;
+            const mInt=setInterval(draw,35);
+            const msgs=['[INIT] Connecting to mainframe...','[AUTH] Verifying credentials...','[CRYPT] Decrypting AES-256...','[NET] Establishing secure tunnel...','[SCAN] Bypassing firewall...','[DATA] Loading admin modules...','[SYS] Initializing dashboard...','[OK] ACCESS GRANTED'];
+            let mi=0;
+            function next(){
+                if(mi<msgs.length){
+                    loaderText.textContent=msgs[mi];
+                    loaderBar.style.width=((mi+1)/msgs.length*100)+'%';
+                    if(mi===msgs.length-1){
+                        loaderText.style.color='#ff0040';
+                        loaderText.style.textShadow='0 0 30px rgba(255,0,64,0.8)';
+                        loaderBar.style.background='#ff0040';
+                        loaderBar.style.boxShadow='0 0 15px #ff0040';
+                    }
+                    mi++;
+                    setTimeout(next,200+Math.random()*150);
+                } else {
+                    clearInterval(mInt);
+                    // RED GLITCH
+                    redGlitch.style.display='flex';
+                    glitchTextEl.style.animation='gBig 0.06s infinite';
+                    glitchTextEl.textContent='ACCESS GRANTED';
+                    flash.style.display='block';
+                    flash.style.background='#ff0040';
+                    setTimeout(()=>{flash.style.background='#00ff41';},80);
+                    setTimeout(()=>{flash.style.display='none';},160);
+                    setTimeout(()=>{redGlitch.style.display='none';},1200);
+                    setTimeout(()=>{
+                        loader.style.transition='opacity 0.4s';
+                        loader.style.opacity='0';
+                        setTimeout(()=>loader.style.display='none',400);
+                    },1400);
+                }
+            }
+            setTimeout(next,200);
+            window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
         }
 
-        // Toggle console with ` key
-        document.addEventListener('keydown',function(e){
-            if(e.key==='`'||e.key==='ё'){
-                e.preventDefault();
-                console.style.display=console.style.display==='none'?'block':'none';
-            }
-        });
+        // ===== PAGE TRANSITIONS =====
+        const pgOverlay=document.getElementById('pageTransOverlay');
+        const pgText=document.getElementById('pageTransText');
+        const pgBar=document.getElementById('pageTransBar');
+        const pgBars=document.getElementById('pageTransBars');
+        if(pgOverlay){
+            const tMsgs=['[NAV] Redirecting...','[SYS] Loading modules...','[OK] Ready'];
+            document.querySelectorAll('.sidebar-nav a, .nav-link').forEach(link=>{
+                link.addEventListener('click',function(e){
+                    const href=this.getAttribute('href');
+                    if(!href||href==='#'||href.startsWith('#'))return;
+                    if(href===window.location.pathname)return;
+                    e.preventDefault();
 
-        // Auto add lines
-        addLine();
-        setInterval(addLine,3000+Math.random()*4000);
+                    // Create random bars
+                    pgBars.innerHTML='';
+                    for(let i=0;i<12;i++){
+                        const b=document.createElement('div');
+                        b.style.cssText=`position:absolute;width:${60+Math.random()*40}%;height:${1+Math.random()*4}px;background:rgba(255,0,64,${0.3+Math.random()*0.5});left:${Math.random()*30}%;top:${Math.random()*100}%;`;
+                        pgBars.appendChild(b);
+                    }
+
+                    let tmi=0;
+                    pgText.textContent=tMsgs[0];
+                    pgBar.style.width='0%';
+                    pgOverlay.style.display='flex';
+
+                    function tNext(){
+                        if(tmi<tMsgs.length){
+                            pgText.textContent=tMsgs[tmi];
+                            pgBar.style.width=((tmi+1)/tMsgs.length*100)+'%';
+                            tmi++;
+                            setTimeout(tNext,120+Math.random()*80);
+                        } else {
+                            window.location.href=href;
+                        }
+                    }
+                    setTimeout(tNext,100);
+                });
+            });
+        }
     })();
     </script>
 </body>
