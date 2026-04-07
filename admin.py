@@ -197,8 +197,11 @@ def _get_dashboard_stats(cursor) -> dict:
     total_tasks = cursor.fetchone()[0] or 0
     cursor.execute("SELECT SUM(referrals_count) FROM users")
     total_referrals = cursor.fetchone()[0] or 0
-    cursor.execute("SELECT SUM(referral_bonus) FROM users")
-    total_referral_bonus = cursor.fetchone()[0] or 0
+    try:
+        cursor.execute("SELECT SUM(referral_bonus) FROM users")
+        total_referral_bonus = cursor.fetchone()[0] or 0
+    except Exception:
+        total_referral_bonus = 0
     cursor.execute("SELECT COUNT(*) FROM tasks WHERE is_active = 1")
     active_tasks = cursor.fetchone()[0]
     cursor.execute("SELECT COUNT(*) FROM seasons WHERE is_active = 1")
@@ -299,10 +302,13 @@ async def admin_panel(request: Request, auth: str = Depends(verify_auth)):
     
     cursor.execute("SELECT SUM(referrals_count) FROM users")
     total_referrals = cursor.fetchone()[0] or 0
-    
-    cursor.execute("SELECT SUM(referral_bonus) FROM users")
-    total_referral_bonus = cursor.fetchone()[0] or 0
-    
+
+    try:
+        cursor.execute("SELECT SUM(referral_bonus) FROM users")
+        total_referral_bonus = cursor.fetchone()[0] or 0
+    except:
+        total_referral_bonus = 0
+
     cursor.execute("SELECT COUNT(*) FROM tasks WHERE is_active = 1")
     active_tasks = cursor.fetchone()[0]
     
