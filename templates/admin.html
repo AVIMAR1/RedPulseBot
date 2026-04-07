@@ -3400,39 +3400,39 @@
         const pgText=document.getElementById('pageTransText');
         const pgBar=document.getElementById('pageTransBar');
         const pgBars=document.getElementById('pageTransBars');
-        if(pgOverlay){
-            document.querySelectorAll('.sidebar-nav a, .nav-link').forEach(link=>{
-                link.addEventListener('click',function(e){
-                    const href=this.getAttribute('href');
-                    if(!href||href==='#'||href.startsWith('#'))return;
-                    if(href===window.location.pathname)return;
-                    e.preventDefault();
 
-                    // Quick glitch bars
-                    pgBars.innerHTML='';
-                    for(let i=0;i<20;i++){
-                        const b=document.createElement('div');
-                        const top=Math.random()*100;
-                        b.style.cssText=`position:absolute;width:${50+Math.random()*50}%;height:${1+Math.random()*3}px;background:rgba(255,0,64,${0.2+Math.random()*0.4});left:${Math.random()*50}%;top:${top}%;opacity:0;transition:opacity 0.1s;`;
-                        pgBars.appendChild(b);
-                        setTimeout(()=>{b.style.opacity='1';},i*15);
-                    }
+        // Делегирование — работает при каждой загрузке страницы
+        document.addEventListener('click',function(e){
+            const link=e.target.closest('.sidebar-nav a, .nav-link');
+            if(!link||!pgOverlay)return;
+            const href=link.getAttribute('href');
+            if(!href||href==='#'||href.startsWith('#'))return;
+            if(href===window.location.pathname)return;
+            e.preventDefault();
 
-                    pgText.style.fontSize='13px';
-                    pgText.textContent='[NAV] → '+href;
-                    pgBar.style.width='0%';
-                    pgOverlay.style.display='flex';
+            // Quick glitch bars
+            pgBars.innerHTML='';
+            for(let i=0;i<20;i++){
+                const b=document.createElement('div');
+                const top=Math.random()*100;
+                b.style.cssText=`position:absolute;width:${50+Math.random()*50}%;height:${1+Math.random()*3}px;background:rgba(255,0,64,${0.2+Math.random()*0.4});left:${Math.random()*50}%;top:${top}%;opacity:0;transition:opacity 0.1s;`;
+                pgBars.appendChild(b);
+                setTimeout(()=>{b.style.opacity='1';},i*15);
+            }
 
-                    setTimeout(()=>{
-                        pgBar.style.width='100%';
-                    },50);
+            pgText.style.fontSize='13px';
+            pgText.textContent='[NAV] → '+href;
+            pgBar.style.width='0%';
+            pgOverlay.style.display='flex';
 
-                    setTimeout(()=>{
-                        window.location.href=href;
-                    },500);
-                });
-            });
-        }
+            setTimeout(()=>{
+                pgBar.style.width='100%';
+            },50);
+
+            setTimeout(()=>{
+                window.location.href=href;
+            },500);
+        });
     })();
     </script>
 </body>
