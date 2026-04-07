@@ -379,10 +379,10 @@ async def admin_panel(request: Request, auth: str = Depends(verify_auth)):
     top_clickers = cursor.fetchall()
     
     cursor.execute("""
-        SELECT telegram_id, username, first_name, referrals_count, referral_bonus, is_banned
-        FROM users 
+        SELECT telegram_id, username, first_name, referrals_count, is_banned
+        FROM users
         WHERE is_banned = 0
-        ORDER BY referrals_count DESC 
+        ORDER BY referrals_count DESC
         LIMIT 10
     """)
     top_referrers = cursor.fetchall()
