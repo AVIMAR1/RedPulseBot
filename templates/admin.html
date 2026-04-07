@@ -853,18 +853,46 @@
         var pbs=document.getElementById('pageTransBars');
         if(!pg)return;
         pbs.innerHTML='';
-        for(var i=0;i<20;i++){
-            var b=document.createElement('div');
-            b.style.cssText='position:absolute;width:'+(50+Math.random()*50)+'%;height:'+(1+Math.random()*3)+'px;background:rgba(255,0,64,'+(0.2+Math.random()*0.4)+');left:'+(Math.random()*50)+'%;top:'+(Math.random()*100)+'%;opacity:0;transition:opacity 0.1s;';
-            pbs.appendChild(b);
-            setTimeout((function(el,ii){return function(){el.style.opacity='1';}})(b,i),i*15);
+
+        // Horizontal scan lines
+        for(var i=0;i<6;i++){
+            var s=document.createElement('div');
+            s.style.cssText='position:absolute;width:100%;height:1px;background:rgba(255,0,64,0.4);left:0;top:'+((i+1)*100/7)+'%;animation:tglitch'+i+' 0.3s ease-out;';
+            pbs.appendChild(s);
         }
-        pt.style.fontSize='13px';
+
+        // Random glitch bars with stagger
+        for(var i=0;i<30;i++){
+            var b=document.createElement('div');
+            var w=20+Math.random()*80;
+            var h=1+Math.random()*4;
+            var l=Math.random()*100;
+            var t=Math.random()*100;
+            var o=0.15+Math.random()*0.6;
+            var delay=Math.random()*0.15;
+            var dur=0.1+Math.random()*0.15;
+            b.style.cssText='position:absolute;width:'+w+'%;height:'+h+'px;background:rgba(255,0,64,'+o+');left:'+l+'%;top:'+t+'%;opacity:0;';
+            b.style.transition='opacity '+dur+'s ease-in-out '+delay+'s';
+            pbs.appendChild(b);
+            setTimeout((function(el){return function(){el.style.opacity='1';}})(b),10);
+        }
+
+        // Big text
+        pt.style.fontSize='24px';
+        pt.style.fontWeight='900';
+        pt.style.letterSpacing='6px';
         pt.textContent='[NAV] → '+href;
         pb.style.width='0%';
+        pb.style.transition='width 0.3s ease-in-out';
         pg.style.display='flex';
-        setTimeout(function(){pb.style.width='100%';},50);
-        setTimeout(function(){window.location.href=href;},500);
+
+        setTimeout(function(){
+            pb.style.width='100%';
+        },30);
+
+        setTimeout(function(){
+            window.location.href=href;
+        },350);
     };
     </script>
 
