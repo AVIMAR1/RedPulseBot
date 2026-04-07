@@ -844,6 +844,30 @@
         </div>
     </div>
 
+    <script>
+    // Global transition function
+    window.doNavTransition=function(href){
+        var pg=document.getElementById('pageTransOverlay');
+        var pt=document.getElementById('pageTransText');
+        var pb=document.getElementById('pageTransBar');
+        var pbs=document.getElementById('pageTransBars');
+        if(!pg)return;
+        pbs.innerHTML='';
+        for(var i=0;i<20;i++){
+            var b=document.createElement('div');
+            b.style.cssText='position:absolute;width:'+(50+Math.random()*50)+'%;height:'+(1+Math.random()*3)+'px;background:rgba(255,0,64,'+(0.2+Math.random()*0.4)+');left:'+(Math.random()*50)+'%;top:'+(Math.random()*100)+'%;opacity:0;transition:opacity 0.1s;';
+            pbs.appendChild(b);
+            setTimeout((function(el,ii){return function(){el.style.opacity='1';}})(b,i),i*15);
+        }
+        pt.style.fontSize='13px';
+        pt.textContent='[NAV] → '+href;
+        pb.style.width='0%';
+        pg.style.display='flex';
+        setTimeout(function(){pb.style.width='100%';},50);
+        setTimeout(function(){window.location.href=href;},500);
+    };
+    </script>
+
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-brand">
@@ -859,12 +883,12 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/users" class="nav-link {% if page == 'users' %}active{% endif %}">
+                <a href="/users" class="nav-link {% if page == 'users' %}active{% endif %}" onclick="doNavTransition('/users');return false;">
                     <i class="bi bi-people"></i> Пользователи
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/support" class="nav-link {% if page == 'support' %}active{% endif %}">
+                <a href="/support" class="nav-link {% if page == 'support' %}active{% endif %}" onclick="doNavTransition('/support');return false;">
                     <i class="bi bi-headset"></i> Поддержка
                     {% if open_support_tickets > 0 %}
                     <span class="badge-support-new ms-2">{{ open_support_tickets }}</span>
@@ -872,75 +896,75 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/notices" class="nav-link {% if page == 'notices' %}active{% endif %}">
+                <a href="/notices" class="nav-link {% if page == 'notices' %}active{% endif %}" onclick="doNavTransition('/notices');return false;">
                     <i class="bi bi-exclamation-triangle"></i> Сообщения/предупреждения
                 </a>
             </li>
             <div class="sidebar-section">Контент</div>
             <li class="nav-item">
-                <a href="/tasks" class="nav-link {% if page == 'tasks' %}active{% endif %}">
+                <a href="/tasks" class="nav-link {% if page == 'tasks' %}active{% endif %}" onclick="doNavTransition('/tasks');return false;">
                     <i class="bi bi-list-task"></i> Задания
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/seasons" class="nav-link {% if page == 'seasons' %}active{% endif %}">
+                <a href="/seasons" class="nav-link {% if page == 'seasons' %}active{% endif %}" onclick="doNavTransition('/seasons');return false;">
                     <i class="bi bi-calendar-event"></i> Сезоны
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/broadcast" class="nav-link {% if page == 'broadcast' %}active{% endif %}">
+                <a href="/broadcast" class="nav-link {% if page == 'broadcast' %}active{% endif %}" onclick="doNavTransition('/broadcast');return false;">
                     <i class="bi bi-megaphone"></i> Рассылка
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/promocodes" class="nav-link {% if page == 'promocodes' %}active{% endif %}">
+                <a href="/promocodes" class="nav-link {% if page == 'promocodes' %}active{% endif %}" onclick="doNavTransition('/promocodes');return false;">
                     <i class="bi bi-ticket-perforated"></i> Промокоды
                 </a>
             </li>
             <div class="sidebar-section">Игровое</div>
             <li class="nav-item">
-                <a href="/titles" class="nav-link {% if page == 'titles' %}active{% endif %}">
+                <a href="/titles" class="nav-link {% if page == 'titles' %}active{% endif %}" onclick="doNavTransition('/titles');return false;">
                     <i class="bi bi-award"></i> Титулы
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/achievements" class="nav-link {% if page == 'achievements' %}active{% endif %}">
+                <a href="/achievements" class="nav-link {% if page == 'achievements' %}active{% endif %}" onclick="doNavTransition('/achievements');return false;">
                     <i class="bi bi-trophy"></i> Ачивки
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/clans" class="nav-link {% if page == 'clans' %}active{% endif %}">
+                <a href="/clans" class="nav-link {% if page == 'clans' %}active{% endif %}" onclick="doNavTransition('/clans');return false;">
                     <i class="bi bi-shield"></i> Кланы
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/bank" class="nav-link {% if page == 'bank' %}active{% endif %}">
+                <a href="/bank" class="nav-link {% if page == 'bank' %}active{% endif %}" onclick="doNavTransition('/bank');return false;">
                     <i class="bi bi-bank"></i> Общая казна
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/wheel" class="nav-link {% if page == 'wheel' %}active{% endif %}">
+                <a href="/wheel" class="nav-link {% if page == 'wheel' %}active{% endif %}" onclick="doNavTransition('/wheel');return false;">
                     <i class="bi bi-arrow-repeat"></i> Колесо
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/auction" class="nav-link {% if page == 'auction' %}active{% endif %}">
+                <a href="/auction" class="nav-link {% if page == 'auction' %}active{% endif %}" onclick="doNavTransition('/auction');return false;">
                     <i class="bi bi-hammer"></i> Аукцион
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/events" class="nav-link {% if page == 'events' %}active{% endif %}">
+                <a href="/events" class="nav-link {% if page == 'events' %}active{% endif %}" onclick="doNavTransition('/events');return false;">
                     <i class="bi bi-calendar-heart"></i> Ивенты
                 </a>
             </li>
             <div class="sidebar-section">Аналитика</div>
             <li class="nav-item">
-                <a href="/stats" class="nav-link {% if page == 'stats' %}active{% endif %}">
+                <a href="/stats" class="nav-link {% if page == 'stats' %}active{% endif %}" onclick="doNavTransition('/stats');return false;">
                     <i class="bi bi-graph-up"></i> Статистика
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/logs" class="nav-link {% if page == 'logs' %}active{% endif %}">
+                <a href="/logs" class="nav-link {% if page == 'logs' %}active{% endif %}" onclick="doNavTransition('/logs');return false;">
                     <i class="bi bi-journal-text"></i> Логи
                 </a>
             </li>
