@@ -717,15 +717,96 @@
         .scan-line {
             position: fixed;
             top: 0; left: 0;
-            width: 100%; height: 2px;
-            background: rgba(255, 0, 64, 0.15);
+            width: 100%; height: 3px;
+            background: rgba(255, 0, 64, 0.3);
             z-index: 9999;
             pointer-events: none;
-            animation: scanMove 6s linear infinite;
+            animation: scanMove 4s linear infinite;
+            box-shadow: 0 0 15px rgba(255,0,64,0.5);
         }
         @keyframes scanMove {
             0% { top: 0; }
             100% { top: 100%; }
+        }
+
+        /* Page transition glitch */
+        #pageGlitch {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 99998; pointer-events: none; display: none;
+        }
+        #pageGlitch .glitch-bar {
+            position: absolute; width: 100%; height: 4px;
+            background: rgba(255, 0, 64, 0.8);
+            animation: glitchBarMove 0.1s infinite;
+        }
+        @keyframes glitchBarMove {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-20px); }
+            50% { transform: translateX(20px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+        #pageGlitch .glitch-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            font-family: 'Courier New', monospace; font-size: 24px; font-weight: 900;
+            color: #ff0040; text-shadow: -3px 0 #00ff41, 3px 0 #0000ff;
+            white-space: nowrap; letter-spacing: 4px;
+        }
+
+        /* Card hacker style */
+        .stat-card {
+            background: linear-gradient(135deg, #0d0d0d 0%, #140000 100%);
+            border: 1px solid rgba(255, 0, 64, 0.2);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 0 30px rgba(255,0,64,0.03);
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute; top: 0; left: -100%;
+            width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, #ff0040, transparent);
+            animation: cardScan 3s linear infinite;
+        }
+        @keyframes cardScan {
+            0% { left: -100%; }
+            100% { left: 200%; }
+        }
+
+        .badge-new {
+            background: var(--primary) !important;
+            box-shadow: 0 0 10px rgba(255,0,64,0.5);
+            font-family: 'Courier New', monospace;
+        }
+        .badge-support-new {
+            background: rgba(255, 0, 64, 0.15) !important;
+            color: #ff0040 !important;
+            border: 1px solid rgba(255, 0, 64, 0.3);
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+        }
+
+        /* Table hacker style */
+        .table {
+            font-family: 'Courier New', monospace;
+        }
+        .table-dark {
+            background: rgba(255, 0, 64, 0.05);
+            border-bottom: 2px solid rgba(255, 0, 64, 0.3);
+        }
+        .table-hover tbody tr:hover {
+            background: rgba(255, 0, 64, 0.05);
+        }
+
+        /* Glitch text animation */
+        @keyframes txtGlitch {
+            0%, 90%, 100% { text-shadow: 0 0 10px rgba(255,0,64,0.3); transform: translate(0); }
+            92% { text-shadow: -2px 0 #00ff41, 2px 0 #0000ff; transform: translate(-2px, 1px); }
+            94% { text-shadow: 2px 0 #00ff41, -2px 0 #0000ff; transform: translate(2px, -1px); }
+            96% { text-shadow: 0 0 10px rgba(255,0,64,0.3); transform: translate(0); }
+        }
+        .glitch-title {
+            animation: txtGlitch 2s infinite;
         }
     </style>
 </head>
@@ -3281,6 +3362,57 @@
         }
         setTimeout(nextMsg,300);
         window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
+    })();
+
+    // ===== PAGE TRANSITION GLITCH =====
+    (function(){
+        const msgs=['[NAV] Switching context...','[SYS] Reloading modules...','[NET] Rerouting data stream...','[CRYPT] Re-encrypting session...','[OK] Access granted'];
+        const glitch=document.createElement('div');
+        glitch.id='pageGlitch';
+        glitch.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(5,0,0,0.95);z-index:99998;display:none;align-items:center;justify-content:center;flex-direction:column;';
+        document.body.appendChild(glitch);
+
+        const txt=document.createElement('div');
+        txt.style.cssText="font-family:'Courier New',monospace;font-size:22px;color:#ff0040;text-shadow:-3px 0 #00ff41,3px 0 #0000ff;letter-spacing:4px;animation:gBig 0.06s infinite;";
+        glitch.appendChild(txt);
+
+        const sub=document.createElement('div');
+        sub.style.cssText="font-family:'Courier New',monospace;font-size:11px;color:#ff0040;margin-top:12px;opacity:0.5;letter-spacing:3px;";
+        glitch.appendChild(sub);
+
+        // Создаём полоски глитча
+        for(let i=0;i<8;i++){
+            const bar=document.createElement('div');
+            bar.style.cssText=`position:absolute;width:${80+Math.random()*20}%;height:${2+Math.random()*6}px;background:rgba(255,0,64,${0.3+Math.random()*0.5});left:${Math.random()*20}%;top:${10+Math.random()*80}%;animation:glitchBarMove ${0.05+Math.random()*0.1}s infinite;`;
+            glitch.appendChild(bar);
+        }
+
+        // Перехватываем все ссылки в sidebar
+        document.querySelectorAll('.sidebar-nav a, .nav-link').forEach(link=>{
+            link.addEventListener('click',function(e){
+                const href=this.getAttribute('href');
+                if(!href||href==='#'||href.startsWith('#'))return;
+                if(href===window.location.pathname)return;
+
+                e.preventDefault();
+                let mi=0;
+                txt.textContent=msgs[0];
+                sub.textContent='PLEASE WAIT';
+                glitch.style.display='flex';
+
+                const next=()=>{
+                    if(mi<msgs.length){
+                        txt.textContent=msgs[mi];
+                        sub.textContent='['+((mi+1)/msgs.length*100).toFixed(0)+'%]';
+                        mi++;
+                        setTimeout(next,100+Math.random()*100);
+                    } else {
+                        window.location.href=href;
+                    }
+                };
+                setTimeout(next,150);
+            });
+        });
     })();
     </script>
 </body>
