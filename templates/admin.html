@@ -3317,6 +3317,26 @@
         const tc=document.getElementById('tickerContent');
         if(tc) tc.textContent=tickerMsgs.join('     ◆     ');
 
+        // ===== TICKER: REAL DATA =====
+        async function updateTicker(){
+            try {
+                const r=await fetch('/api/dashboard-stats');
+                if(!r.ok)return;
+                const d=await r.json();
+                const msgs=[
+                    '▸ USERS: '+(d.total_users||0)+' total | '+(d.active_users||0)+' active | '+(d.banned_users||0)+' banned',
+                    '▸ TODAY: '+(d.new_users_today||0)+' new users | '+(d.tasks_completed_today||0)+' tasks done | '+(d.clicks_today||0)+' clicks',
+                    '▸ SUPPORT: '+(d.open_support_tickets||0)+' open | '+(d.closed_support_tickets||0)+' closed | '+(d.new_tickets_today||0)+' new today',
+                    '▸ TASKS: '+(d.active_tasks||0)+' active | '+(d.total_tasks||0)+' total completed: '+(d.total_tasks||0),
+                    '▸ SEASONS: '+(d.active_seasons||0)+' active'
+                ];
+                const tc2=document.getElementById('tickerContent');
+                if(tc2) tc2.textContent=msgs.join('     ◆     ');
+            } catch(e){}
+        }
+        updateTicker();
+        setInterval(updateTicker,30000);
+
         // ===== ADMIN LOADER (after login only) =====
         const loader=document.getElementById('adminLoader');
         const loaderText=document.getElementById('adminLoaderText');
@@ -3383,13 +3403,12 @@
             window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
         }
 
-        // ===== PAGE TRANSITIONS =====
+        // ===== PAGE TRANSITIONS (different from loader) =====
         const pgOverlay=document.getElementById('pageTransOverlay');
         const pgText=document.getElementById('pageTransText');
         const pgBar=document.getElementById('pageTransBar');
         const pgBars=document.getElementById('pageTransBars');
         if(pgOverlay){
-            const tMsgs=['[NAV] Redirecting...','[SYS] Loading modules...','[OK] Ready'];
             document.querySelectorAll('.sidebar-nav a, .nav-link').forEach(link=>{
                 link.addEventListener('click',function(e){
                     const href=this.getAttribute('href');
@@ -3397,30 +3416,28 @@
                     if(href===window.location.pathname)return;
                     e.preventDefault();
 
-                    // Create random bars
+                    // Quick glitch bars
                     pgBars.innerHTML='';
-                    for(let i=0;i<12;i++){
+                    for(let i=0;i<20;i++){
                         const b=document.createElement('div');
-                        b.style.cssText=`position:absolute;width:${60+Math.random()*40}%;height:${1+Math.random()*4}px;background:rgba(255,0,64,${0.3+Math.random()*0.5});left:${Math.random()*30}%;top:${Math.random()*100}%;`;
+                        const top=Math.random()*100;
+                        b.style.cssText=`position:absolute;width:${50+Math.random()*50}%;height:${1+Math.random()*3}px;background:rgba(255,0,64,${0.2+Math.random()*0.4});left:${Math.random()*50}%;top:${top}%;opacity:0;transition:opacity 0.1s;`;
                         pgBars.appendChild(b);
+                        setTimeout(()=>{b.style.opacity='1';},i*15);
                     }
 
-                    let tmi=0;
-                    pgText.textContent=tMsgs[0];
+                    pgText.style.fontSize='13px';
+                    pgText.textContent='[NAV] → '+href;
                     pgBar.style.width='0%';
                     pgOverlay.style.display='flex';
 
-                    function tNext(){
-                        if(tmi<tMsgs.length){
-                            pgText.textContent=tMsgs[tmi];
-                            pgBar.style.width=((tmi+1)/tMsgs.length*100)+'%';
-                            tmi++;
-                            setTimeout(tNext,120+Math.random()*80);
-                        } else {
-                            window.location.href=href;
-                        }
-                    }
-                    setTimeout(tNext,100);
+                    setTimeout(()=>{
+                        pgBar.style.width='100%';
+                    },50);
+
+                    setTimeout(()=>{
+                        window.location.href=href;
+                    },500);
                 });
             });
         }
