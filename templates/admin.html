@@ -838,7 +838,7 @@
     <!-- Page transition overlay -->
     <div id="pageTransOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#050000;z-index:99997;display:none;align-items:center;justify-content:center;flex-direction:column;">
         <div style="position:absolute;width:100%;height:100%;overflow:hidden;" id="pageTransBars"></div>
-        <div style="position:relative;z-index:10;font-family:'Courier New',monospace;font-size:16px;color:#ff0040;text-shadow:-2px 0 #00ff41,2px 0 #0000ff;letter-spacing:3px;" id="pageTransText"></div>
+        <div style="position:relative;z-index:10;font-family:'Courier New',monospace;font-size:36px;font-weight:900;color:#ff0040;text-shadow:-3px 0 #00ff41,3px 0 #0000ff;letter-spacing:8px;" id="pageTransText"></div>
         <div style="position:relative;z-index:10;width:200px;height:2px;background:rgba(255,0,64,0.1);margin-top:15px;border-radius:1px;overflow:hidden;">
             <div id="pageTransBar" style="width:0%;height:100%;background:#ff0040;box-shadow:0 0 8px #ff0040;transition:width 0.15s;"></div>
         </div>
@@ -878,9 +878,9 @@
         }
 
         // Big text
-        pt.style.fontSize='24px';
-        pt.style.fontWeight='900';
-        pt.style.letterSpacing='6px';
+        pt.style.setProperty('font-size','36px','important');
+        pt.style.setProperty('font-weight','900','important');
+        pt.style.setProperty('letter-spacing','8px','important');
         pt.textContent='[NAV] → '+href;
         pb.style.width='0%';
         pb.style.transition='width 0.3s ease-in-out';
