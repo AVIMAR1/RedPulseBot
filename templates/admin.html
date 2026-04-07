@@ -9,29 +9,31 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --primary: #e74c3c;
-            --primary-dark: #c0392b;
-            --primary-light: #ff6b6b;
-            --secondary: #2c3e50;
-            --dark: #121212;
-            --dark-light: #1e1e1e;
-            --dark-lighter: #2d2d2d;
+            --primary: #ff0040;
+            --primary-dark: #cc0033;
+            --primary-light: #ff3366;
+            --green: #00ff41;
+            --green-dim: #00cc33;
+            --secondary: #1a0a0a;
+            --dark: #0a0a0a;
+            --dark-light: #0d0d0d;
+            --dark-lighter: #141414;
             --text: #e0e0e0;
-            --text-muted: #aaa;
+            --text-muted: #888;
             --sidebar-width: 260px;
-            --success: #27ae60;
-            --danger: #e74c3c;
+            --success: #00ff41;
+            --danger: #ff0040;
             --warning: #f39c12;
             --info: #3498db;
         }
-        
+
         body {
             background-color: var(--dark);
             color: var(--text);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Courier New', monospace;
             overflow-x: hidden;
         }
-        
+
         .sidebar {
             position: fixed;
             left: 0;
@@ -46,7 +48,7 @@
             display: flex;
             flex-direction: column;
         }
-        
+
         .sidebar-brand {
             padding: 0 1.5rem;
             margin-bottom: 2rem;
@@ -55,6 +57,14 @@
             color: var(--primary);
             font-size: 1.5rem;
             font-weight: bold;
+            text-shadow: 0 0 15px rgba(255,0,64,0.5);
+            animation: brandGlitch 3s infinite;
+        }
+
+        @keyframes brandGlitch {
+            0%,95%,100% { text-shadow: 0 0 15px rgba(255,0,64,0.5); transform: translate(0); }
+            96% { text-shadow: -2px 0 var(--green), 2px 0 #0000ff; transform: translate(-1px, 1px); }
+            98% { text-shadow: 2px 0 var(--green), -2px 0 #0000ff; transform: translate(1px, -1px); }
         }
         
         .sidebar-brand i {
@@ -83,13 +93,15 @@
         }
         
         .nav-link:hover {
-            background: rgba(231, 76, 60, 0.1);
-            color: white;
+            background: rgba(255, 0, 64, 0.1);
+            color: var(--primary);
+            text-shadow: 0 0 8px rgba(255,0,64,0.3);
         }
         
         .nav-link.active {
             background: var(--primary);
             color: white;
+            box-shadow: 0 0 20px rgba(255,0,64,0.4);
         }
         
         .nav-link i {
@@ -700,9 +712,25 @@
             color: var(--text-muted);
             opacity: 0.9;
         }
+
+        /* Scan-line effect */
+        .scan-line {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 2px;
+            background: rgba(255, 0, 64, 0.15);
+            z-index: 9999;
+            pointer-events: none;
+            animation: scanMove 6s linear infinite;
+        }
+        @keyframes scanMove {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
     </style>
 </head>
 <body>
+    <div class="scan-line"></div>
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="sidebar-brand">
@@ -3157,12 +3185,30 @@
     <div id="hackLoader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0a0a;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;">
         <canvas id="hackCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
         <div style="position:relative;z-index:10;text-align:center;">
-            <div id="hackText" style="font-family:'Courier New',monospace;color:#00ff41;font-size:18px;text-shadow:0 0 20px rgba(0,255,65,0.5);min-height:24px;"></div>
+            <div id="hackText" style="font-family:'Courier New',monospace;color:#00ff41;font-size:18px;text-shadow:0 0 20px rgba(0,255,65,0.5);min-height:24px;letter-spacing:2px;"></div>
             <div id="hackProgress" style="width:300px;height:3px;background:rgba(0,255,65,0.1);margin:20px auto 0;border-radius:2px;overflow:hidden;">
                 <div id="hackBar" style="width:0%;height:100%;background:#00ff41;box-shadow:0 0 10px #00ff41;transition:width 0.3s;"></div>
             </div>
         </div>
     </div>
+
+    <div id="redGlitch" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,0,0,0.97);z-index:100000;display:none;align-items:center;justify-content:center;flex-direction:column;">
+        <div style="font-family:'Courier New',monospace;font-size:56px;font-weight:900;color:#ff0040;text-shadow:-5px 0 #00ff41,5px 0 #0000ff,0 0 80px rgba(255,0,64,1);letter-spacing:10px;" id="glitchText"></div>
+        <div style="font-family:'Courier New',monospace;font-size:13px;color:#ff0040;margin-top:20px;opacity:0.6;letter-spacing:5px;">BREACH DETECTED // SYSTEM SECURED</div>
+    </div>
+    <div id="flashOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:99998;display:none;pointer-events:none;"></div>
+
+    <style>
+        @keyframes gBig {
+            0% { transform:translate(0); text-shadow:-5px 0 #00ff41,5px 0 #0000ff,0 0 80px rgba(255,0,64,1); }
+            15% { transform:translate(-10px,6px); text-shadow:8px 0 #ff0040,-8px 0 #00ff41,0 0 100px rgba(255,0,64,1); }
+            30% { transform:translate(10px,-6px); text-shadow:-8px 0 #0000ff,8px 0 #ff0040,0 0 60px rgba(0,255,65,0.8); }
+            45% { transform:translate(-6px,10px); text-shadow:6px 0 #00ff41,-6px 0 #0000ff,0 0 120px rgba(255,0,64,1); }
+            60% { transform:translate(6px,-10px); text-shadow:-6px 0 #ff0040,6px 0 #00ff41,0 0 80px rgba(0,255,65,0.6); }
+            75% { transform:translate(-10px,-6px); text-shadow:10px 0 #0000ff,-10px 0 #ff0040,0 0 100px rgba(255,0,64,0.8); }
+            100% { transform:translate(0); text-shadow:-5px 0 #00ff41,5px 0 #0000ff,0 0 80px rgba(255,0,64,1); }
+        }
+    </style>
 
     <script>
     (function(){
@@ -3204,14 +3250,33 @@
             if(i<msgs.length){
                 txtEl.textContent=msgs[i];
                 barEl.style.width=((i+1)/msgs.length*100)+'%';
+                if(i===msgs.length-1){
+                    txtEl.style.color='#ff0040';
+                    txtEl.style.textShadow='0 0 30px rgba(255,0,64,0.8)';
+                    barEl.style.background='#ff0040';
+                    barEl.style.boxShadow='0 0 15px #ff0040';
+                }
                 i++;
                 setTimeout(nextMsg,250+Math.random()*200);
             } else {
                 clearInterval(matrixInt);
-                const loader=document.getElementById('hackLoader');
-                loader.style.transition='opacity 0.5s';
-                loader.style.opacity='0';
-                setTimeout(()=>loader.style.display='none',500);
+                // RED GLITCH!
+                const glitch=document.getElementById('redGlitch');
+                const flash=document.getElementById('flashOverlay');
+                const gt=document.getElementById('glitchText');
+                glitch.style.display='flex';
+                gt.style.animation='gBig 0.06s infinite';
+                flash.style.display='block';
+                flash.style.background='#ff0040';
+                setTimeout(()=>{flash.style.background='#00ff41';},80);
+                setTimeout(()=>{flash.style.background='transparent';flash.style.display='none';},160);
+                setTimeout(()=>{glitch.style.display='none';},1500);
+                setTimeout(()=>{
+                    const loader=document.getElementById('hackLoader');
+                    loader.style.transition='opacity 0.5s';
+                    loader.style.opacity='0';
+                    setTimeout(()=>loader.style.display='none',500);
+                },1600);
             }
         }
         setTimeout(nextMsg,300);
