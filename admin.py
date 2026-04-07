@@ -1,7 +1,6 @@
-from fastapi import FastAPI, Request, Depends, HTTPException, Form, Query
+﻿from fastapi import FastAPI, Request, Depends, HTTPException, Form, Query
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
 import sqlite3
 import uvicorn
 import secrets
@@ -79,8 +78,6 @@ def check_admin_session(request: Request):
         return False
     return True
 
-
-from starlette.middleware.base import BaseHTTPMiddleware
 
 # Middleware — редирект на /login если не авторизован
 PROTECTED_PATHS = ["/", "/users", "/tasks", "/support", "/broadcast", "/notices", "/clans", "/settings", "/api/dashboard"]
@@ -566,10 +563,7 @@ async def admin_panel(request: Request):
 
 # Страница пользователей
 @app.get("/users", response_class=HTMLResponse)
-async def users_page(
-    request: Request, 
-    ,
-    search: str = Query(None),
+async def users_page(request: Request, search: str = Query(None),
     status: str = Query(None),
     sort: str = Query("id_desc")
 ):
@@ -702,7 +696,6 @@ async def user_view_page(request: Request, user_id: int):
 async def ban_user(
     request: Request,
     user_id: int,
-    ,
     ban_duration: str = Form(...),
     ban_reason: str = Form(...)
 ):
@@ -767,7 +760,6 @@ async def unban_user(
 async def give_currency(
     request: Request,
     user_id: int,
-    ,
     _: None = Depends(give_currency_rate_limit),
     currency_type: str = Form(...),
     amount: int = Form(...),
@@ -909,10 +901,7 @@ def _validate_positive_int(value: int, field_name: str, max_value: int = 1_000_0
 
 # Создание задания
 @app.post("/tasks/create")
-async def create_task(
-    request: Request,
-    ,
-    title: str = Form(...),
+async def create_task(request: Request, title: str = Form(...),
     description: str = Form(""),
     task_type: str = Form(...),
     channel_id: str = Form(None),
@@ -985,7 +974,6 @@ async def create_task(
 async def edit_task(
     request: Request,
     task_id: int,
-    ,
     title: str = Form(...),
     description: str = Form(""),
     task_type: str = Form(...),
@@ -1171,10 +1159,7 @@ def _parse_datetime(value: str, field: str) -> datetime:
 
 # Создание сезона
 @app.post("/seasons/create")
-async def create_season(
-    request: Request,
-    ,
-    name: str = Form(...),
+async def create_season(request: Request, name: str = Form(...),
     description: str = Form(""),
     start_date: str = Form(...),
     end_date: str = Form(...),
@@ -1238,7 +1223,6 @@ async def create_season(
 async def edit_season(
     request: Request,
     season_id: int,
-    ,
     name: str = Form(...),
     description: str = Form(""),
     start_date: str = Form(...),
@@ -1346,10 +1330,7 @@ async def broadcast_page(request: Request):
 
 # Отправка рассылки
 @app.post("/broadcast/send")
-async def send_broadcast(
-    request: Request,
-    ,
-    _: None = Depends(broadcast_rate_limit),
+async def send_broadcast(request: Request, _: None = Depends(broadcast_rate_limit),
     message: str = Form(...),
     recipients: str = Form("all")
 ):
@@ -1427,10 +1408,7 @@ async def promocodes_page(request: Request):
 
 
 @app.post("/promocodes/create")
-async def promocodes_create(
-    request: Request,
-    ,
-    code: str = Form(...),
+async def promocodes_create(request: Request, code: str = Form(...),
     reward_coins: int = Form(0),
     reward_stars: int = Form(0),
     reward_crystals: int = Form(0),
@@ -1504,10 +1482,7 @@ async def titles_page(request: Request):
 
 
 @app.post("/titles/create")
-async def titles_create(
-    request: Request,
-    ,
-    code: str = Form(...),
+async def titles_create(request: Request, code: str = Form(...),
     name: str = Form(...),
     description: str = Form(""),
     category: str = Form("admin"),
@@ -1544,10 +1519,7 @@ async def titles_toggle(title_id: int):
 
 
 @app.post("/titles/grant")
-async def titles_grant(
-    request: Request,
-    ,
-    user_id: int = Form(...),
+async def titles_grant(request: Request, user_id: int = Form(...),
     title_id: int = Form(...),
     set_current: bool = Form(False),
 ):
@@ -1615,10 +1587,7 @@ async def achievements_page(request: Request):
 
 
 @app.post("/achievements/create")
-async def achievements_create(
-    request: Request,
-    ,
-    code: str = Form(...),
+async def achievements_create(request: Request, code: str = Form(...),
     name: str = Form(...),
     metric: str = Form(...),
     threshold: int = Form(...),
@@ -1689,7 +1658,6 @@ async def clans_page(request: Request):
 @app.post("/clans/update/{clan_id}")
 async def clans_update(
     clan_id: int,
-    ,
     description: str = Form(""),
     war_schedule_json: str = Form(""),
     treasury_coins: int = Form(0),
@@ -1757,10 +1725,7 @@ async def bank_page(request: Request):
 
 
 @app.post("/bank/update")
-async def bank_update(
-    request: Request,
-    ,
-    coins: int = Form(0),
+async def bank_update(request: Request, coins: int = Form(0),
     xp: int = Form(0),
     level: int = Form(1),
     target: int = Form(100000),
@@ -1805,10 +1770,7 @@ async def wheel_page(request: Request):
 
 
 @app.post("/wheel/update")
-async def wheel_update(
-    request: Request,
-    ,
-    preset: str = Form("default"),
+async def wheel_update(request: Request, preset: str = Form("default"),
     cooldown_hours: int = Form(24),
     is_active: bool = Form(False),
 ):
@@ -1885,10 +1847,7 @@ async def auction_page(request: Request):
 
 
 @app.post("/auction/create")
-async def auction_create(
-    request: Request,
-    ,
-    name: str = Form(...),
+async def auction_create(request: Request, name: str = Form(...),
     description: str = Form(""),
     duration_hours: int = Form(24),
     min_bid: int = Form(0),
@@ -1942,10 +1901,7 @@ async def events_page(request: Request):
 
 
 @app.post("/events/create")
-async def events_create(
-    request: Request,
-    ,
-    code: str = Form(...),
+async def events_create(request: Request, code: str = Form(...),
     name: str = Form(...),
     description: str = Form(""),
     start_at: str = Form(""),
@@ -1994,10 +1950,7 @@ async def events_toggle(event_id: int):
 
 # ========== ЭКСТРЕННЫЕ СООБЩЕНИЯ / ПРЕДУПРЕЖДЕНИЯ ==========
 @app.get("/notices", response_class=HTMLResponse)
-async def notices_page(
-    request: Request,
-    ,
-    view: str = Query("active"),
+async def notices_page(request: Request, view: str = Query("active"),
     notice_id: int = Query(None),
 ):
     open_support_tickets = get_support_stats()
@@ -2081,10 +2034,7 @@ async def notices_page(
 
 
 @app.post("/notices/create")
-async def notices_create(
-    request: Request,
-    ,
-    user_id: int = Form(...),
+async def notices_create(request: Request, user_id: int = Form(...),
     notice_type: str = Form("message"),
     subject: str = Form(""),
     message: str = Form(...),
@@ -2148,7 +2098,6 @@ async def notices_create(
 async def notices_send(
     notice_id: int,
     request: Request,
-    ,
     message: str = Form(...),
 ):
     text = (message or "").strip()
@@ -2377,10 +2326,7 @@ async def stats_page(request: Request):
 
 # Страница логов
 @app.get("/logs", response_class=HTMLResponse)
-async def logs_page(
-    request: Request, 
-    ,
-    type: str = Query(None),
+async def logs_page(request: Request, type: str = Query(None),
     days: int = Query(7)
 ):
     open_support_tickets = get_support_stats()
@@ -2463,10 +2409,7 @@ async def logs_page(
 
 # Страница поддержки
 @app.get("/support", response_class=HTMLResponse)
-async def support_page(
-    request: Request, 
-    ,
-    view: str = Query("active"),
+async def support_page(request: Request, view: str = Query("active"),
     user_id: int = Query(None),
     ticket_id: int = Query(None)
 ):
@@ -2647,10 +2590,7 @@ async def get_ticket_messages(ticket_id: int):
 
 # API для отправки сообщения
 @app.post("/api/support/send")
-async def send_support_message(
-    request: Request,
-    ,
-    _: None = Depends(support_send_rate_limit),
+async def send_support_message(request: Request, _: None = Depends(support_send_rate_limit),
 ):
     global bot
     data = await request.json()
