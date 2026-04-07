@@ -261,6 +261,49 @@ def reset_database():
     """)
     print("   └─ rewards ✓")
 
+    # User notices
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS user_notices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            notice_type TEXT NOT NULL,
+            status TEXT DEFAULT 'open',
+            subject TEXT,
+            message TEXT,
+            admin_reply TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            closed_at TEXT,
+            closed_by TEXT
+        )
+    """)
+    print("   └─ user_notices ✓")
+
+    # Clans
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS clans (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            tag TEXT,
+            description TEXT,
+            is_active INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    print("   └─ clans ✓")
+
+    # Clan members
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS clan_members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            clan_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            role TEXT DEFAULT 'member',
+            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    print("   └─ clan_members ✓")
+
     # Индексы
     print("\n📊 Создаём индексы...")
     cursor.execute("CREATE INDEX ix_users_stars ON users(stars)")

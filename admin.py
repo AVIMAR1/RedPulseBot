@@ -599,25 +599,34 @@ async def user_view_page(request: Request, user_id: int, auth: str = Depends(ver
         return RedirectResponse(url="/users?error=Пользователь не найден", status_code=303)
 
     # support tickets
-    cursor.execute(
-        "SELECT id, status, ticket_type, subject, created_at, last_activity FROM support_tickets WHERE user_id = ? ORDER BY id DESC LIMIT 10",
-        (user_id,),
-    )
-    support_tickets = cursor.fetchall()
+    try:
+        cursor.execute(
+            "SELECT id, status, ticket_type, subject, created_at, last_activity FROM support_tickets WHERE user_id = ? ORDER BY id DESC LIMIT 10",
+            (user_id,),
+        )
+        support_tickets = cursor.fetchall()
+    except:
+        support_tickets = []
 
     # notices
-    cursor.execute(
-        "SELECT id, notice_type, status, subject, created_at, last_activity FROM user_notices WHERE user_id = ? ORDER BY id DESC LIMIT 10",
-        (user_id,),
-    )
-    notices = cursor.fetchall()
+    try:
+        cursor.execute(
+            "SELECT id, notice_type, status, subject, created_at, last_activity FROM user_notices WHERE user_id = ? ORDER BY id DESC LIMIT 10",
+            (user_id,),
+        )
+        notices = cursor.fetchall()
+    except:
+        notices = []
 
     # clan
-    cursor.execute(
-        "SELECT c.id, c.name, c.tag, cm.role FROM clan_members cm JOIN clans c ON c.id = cm.clan_id WHERE cm.user_id = ? LIMIT 1",
-        (user_id,),
-    )
-    clan = cursor.fetchone()
+    try:
+        cursor.execute(
+            "SELECT c.id, c.name, c.tag, cm.role FROM clan_members cm JOIN clans c ON c.id = cm.clan_id WHERE cm.user_id = ? LIMIT 1",
+            (user_id,),
+        )
+        clan = cursor.fetchone()
+    except:
+        clan = None
 
     conn.close()
     return templates.TemplateResponse(

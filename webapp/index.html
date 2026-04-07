@@ -3310,8 +3310,8 @@ body {
 
 /* Actions */
 .actions {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
     gap: 8px;
     margin-bottom: 12px;
 }
@@ -3846,12 +3846,8 @@ body {
                 <div id="heatCalc" style="display:none;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.3);border-radius:10px;padding:8px 12px;margin:8px 0;font-size:12px;line-height:1.6;">
                     <div style="display:flex;justify-content:space-between;align-items:center;">
                         <div>
-                            <span style="color:#e74c3c;">🔥 Нагрев за тап:</span>
-                            <span id="heatReactor" style="color:#f39c12;font-weight:700;"></span>
-                            <span style="color:#888;">+</span>
-                            <span id="heatBlocks" style="color:#3498db;font-weight:700;"></span>
-                            <span style="color:#888;">=</span>
-                            <span id="heatTotal" style="color:#e74c3c;font-weight:700;font-size:14px;"></span>
+                            <div style="color:#e74c3c;font-weight:700;">🔥 Нагрев за тап: <span id="heatTotal" style="color:#f39c12;font-size:14px;"></span></div>
+                            <div style="color:#888;margin-top:2px;">Блоков на поле: <span id="heatBlocks" style="color:#3498db;"></span></div>
                         </div>
                         <div style="text-align:right;">
                             <div style="color:#888;">Температура:</div>
@@ -3895,7 +3891,7 @@ body {
                     <i class="fas fa-tag"></i>
                     Продать
                 </button>
-                <button class="action-btn" id="repairBlockBtn" onclick="repairBlock()" style="display: none; background: linear-gradient(135deg, #27ae60, #1e8449); border: 2px solid #2ecc71; box-shadow: 0 0 20px rgba(39,174,96,0.4); width: 100%; justify-content: center; font-size: 14px; font-weight: 700; padding: 12px 16px; order: -1; margin-bottom: 4px;">
+                <button class="action-btn" id="repairBlockBtn" onclick="repairBlock()" style="display: none; background: linear-gradient(135deg, #27ae60, #1e8449); border: 2px solid #2ecc71; box-shadow: 0 0 20px rgba(39,174,96,0.4); grid-column: 1 / -1; justify-content: center; font-size: 14px; font-weight: 700; padding: 12px 16px; order: -1; margin-bottom: 4px;">
                     <i class="fas fa-wrench"></i>
                     Починить
                 </button>
@@ -6953,7 +6949,7 @@ window.updateUI = function() {
 
     // Температура запуска от реактора
     const coreLaunchTempEl = document.getElementById('coreLaunchTemp');
-    if (coreLaunchTempEl) coreLaunchTempEl.textContent = `🔥 +${CONFIG.TEMP_PER_TAP}°C`;
+    if (coreLaunchTempEl) coreLaunchTempEl.style.display = 'none';
 
     const coreBtn = document.getElementById('coreBtn');
     const cooldownOverlay = document.getElementById('cooldownOverlay');
@@ -6974,6 +6970,23 @@ window.updateUI = function() {
     document.getElementById('rerollBtn').disabled = (gameState.coins || 0) < (gameState.rerollCost || CONFIG.PRICES.REROLL_BASE);
     document.getElementById('withdrawBtn').disabled = (gameState.bankCoins || 0) < 1 && (gameState.bankCrystals || 0) < 1 && (gameState.bankStars || 0) < 0.01;
     document.getElementById('sellBtn').disabled = !gameState.selectedCell;
+
+    // Цена продажи на кнопке
+    const sellBtn = document.getElementById('sellBtn');
+    if (gameState.selectedCell) {
+        const selBlock = gameState.grid[gameState.selectedCell.row]?.[gameState.selectedCell.col];
+        if (selBlock) {
+            const reactorLevel = gameState.reactor_level || 1;
+            const durabilityRatio = selBlock.isBroken ? 0.1 : (selBlock.durability / selBlock.maxDurability);
+            const basePrice = CONFIG.SELL_BASE * Math.pow(CONFIG.SELL_LEVEL_MULT, selBlock.level - 1);
+            const sellPrice = Math.floor(basePrice * durabilityRatio * (1 + reactorLevel * 0.1));
+            sellBtn.innerHTML = `<i class="fas fa-tag"></i> Продать — ${formatNumber(sellPrice)} 🪙`;
+            sellBtn.disabled = false;
+        }
+    } else {
+        sellBtn.innerHTML = `<i class="fas fa-tag"></i> Продать`;
+        sellBtn.disabled = true;
+    }
 
     // Показываем кнопку ремонта блока если выбран повреждённый/сломанный блок
     const repairBlockBtn = document.getElementById('repairBlockBtn');
@@ -8202,15 +8215,12 @@ window.togglePowerCalc = function() {
 
 function updateHeatCalc() {
     const blocksOnField = countBlocksOnField();
-    const reactorHeat = CONFIG.TEMP_PER_TAP;
-    const blockHeat = blocksOnField * CONFIG.TEMP_PER_BLOCK;
-    const totalHeat = reactorHeat + blockHeat;
+    const totalHeat = CONFIG.TEMP_PER_TAP + blocksOnField * CONFIG.TEMP_PER_BLOCK;
     const tempBefore = gameState.temp;
     const tempAfter = Math.min(gameState.temp + totalHeat, gameState.maxTemp);
 
     const el = (id) => document.getElementById(id);
-    if (el('heatReactor')) el('heatReactor').textContent = `${reactorHeat}°C`;
-    if (el('heatBlocks')) el('heatBlocks').textContent = `${blockHeat}°C (${blocksOnField} бл.)`;
+    if (el('heatBlocks')) el('heatBlocks').textContent = `${blocksOnField}`;
     if (el('heatTotal')) el('heatTotal').textContent = `${totalHeat}°C`;
     if (el('heatCurrentTemp')) el('heatCurrentTemp').textContent = `${Math.round(tempBefore)}°C`;
     if (el('heatNextTemp')) el('heatNextTemp').textContent = `${Math.round(tempAfter)}°C / ${gameState.maxTemp}°C`;
