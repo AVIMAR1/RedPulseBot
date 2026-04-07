@@ -3330,19 +3330,19 @@
         // ===== TICKER: REAL DATA =====
         async function updateTicker(){
             try {
-                const r=await fetch('/api/dashboard-stats');
-                if(!r.ok)return;
+                const r=await fetch('/api/dashboard-stats',{credentials:'same-origin'});
+                if(!r.ok){console.log('[ticker] API error:',r.status);return;}
                 const d=await r.json();
                 const msgs=[
                     '▸ USERS: '+(d.total_users||0)+' total | '+(d.active_users||0)+' active | '+(d.banned_users||0)+' banned',
-                    '▸ TODAY: '+(d.new_users_today||0)+' new users | '+(d.tasks_completed_today||0)+' tasks done | '+(d.clicks_today||0)+' clicks',
-                    '▸ SUPPORT: '+(d.open_support_tickets||0)+' open | '+(d.closed_support_tickets||0)+' closed | '+(d.new_tickets_today||0)+' new today',
-                    '▸ TASKS: '+(d.active_tasks||0)+' active | '+(d.total_tasks||0)+' total completed: '+(d.total_tasks||0),
+                    '▸ TODAY: '+(d.new_users_today||0)+' new | '+(d.tasks_completed_today||0)+' tasks | '+(d.clicks_today||0)+' clicks',
+                    '▸ SUPPORT: '+(d.open_support_tickets||0)+' open | '+(d.closed_support_tickets||0)+' closed | '+(d.new_tickets_today||0)+' today',
+                    '▸ TASKS: '+(d.active_tasks||0)+' active',
                     '▸ SEASONS: '+(d.active_seasons||0)+' active'
                 ];
                 const tc2=document.getElementById('tickerContent');
                 if(tc2) tc2.textContent=msgs.join('     ◆     ');
-            } catch(e){}
+            } catch(e){console.error('[ticker] Error:',e);}
         }
         updateTicker();
         setInterval(updateTicker,30000);
