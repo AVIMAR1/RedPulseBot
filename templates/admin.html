@@ -835,12 +835,17 @@
         }
     </style>
 
+    <style>
+        #pageTransText { font-size: 36px !important; font-weight: 900 !important; color: #ff0040 !important; letter-spacing: 8px !important; text-shadow: -3px 0 #00ff41, 3px 0 #0000ff !important; font-family: 'Courier New', monospace !important; }
+        #pageTransOverlay { background: #050000 !important; }
+    </style>
+
     <!-- Page transition overlay -->
     <div id="pageTransOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#050000;z-index:99997;display:none;align-items:center;justify-content:center;flex-direction:column;">
         <div style="position:absolute;width:100%;height:100%;overflow:hidden;" id="pageTransBars"></div>
-        <div style="position:relative;z-index:10;font-family:'Courier New',monospace;font-size:36px;font-weight:900;color:#ff0040;text-shadow:-3px 0 #00ff41,3px 0 #0000ff;letter-spacing:8px;" id="pageTransText"></div>
+        <div id="pageTransText"></div>
         <div style="position:relative;z-index:10;width:200px;height:2px;background:rgba(255,0,64,0.1);margin-top:15px;border-radius:1px;overflow:hidden;">
-            <div id="pageTransBar" style="width:0%;height:100%;background:#ff0040;box-shadow:0 0 8px #ff0040;transition:width 0.15s;"></div>
+            <div id="pageTransBar" style="width:0%;height:100%;background:#ff0040;box-shadow:0 0 8px #ff0040;transition:width 0.3s ease-in-out;"></div>
         </div>
     </div>
 
