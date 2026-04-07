@@ -729,29 +729,7 @@
             100% { top: 100%; }
         }
 
-        /* Page transition glitch */
-        #pageGlitch {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 99998; pointer-events: none; display: none;
-        }
-        #pageGlitch .glitch-bar {
-            position: absolute; width: 100%; height: 4px;
-            background: rgba(255, 0, 64, 0.8);
-            animation: glitchBarMove 0.1s infinite;
-        }
-        @keyframes glitchBarMove {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(-20px); }
-            50% { transform: translateX(20px); }
-            75% { transform: translateX(-10px); }
-            100% { transform: translateX(0); }
-        }
-        #pageGlitch .glitch-text {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-            font-family: 'Courier New', monospace; font-size: 24px; font-weight: 900;
-            color: #ff0040; text-shadow: -3px 0 #00ff41, 3px 0 #0000ff;
-            white-space: nowrap; letter-spacing: 4px;
-        }
+        /* Page transition removed — using direct navigation now */
 
         /* Card hacker style */
         .stat-card {
@@ -3262,157 +3240,73 @@
         })();
     </script>
 
-    <!-- Hacker Loading Screen -->
-    <div id="hackLoader" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0a0a;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;">
-        <canvas id="hackCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
-        <div style="position:relative;z-index:10;text-align:center;">
-            <div id="hackText" style="font-family:'Courier New',monospace;color:#00ff41;font-size:18px;text-shadow:0 0 20px rgba(0,255,65,0.5);min-height:24px;letter-spacing:2px;"></div>
-            <div id="hackProgress" style="width:300px;height:3px;background:rgba(0,255,65,0.1);margin:20px auto 0;border-radius:2px;overflow:hidden;">
-                <div id="hackBar" style="width:0%;height:100%;background:#00ff41;box-shadow:0 0 10px #00ff41;transition:width 0.3s;"></div>
-            </div>
-        </div>
+    <!-- Terminal console at bottom -->
+    <div id="terminalConsole" style="position:fixed;bottom:0;left:var(--sidebar-width);right:0;height:120px;background:rgba(0,0,0,0.9);border-top:2px solid rgba(255,0,64,0.3);padding:8px 15px;font-family:'Courier New',monospace;font-size:11px;overflow:hidden;z-index:100;display:none;">
+        <div id="terminalLines" style="color:#00ff41;line-height:1.6;"></div>
     </div>
-
-    <div id="redGlitch" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,0,0,0.97);z-index:100000;display:none;align-items:center;justify-content:center;flex-direction:column;">
-        <div style="font-family:'Courier New',monospace;font-size:56px;font-weight:900;color:#ff0040;text-shadow:-5px 0 #00ff41,5px 0 #0000ff,0 0 80px rgba(255,0,64,1);letter-spacing:10px;" id="glitchText"></div>
-        <div style="font-family:'Courier New',monospace;font-size:13px;color:#ff0040;margin-top:20px;opacity:0.6;letter-spacing:5px;">BREACH DETECTED // SYSTEM SECURED</div>
-    </div>
-    <div id="flashOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:99998;display:none;pointer-events:none;"></div>
 
     <style>
-        @keyframes gBig {
-            0% { transform:translate(0); text-shadow:-5px 0 #00ff41,5px 0 #0000ff,0 0 80px rgba(255,0,64,1); }
-            15% { transform:translate(-10px,6px); text-shadow:8px 0 #ff0040,-8px 0 #00ff41,0 0 100px rgba(255,0,64,1); }
-            30% { transform:translate(10px,-6px); text-shadow:-8px 0 #0000ff,8px 0 #ff0040,0 0 60px rgba(0,255,65,0.8); }
-            45% { transform:translate(-6px,10px); text-shadow:6px 0 #00ff41,-6px 0 #0000ff,0 0 120px rgba(255,0,64,1); }
-            60% { transform:translate(6px,-10px); text-shadow:-6px 0 #ff0040,6px 0 #00ff41,0 0 80px rgba(0,255,65,0.6); }
-            75% { transform:translate(-10px,-6px); text-shadow:10px 0 #0000ff,-10px 0 #ff0040,0 0 100px rgba(255,0,64,0.8); }
-            100% { transform:translate(0); text-shadow:-5px 0 #00ff41,5px 0 #0000ff,0 0 80px rgba(255,0,64,1); }
-        }
+        @keyframes termBlink { 0%,50%{opacity:1} 51%,100%{opacity:0} }
+        .term-cursor { display:inline-block;width:7px;height:13px;background:#00ff41;animation:termBlink 0.8s infinite;vertical-align:middle;margin-left:2px; }
     </style>
 
     <script>
     (function(){
-        const msgs=[
-            '[INIT] Connecting to mainframe...',
-            '[AUTH] Verifying credentials...',
-            '[CRYPT] Decrypting AES-256 tunnel...',
-            '[NET] Establishing secure connection...',
-            '[SCAN] Bypassing firewall rules...',
-            '[DATA] Loading admin modules...',
-            '[SYS] Initializing dashboard...',
-            '[OK] ACCESS GRANTED'
+        const console=document.getElementById('terminalConsole');
+        const lines=document.getElementById('terminalLines');
+        if(!console||!lines)return;
+
+        const terminalMsgs=[
+            '[SYS] Admin session active',
+            '[NET] Monitoring incoming requests...',
+            '[AUTH] Token verified — admin@root',
+            '[DB] Connection pool: 4/10 active',
+            '[SCAN] No anomalies detected',
+            '[CRYPT] SSL tunnel stable',
+            '[MEM] Usage: 234MB / 2048MB',
+            '[CPU] Load: 12%',
+            '[NET] Latency: 23ms',
+            '[SYS] All services operational',
+            '[FIREWALL] 0 blocked attempts (last 5m)',
+            '[DB] Query avg: 4.2ms',
+            '[API] Rate limit: OK',
+            '[CACHE] Hit ratio: 94.7%',
+            '[SYS] Uptime: calculating...'
         ];
-        const canvas=document.getElementById('hackCanvas');
-        const ctx=canvas.getContext('2d');
-        canvas.width=window.innerWidth;
-        canvas.height=window.innerHeight;
-        const chars='アイウエオカキクケコ0123456789ABCDEF';
-        const fontSize=13;
-        const cols=Math.floor(canvas.width/fontSize);
-        const drops=Array(cols).fill(1);
-        function draw(){
-            ctx.fillStyle='rgba(0,0,0,0.05)';
-            ctx.fillRect(0,0,canvas.width,canvas.height);
-            ctx.fillStyle='#00ff41';
-            ctx.font=fontSize+'px monospace';
-            for(let i=0;i<drops.length;i++){
-                const t=chars[Math.floor(Math.random()*chars.length)];
-                ctx.fillText(t,i*fontSize,drops[i]*fontSize);
-                if(drops[i]*fontSize>canvas.height&&Math.random()>0.975)drops[i]=0;
-                drops[i]++;
+
+        let msgIndex=0;
+        let lineCount=0;
+        const maxLines=6;
+
+        function addLine(){
+            const msg=terminalMsgs[msgIndex%terminalMsgs.length];
+            const now=new Date().toLocaleTimeString('en-US',{hour12:false});
+            const div=document.createElement('div');
+            div.style.color=msg.includes('ERR')||msg.includes('WARN')?'#ff0040':'#00ff41';
+            div.textContent='['+now+'] '+msg;
+            lines.appendChild(div);
+            lineCount++;
+            if(lineCount>maxLines){
+                lines.removeChild(lines.firstChild);
             }
-        }
-        const matrixInt=setInterval(draw,35);
-        let i=0;
-        const txtEl=document.getElementById('hackText');
-        const barEl=document.getElementById('hackBar');
-        function nextMsg(){
-            if(i<msgs.length){
-                txtEl.textContent=msgs[i];
-                barEl.style.width=((i+1)/msgs.length*100)+'%';
-                if(i===msgs.length-1){
-                    txtEl.style.color='#ff0040';
-                    txtEl.style.textShadow='0 0 30px rgba(255,0,64,0.8)';
-                    barEl.style.background='#ff0040';
-                    barEl.style.boxShadow='0 0 15px #ff0040';
-                }
-                i++;
-                setTimeout(nextMsg,250+Math.random()*200);
-            } else {
-                clearInterval(matrixInt);
-                // RED GLITCH!
-                const glitch=document.getElementById('redGlitch');
-                const flash=document.getElementById('flashOverlay');
-                const gt=document.getElementById('glitchText');
-                glitch.style.display='flex';
-                gt.style.animation='gBig 0.06s infinite';
-                flash.style.display='block';
-                flash.style.background='#ff0040';
-                setTimeout(()=>{flash.style.background='#00ff41';},80);
-                setTimeout(()=>{flash.style.background='transparent';flash.style.display='none';},160);
-                setTimeout(()=>{glitch.style.display='none';},1500);
-                setTimeout(()=>{
-                    const loader=document.getElementById('hackLoader');
-                    loader.style.transition='opacity 0.5s';
-                    loader.style.opacity='0';
-                    setTimeout(()=>loader.style.display='none',500);
-                },1600);
-            }
-        }
-        setTimeout(nextMsg,300);
-        window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
-    })();
-
-    // ===== PAGE TRANSITION GLITCH =====
-    (function(){
-        const msgs=['[NAV] Switching context...','[SYS] Reloading modules...','[NET] Rerouting data stream...','[CRYPT] Re-encrypting session...','[OK] Access granted'];
-        const glitch=document.createElement('div');
-        glitch.id='pageGlitch';
-        glitch.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(5,0,0,0.95);z-index:99998;display:none;align-items:center;justify-content:center;flex-direction:column;';
-        document.body.appendChild(glitch);
-
-        const txt=document.createElement('div');
-        txt.style.cssText="font-family:'Courier New',monospace;font-size:22px;color:#ff0040;text-shadow:-3px 0 #00ff41,3px 0 #0000ff;letter-spacing:4px;animation:gBig 0.06s infinite;";
-        glitch.appendChild(txt);
-
-        const sub=document.createElement('div');
-        sub.style.cssText="font-family:'Courier New',monospace;font-size:11px;color:#ff0040;margin-top:12px;opacity:0.5;letter-spacing:3px;";
-        glitch.appendChild(sub);
-
-        // Создаём полоски глитча
-        for(let i=0;i<8;i++){
-            const bar=document.createElement('div');
-            bar.style.cssText=`position:absolute;width:${80+Math.random()*20}%;height:${2+Math.random()*6}px;background:rgba(255,0,64,${0.3+Math.random()*0.5});left:${Math.random()*20}%;top:${10+Math.random()*80}%;animation:glitchBarMove ${0.05+Math.random()*0.1}s infinite;`;
-            glitch.appendChild(bar);
+            // Cursor
+            let cur=lines.querySelector('.term-cursor');
+            if(!cur){cur=document.createElement('span');cur.className='term-cursor';lines.appendChild(cur);}
+            console.scrollTop=console.scrollHeight;
+            msgIndex++;
         }
 
-        // Перехватываем все ссылки в sidebar
-        document.querySelectorAll('.sidebar-nav a, .nav-link').forEach(link=>{
-            link.addEventListener('click',function(e){
-                const href=this.getAttribute('href');
-                if(!href||href==='#'||href.startsWith('#'))return;
-                if(href===window.location.pathname)return;
-
+        // Toggle console with ` key
+        document.addEventListener('keydown',function(e){
+            if(e.key==='`'||e.key==='ё'){
                 e.preventDefault();
-                let mi=0;
-                txt.textContent=msgs[0];
-                sub.textContent='PLEASE WAIT';
-                glitch.style.display='flex';
-
-                const next=()=>{
-                    if(mi<msgs.length){
-                        txt.textContent=msgs[mi];
-                        sub.textContent='['+((mi+1)/msgs.length*100).toFixed(0)+'%]';
-                        mi++;
-                        setTimeout(next,100+Math.random()*100);
-                    } else {
-                        window.location.href=href;
-                    }
-                };
-                setTimeout(next,150);
-            });
+                console.style.display=console.style.display==='none'?'block':'none';
+            }
         });
+
+        // Auto add lines
+        addLine();
+        setInterval(addLine,3000+Math.random()*4000);
     })();
     </script>
 </body>
