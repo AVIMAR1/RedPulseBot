@@ -3298,21 +3298,7 @@
     (function(){
         // ===== TICKER BAR =====
         const tickerMsgs=[
-            '▸ SYS: All services operational',
-            '▸ NET: 23ms avg latency',
-            '▸ AUTH: Session pool active',
-            '▸ DB: Query avg 4.2ms',
-            '▸ CPU: 12% load',
-            '▸ MEM: 234MB / 2048MB',
-            '▸ FIREWALL: 0 blocked (5m)',
-            '▸ CACHE: Hit ratio 94.7%',
-            '▸ API: Rate limit OK',
-            '▸ SSL: Tunnel stable',
-            '▸ USERS: 1,247 online',
-            '▸ FARM: 89 reactors active',
-            '▸ SEASON: Day 7/14',
-            '▸ BROADCAST: Queue empty',
-            '▸ SUPPORT: 3 open tickets'
+            '▸ LOADING SYSTEM DATA...',
         ];
         const tc=document.getElementById('tickerContent');
         if(tc) tc.textContent=tickerMsgs.join('     ◆     ');
@@ -3347,6 +3333,12 @@
         const canvas=document.getElementById('adminLoaderCanvas');
 
         if(loader && canvas){
+            // Skip loader if we already saw it (page transition, not fresh login)
+            if(sessionStorage.getItem('adminLoaded')){
+                loader.style.display='none';
+                return;
+            }
+            sessionStorage.setItem('adminLoaded','1');
             const ctx=canvas.getContext('2d');
             canvas.width=window.innerWidth;
             canvas.height=window.innerHeight;
