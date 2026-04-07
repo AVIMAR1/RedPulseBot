@@ -25,7 +25,6 @@ load_dotenv()
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-security = HTTPBasic()
 
 # Подключаем роутер для WebApp
 app.include_router(webapp_router)
@@ -41,18 +40,68 @@ _redis_client = None
 # Простейший in-memory rate limit: {key: [timestamps]}
 RATE_LIMITS = {}
 
-# Защита
+# Защита — кастомная сессия
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "redpulse2026")
+ADMIN_SESSION_SECRET = secrets.token_hex(32)
+admin_sessions = {}  # {session_token: expires_at}
 
 
-def verify_auth(credentials: HTTPBasicCredentials = Depends(security)):
-    correct_username = secrets.compare_digest(credentials.username, ADMIN_USERNAME)
-    correct_password = secrets.compare_digest(credentials.password, ADMIN_PASSWORD)
-    if not (correct_username and correct_password):
-        # Базовая защита админки: требуем корректные логин/пароль
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    return credentials.username
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    return templates.TemplateResponse("admin_login.html", {"request": request, "error": None})
+
+
+@app.get("/logout")
+async def logout():
+    response = RedirectResponse(url="/login", status_code=303)
+    response.delete_cookie(key="admin_session")
+    return response
+
+
+@app.post("/login")
+async def login_submit(request: Request, username: str = Form(...), password: str = Form(...)):
+    if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+        session_token = secrets.token_hex(32)
+        admin_sessions[session_token] = datetime.now() + timedelta(hours=12)
+        response = RedirectResponse(url="/", status_code=303)
+        response.set_cookie(key="admin_session", value=session_token, httponly=True, max_age=43200)
+        return response
+    return templates.TemplateResponse("admin_login.html", {"request": request, "error": "Неверный логин или пароль"})
+
+
+def check_admin_session(request: Request):
+    token = request.cookies.get("admin_session")
+    if not token or token not in admin_sessions:
+        return False
+    if admin_sessions[token] < datetime.now():
+        del admin_sessions[token]
+        return False
+    return True
+
+
+from starlette.middleware.base import BaseHTTPMiddleware
+
+# Middleware — редирект на /login если не авторизован
+PROTECTED_PATHS = ["/", "/users", "/tasks", "/support", "/broadcast", "/notices", "/clans", "/settings", "/api/dashboard"]
+
+@app.middleware("http")
+async def auth_middleware(request, call_next):
+    path = request.url.path
+    # Пропускаем публичные пути
+    if path in ["/login", "/webapp", "/api/user", "/api/save-clicks", "/api/save-farm-state", "/api/save-farm-stats", "/api/exchange-to-crystals", "/api/buy-boost", "/static"]:
+        return await call_next(request)
+    if path.startswith("/api/") and not path.startswith("/api/dashboard"):
+        return await call_next(request)
+    # Проверяем сессию
+    if not check_admin_session(request):
+        if path == "/":
+            return RedirectResponse(url="/login", status_code=303)
+        # AJAX запросы — 401
+        if path.startswith("/api/"):
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
+        return RedirectResponse(url="/login", status_code=303)
+    return await call_next(request)
 
 
 def get_redis_client():
@@ -250,7 +299,7 @@ def _get_dashboard_stats(cursor) -> dict:
 
 
 @app.get("/api/dashboard-stats", response_class=JSONResponse)
-async def api_dashboard_stats(request: Request, auth: str = Depends(verify_auth)):
+async def api_dashboard_stats(request: Request):
     """JSON-статистика дашборда для автообновления без перезагрузки страницы."""
     conn = sqlite3.connect('redpulse.db')
     cursor = conn.cursor()
@@ -267,7 +316,7 @@ async def api_dashboard_stats(request: Request, auth: str = Depends(verify_auth)
 
 # Главная страница админки
 @app.get("/", response_class=HTMLResponse)
-async def admin_panel(request: Request, auth: str = Depends(verify_auth)):
+async def admin_panel(request: Request):
     conn = sqlite3.connect('redpulse.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -519,7 +568,7 @@ async def admin_panel(request: Request, auth: str = Depends(verify_auth)):
 @app.get("/users", response_class=HTMLResponse)
 async def users_page(
     request: Request, 
-    auth: str = Depends(verify_auth),
+    ,
     search: str = Query(None),
     status: str = Query(None),
     sort: str = Query("id_desc")
@@ -592,7 +641,7 @@ async def users_page(
 
 
 @app.get("/users/view/{user_id}", response_class=HTMLResponse)
-async def user_view_page(request: Request, user_id: int, auth: str = Depends(verify_auth)):
+async def user_view_page(request: Request, user_id: int):
     open_support_tickets = get_support_stats()
     conn = sqlite3.connect("redpulse.db")
     conn.row_factory = sqlite3.Row
@@ -653,7 +702,7 @@ async def user_view_page(request: Request, user_id: int, auth: str = Depends(ver
 async def ban_user(
     request: Request,
     user_id: int,
-    auth: str = Depends(verify_auth),
+    ,
     ban_duration: str = Form(...),
     ban_reason: str = Form(...)
 ):
@@ -697,7 +746,7 @@ async def ban_user(
 async def unban_user(
     request: Request,
     user_id: int,
-    auth: str = Depends(verify_auth)
+    
 ):
     conn = sqlite3.connect('redpulse.db')
     cursor = conn.cursor()
@@ -718,7 +767,7 @@ async def unban_user(
 async def give_currency(
     request: Request,
     user_id: int,
-    auth: str = Depends(verify_auth),
+    ,
     _: None = Depends(give_currency_rate_limit),
     currency_type: str = Form(...),
     amount: int = Form(...),
@@ -774,7 +823,7 @@ async def give_currency(
 
 # Страница заданий
 @app.get("/tasks", response_class=HTMLResponse)
-async def tasks_page(request: Request, auth: str = Depends(verify_auth)):
+async def tasks_page(request: Request):
     conn = sqlite3.connect('redpulse.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -805,7 +854,7 @@ async def tasks_page(request: Request, auth: str = Depends(verify_auth)):
 
 # Получение данных задания для редактирования
 @app.get("/tasks/edit/{task_id}")
-async def get_task_for_edit(task_id: int, request: Request, auth: str = Depends(verify_auth)):
+async def get_task_for_edit(task_id: int, request: Request):
     conn = sqlite3.connect('redpulse.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -862,7 +911,7 @@ def _validate_positive_int(value: int, field_name: str, max_value: int = 1_000_0
 @app.post("/tasks/create")
 async def create_task(
     request: Request,
-    auth: str = Depends(verify_auth),
+    ,
     title: str = Form(...),
     description: str = Form(""),
     task_type: str = Form(...),
@@ -936,7 +985,7 @@ async def create_task(
 async def edit_task(
     request: Request,
     task_id: int,
-    auth: str = Depends(verify_auth),
+    ,
     title: str = Form(...),
     description: str = Form(""),
     task_type: str = Form(...),
@@ -1011,7 +1060,7 @@ async def edit_task(
 async def delete_task(
     request: Request,
     task_id: int,
-    auth: str = Depends(verify_auth)
+    
 ):
     conn = sqlite3.connect('redpulse.db')
     cursor = conn.cursor()
@@ -1028,7 +1077,7 @@ async def delete_task(
 
 # Страница сезонов
 @app.get("/seasons", response_class=HTMLResponse)
-async def seasons_page(request: Request, auth: str = Depends(verify_auth)):
+async def seasons_page(request: Request):
     conn = sqlite3.connect('redpulse.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -1063,7 +1112,7 @@ async def seasons_page(request: Request, auth: str = Depends(verify_auth)):
 
 # Получение данных сезона для редактирования
 @app.get("/seasons/edit/{season_id}")
-async def get_season_for_edit(season_id: int, request: Request, auth: str = Depends(verify_auth)):
+async def get_season_for_edit(season_id: int, request: Request):
     conn = sqlite3.connect('redpulse.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -1124,7 +1173,7 @@ def _parse_datetime(value: str, field: str) -> datetime:
 @app.post("/seasons/create")
 async def create_season(
     request: Request,
-    auth: str = Depends(verify_auth),
+    ,
     name: str = Form(...),
     description: str = Form(""),
     start_date: str = Form(...),
@@ -1189,7 +1238,7 @@ async def create_season(
 async def edit_season(
     request: Request,
     season_id: int,
-    auth: str = Depends(verify_auth),
+    ,
     name: str = Form(...),
     description: str = Form(""),
     start_date: str = Form(...),
@@ -1251,7 +1300,7 @@ async def edit_season(
 async def delete_season(
     request: Request,
     season_id: int,
-    auth: str = Depends(verify_auth)
+    
 ):
     conn = sqlite3.connect('redpulse.db')
     cursor = conn.cursor()
@@ -1266,7 +1315,7 @@ async def delete_season(
 
 # Страница рассылки
 @app.get("/broadcast", response_class=HTMLResponse)
-async def broadcast_page(request: Request, auth: str = Depends(verify_auth)):
+async def broadcast_page(request: Request):
     conn = sqlite3.connect('redpulse.db')
     cursor = conn.cursor()
     
@@ -1299,7 +1348,7 @@ async def broadcast_page(request: Request, auth: str = Depends(verify_auth)):
 @app.post("/broadcast/send")
 async def send_broadcast(
     request: Request,
-    auth: str = Depends(verify_auth),
+    ,
     _: None = Depends(broadcast_rate_limit),
     message: str = Form(...),
     recipients: str = Form("all")
@@ -1340,7 +1389,7 @@ async def send_broadcast(
 
 
 @app.post("/broadcast/delete/{broadcast_id}")
-async def delete_broadcast(broadcast_id: str, auth: str = Depends(verify_auth)):
+async def delete_broadcast(broadcast_id: str):
     """Удалить рассылку у пользователей (по сохранённым message_id) и пометить в истории."""
     try:
         with open("broadcasts.json", "r", encoding="utf-8") as f:
@@ -1360,7 +1409,7 @@ async def delete_broadcast(broadcast_id: str, auth: str = Depends(verify_auth)):
 
 # ====== Промокоды ======
 @app.get("/promocodes", response_class=HTMLResponse)
-async def promocodes_page(request: Request, auth: str = Depends(verify_auth)):
+async def promocodes_page(request: Request):
     open_support_tickets = get_support_stats()
     conn = sqlite3.connect("redpulse.db")
     conn.row_factory = sqlite3.Row
@@ -1380,7 +1429,7 @@ async def promocodes_page(request: Request, auth: str = Depends(verify_auth)):
 @app.post("/promocodes/create")
 async def promocodes_create(
     request: Request,
-    auth: str = Depends(verify_auth),
+    ,
     code: str = Form(...),
     reward_coins: int = Form(0),
     reward_stars: int = Form(0),
@@ -1416,7 +1465,7 @@ async def promocodes_create(
 
 
 @app.post("/promocodes/toggle/{promo_id}")
-async def promocodes_toggle(promo_id: int, auth: str = Depends(verify_auth)):
+async def promocodes_toggle(promo_id: int):
     conn = sqlite3.connect("redpulse.db")
     cursor = conn.cursor()
     cursor.execute("UPDATE promo_codes SET is_active = CASE WHEN is_active=1 THEN 0 ELSE 1 END WHERE id = ?", (promo_id,))
@@ -1426,7 +1475,7 @@ async def promocodes_toggle(promo_id: int, auth: str = Depends(verify_auth)):
 
 
 @app.post("/promocodes/delete/{promo_id}")
-async def promocodes_delete(promo_id: int, auth: str = Depends(verify_auth)):
+async def promocodes_delete(promo_id: int):
     conn = sqlite3.connect("redpulse.db")
     cursor = conn.cursor()
     cursor.execute("DELETE FROM promo_codes WHERE id = ?", (promo_id,))
@@ -1438,7 +1487,7 @@ async def promocodes_delete(promo_id: int, auth: str = Depends(verify_auth)):
 
 # ====== Титулы и ачивки ======
 @app.get("/titles", response_class=HTMLResponse)
-async def titles_page(request: Request, auth: str = Depends(verify_auth)):
+async def titles_page(request: Request):
     open_support_tickets = get_support_stats()
     conn = sqlite3.connect("redpulse.db")
     conn.row_factory = sqlite3.Row
@@ -1457,7 +1506,7 @@ async def titles_page(request: Request, auth: str = Depends(verify_auth)):
 @app.post("/titles/create")
 async def titles_create(
     request: Request,
-    auth: str = Depends(verify_auth),
+    ,
     code: str = Form(...),
     name: str = Form(...),
     description: str = Form(""),
@@ -1485,7 +1534,7 @@ async def titles_create(
 
 
 @app.post("/titles/toggle/{title_id}")
-async def titles_toggle(title_id: int, auth: str = Depends(verify_auth)):
+async def titles_toggle(title_id: int):
     conn = sqlite3.connect("redpulse.db")
     cursor = conn.cursor()
     cursor.execute("UPDATE titles SET is_active = CASE WHEN is_active=1 THEN 0 ELSE 1 END WHERE id = ?", (title_id,))
@@ -1497,7 +1546,7 @@ async def titles_toggle(title_id: int, auth: str = Depends(verify_auth)):
 @app.post("/titles/grant")
 async def titles_grant(
     request: Request,
-    auth: str = Depends(verify_auth),
+    ,
     user_id: int = Form(...),
     title_id: int = Form(...),
     set_current: bool = Form(False),
@@ -1541,7 +1590,7 @@ async def titles_grant(
 
 
 @app.get("/achievements", response_class=HTMLResponse)
-async def achievements_page(request: Request, auth: str = Depends(verify_auth)):
+async def achievements_page(request: Request):
     open_support_tickets = get_support_stats()
     conn = sqlite3.connect("redpulse.db")
     conn.row_factory = sqlite3.Row
@@ -1568,7 +1617,7 @@ async def achievements_page(request: Request, auth: str = Depends(verify_auth)):
 @app.post("/achievements/create")
 async def achievements_create(
     request: Request,
-    auth: str = Depends(verify_auth),
+    ,
     code: str = Form(...),
     name: str = Form(...),
     metric: str = Form(...),
@@ -1600,7 +1649,7 @@ async def achievements_create(
 
 
 @app.post("/achievements/toggle/{achievement_id}")
-async def achievements_toggle(achievement_id: int, auth: str = Depends(verify_auth)):
+async def achievements_toggle(achievement_id: int):
     conn = sqlite3.connect("redpulse.db")
     cursor = conn.cursor()
     cursor.execute(
@@ -1614,7 +1663,7 @@ async def achievements_toggle(achievement_id: int, auth: str = Depends(verify_au
 
 # ====== Кланы и общая казна ======
 @app.get("/clans", response_class=HTMLResponse)
-async def clans_page(request: Request, auth: str = Depends(verify_auth)):
+async def clans_page(request: Request):
     open_support_tickets = get_support_stats()
     conn = sqlite3.connect("redpulse.db")
     conn.row_factory = sqlite3.Row
@@ -1640,7 +1689,7 @@ async def clans_page(request: Request, auth: str = Depends(verify_auth)):
 @app.post("/clans/update/{clan_id}")
 async def clans_update(
     clan_id: int,
-    auth: str = Depends(verify_auth),
+    ,
     description: str = Form(""),
     war_schedule_json: str = Form(""),
     treasury_coins: int = Form(0),
@@ -1670,7 +1719,7 @@ async def clans_update(
 
 
 @app.post("/clans/toggle/{clan_id}")
-async def clans_toggle(clan_id: int, auth: str = Depends(verify_auth)):
+async def clans_toggle(clan_id: int):
     conn = sqlite3.connect("redpulse.db")
     cursor = conn.cursor()
     cursor.execute("UPDATE clans SET is_active = CASE WHEN is_active=1 THEN 0 ELSE 1 END WHERE id = ?", (clan_id,))
@@ -1680,7 +1729,7 @@ async def clans_toggle(clan_id: int, auth: str = Depends(verify_auth)):
 
 
 @app.post("/clans/delete/{clan_id}")
-async def clans_delete(clan_id: int, auth: str = Depends(verify_auth)):
+async def clans_delete(clan_id: int):
     conn = sqlite3.connect("redpulse.db")
     cursor = conn.cursor()
     cursor.execute("DELETE FROM clan_members WHERE clan_id = ?", (clan_id,))
@@ -1691,7 +1740,7 @@ async def clans_delete(clan_id: int, auth: str = Depends(verify_auth)):
 
 
 @app.get("/bank", response_class=HTMLResponse)
-async def bank_page(request: Request, auth: str = Depends(verify_auth)):
+async def bank_page(request: Request):
     open_support_tickets = get_support_stats()
     conn = sqlite3.connect("redpulse.db")
     conn.row_factory = sqlite3.Row
@@ -1710,7 +1759,7 @@ async def bank_page(request: Request, auth: str = Depends(verify_auth)):
 @app.post("/bank/update")
 async def bank_update(
     request: Request,
-    auth: str = Depends(verify_auth),
+    ,
     coins: int = Form(0),
     xp: int = Form(0),
     level: int = Form(1),
@@ -1739,7 +1788,7 @@ async def bank_update(
 
 
 @app.get("/wheel", response_class=HTMLResponse)
-async def wheel_page(request: Request, auth: str = Depends(verify_auth)):
+async def wheel_page(request: Request):
     open_support_tickets = get_support_stats()
     conn = sqlite3.connect("redpulse.db")
     conn.row_factory = sqlite3.Row
@@ -1758,7 +1807,7 @@ async def wheel_page(request: Request, auth: str = Depends(verify_auth)):
 @app.post("/wheel/update")
 async def wheel_update(
     request: Request,
-    auth: str = Depends(verify_auth),
+    ,
     preset: str = Form("default"),
     cooldown_hours: int = Form(24),
     is_active: bool = Form(False),
@@ -1818,7 +1867,7 @@ async def wheel_update(
 
 
 @app.get("/auction", response_class=HTMLResponse)
-async def auction_page(request: Request, auth: str = Depends(verify_auth)):
+async def auction_page(request: Request):
     open_support_tickets = get_support_stats()
     conn = sqlite3.connect("redpulse.db")
     conn.row_factory = sqlite3.Row
@@ -1838,7 +1887,7 @@ async def auction_page(request: Request, auth: str = Depends(verify_auth)):
 @app.post("/auction/create")
 async def auction_create(
     request: Request,
-    auth: str = Depends(verify_auth),
+    ,
     name: str = Form(...),
     description: str = Form(""),
     duration_hours: int = Form(24),
@@ -1865,7 +1914,7 @@ async def auction_create(
 
 
 @app.post("/auction/close/{lot_id}")
-async def auction_close(lot_id: int, auth: str = Depends(verify_auth)):
+async def auction_close(lot_id: int):
     conn = sqlite3.connect("redpulse.db")
     cursor = conn.cursor()
     cursor.execute("UPDATE auction_lots SET status = 'closed' WHERE id = ?", (lot_id,))
@@ -1875,7 +1924,7 @@ async def auction_close(lot_id: int, auth: str = Depends(verify_auth)):
 
 
 @app.get("/events", response_class=HTMLResponse)
-async def events_page(request: Request, auth: str = Depends(verify_auth)):
+async def events_page(request: Request):
     open_support_tickets = get_support_stats()
     conn = sqlite3.connect("redpulse.db")
     conn.row_factory = sqlite3.Row
@@ -1895,7 +1944,7 @@ async def events_page(request: Request, auth: str = Depends(verify_auth)):
 @app.post("/events/create")
 async def events_create(
     request: Request,
-    auth: str = Depends(verify_auth),
+    ,
     code: str = Form(...),
     name: str = Form(...),
     description: str = Form(""),
@@ -1934,7 +1983,7 @@ async def events_create(
 
 
 @app.post("/events/toggle/{event_id}")
-async def events_toggle(event_id: int, auth: str = Depends(verify_auth)):
+async def events_toggle(event_id: int):
     conn = sqlite3.connect("redpulse.db")
     cursor = conn.cursor()
     cursor.execute("UPDATE events SET is_active = CASE WHEN is_active=1 THEN 0 ELSE 1 END WHERE id = ?", (event_id,))
@@ -1947,7 +1996,7 @@ async def events_toggle(event_id: int, auth: str = Depends(verify_auth)):
 @app.get("/notices", response_class=HTMLResponse)
 async def notices_page(
     request: Request,
-    auth: str = Depends(verify_auth),
+    ,
     view: str = Query("active"),
     notice_id: int = Query(None),
 ):
@@ -2034,7 +2083,7 @@ async def notices_page(
 @app.post("/notices/create")
 async def notices_create(
     request: Request,
-    auth: str = Depends(verify_auth),
+    ,
     user_id: int = Form(...),
     notice_type: str = Form("message"),
     subject: str = Form(""),
@@ -2099,7 +2148,7 @@ async def notices_create(
 async def notices_send(
     notice_id: int,
     request: Request,
-    auth: str = Depends(verify_auth),
+    ,
     message: str = Form(...),
 ):
     text = (message or "").strip()
@@ -2148,7 +2197,7 @@ async def notices_send(
 
 
 @app.post("/notices/close/{notice_id}")
-async def notices_close(notice_id: int, auth: str = Depends(verify_auth)):
+async def notices_close(notice_id: int):
     conn = sqlite3.connect("redpulse.db")
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -2177,7 +2226,7 @@ async def notices_close(notice_id: int, auth: str = Depends(verify_auth)):
 
 # Страница статистики (детальная)
 @app.get("/stats", response_class=HTMLResponse)
-async def stats_page(request: Request, auth: str = Depends(verify_auth)):
+async def stats_page(request: Request):
     conn = sqlite3.connect('redpulse.db')
     cursor = conn.cursor()
     
@@ -2330,7 +2379,7 @@ async def stats_page(request: Request, auth: str = Depends(verify_auth)):
 @app.get("/logs", response_class=HTMLResponse)
 async def logs_page(
     request: Request, 
-    auth: str = Depends(verify_auth),
+    ,
     type: str = Query(None),
     days: int = Query(7)
 ):
@@ -2416,7 +2465,7 @@ async def logs_page(
 @app.get("/support", response_class=HTMLResponse)
 async def support_page(
     request: Request, 
-    auth: str = Depends(verify_auth),
+    ,
     view: str = Query("active"),
     user_id: int = Query(None),
     ticket_id: int = Query(None)
@@ -2505,7 +2554,7 @@ async def support_page(
 
 # API для получения сообщений
 @app.get("/api/support/messages/{user_id}")
-async def get_support_messages(user_id: int, auth: str = Depends(verify_auth)):
+async def get_support_messages(user_id: int):
     conn = sqlite3.connect('redpulse.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -2562,7 +2611,7 @@ async def get_support_messages(user_id: int, auth: str = Depends(verify_auth)):
 
 # API для получения сообщений конкретного тикета
 @app.get("/api/support/ticket/{ticket_id}/messages")
-async def get_ticket_messages(ticket_id: int, auth: str = Depends(verify_auth)):
+async def get_ticket_messages(ticket_id: int):
     conn = sqlite3.connect('redpulse.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -2600,7 +2649,7 @@ async def get_ticket_messages(ticket_id: int, auth: str = Depends(verify_auth)):
 @app.post("/api/support/send")
 async def send_support_message(
     request: Request,
-    auth: str = Depends(verify_auth),
+    ,
     _: None = Depends(support_send_rate_limit),
 ):
     global bot
@@ -2692,7 +2741,7 @@ async def send_support_message(
 
 # ЗАКРЫТИЕ ТИКЕТА АДМИНОМ
 @app.post("/api/support/close/{ticket_id}")
-async def close_support_ticket(ticket_id: int, auth: str = Depends(verify_auth)):
+async def close_support_ticket(ticket_id: int):
     global bot
     print(f"🔒 Попытка закрыть тикет {ticket_id}")
     
