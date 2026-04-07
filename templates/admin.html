@@ -836,7 +836,7 @@
     </style>
 
     <!-- Page transition overlay -->
-    <div id="pageTransOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(5,0,0,0.92);z-index:99997;display:none;align-items:center;justify-content:center;flex-direction:column;">
+    <div id="pageTransOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#050000;z-index:99997;display:none;align-items:center;justify-content:center;flex-direction:column;">
         <div style="position:absolute;width:100%;height:100%;overflow:hidden;" id="pageTransBars"></div>
         <div style="position:relative;z-index:10;font-family:'Courier New',monospace;font-size:16px;color:#ff0040;text-shadow:-2px 0 #00ff41,2px 0 #0000ff;letter-spacing:3px;" id="pageTransText"></div>
         <div style="position:relative;z-index:10;width:200px;height:2px;background:rgba(255,0,64,0.1);margin-top:15px;border-radius:1px;overflow:hidden;">
@@ -3395,44 +3395,45 @@
             window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
         }
 
-        // ===== PAGE TRANSITIONS (different from loader) =====
+        // ===== PAGE TRANSITIONS =====
         const pgOverlay=document.getElementById('pageTransOverlay');
         const pgText=document.getElementById('pageTransText');
         const pgBar=document.getElementById('pageTransBar');
         const pgBars=document.getElementById('pageTransBars');
 
-        // Делегирование — работает при каждой загрузке страницы
-        document.addEventListener('click',function(e){
-            const link=e.target.closest('.sidebar-nav a, .nav-link');
-            if(!link||!pgOverlay)return;
-            const href=link.getAttribute('href');
-            if(!href||href==='#'||href.startsWith('#'))return;
-            if(href===window.location.pathname)return;
-            e.preventDefault();
-
-            // Quick glitch bars
+        window.doNavTransition=function(href){
+            if(!href||!pgOverlay)return;
             pgBars.innerHTML='';
             for(let i=0;i<20;i++){
                 const b=document.createElement('div');
-                const top=Math.random()*100;
-                b.style.cssText=`position:absolute;width:${50+Math.random()*50}%;height:${1+Math.random()*3}px;background:rgba(255,0,64,${0.2+Math.random()*0.4});left:${Math.random()*50}%;top:${top}%;opacity:0;transition:opacity 0.1s;`;
+                b.style.cssText=`position:absolute;width:${50+Math.random()*50}%;height:${1+Math.random()*3}px;background:rgba(255,0,64,${0.2+Math.random()*0.4});left:${Math.random()*50}%;top:${Math.random()*100}%;opacity:0;transition:opacity 0.1s;`;
                 pgBars.appendChild(b);
                 setTimeout(()=>{b.style.opacity='1';},i*15);
             }
-
             pgText.style.fontSize='13px';
             pgText.textContent='[NAV] → '+href;
             pgBar.style.width='0%';
             pgOverlay.style.display='flex';
+            setTimeout(()=>{pgBar.style.width='100%';},50);
+            setTimeout(()=>{window.location.href=href;},500);
+        };
 
-            setTimeout(()=>{
-                pgBar.style.width='100%';
-            },50);
-
-            setTimeout(()=>{
-                window.location.href=href;
-            },500);
-        });
+        // Attach onclick to all nav links after DOM ready
+        function attachNav(){
+            document.querySelectorAll('.sidebar-nav a.nav-link').forEach(function(a){
+                if(!a.getAttribute('data-nav-attached')){
+                    a.setAttribute('data-nav-attached','1');
+                    const h=a.getAttribute('href');
+                    a.addEventListener('click',function(e){
+                        e.preventDefault();
+                        window.doNavTransition(h);
+                        return false;
+                    });
+                }
+            });
+        }
+        attachNav();
+        setTimeout(attachNav,300);
     })();
     </script>
 </body>
