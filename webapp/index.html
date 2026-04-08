@@ -7571,7 +7571,17 @@ function spawnLaser(row, col, x, y, dir, charge, processed) {
             if (block.durability <= 0) {
                 block.isBroken = true;
                 showFloatingEarn(r, c, '💥 Сломался!', 'broken');
-                // Обновляем точку HP напрямую через DOM, НЕ вызывая renderGrid
+                // Мгновенно перерисовываем сетку, сохраняя canvas лазера
+                const gridEl = document.getElementById('fieldGrid');
+                const laserCanvas = gridEl?.querySelector('.laser-canvas');
+                const laserParent = laserCanvas?.parentElement;
+                const laserNextSibling = laserCanvas?.nextSibling;
+                renderGrid();
+                // Восстанавливаем canvas лазера
+                if (laserCanvas && laserParent) {
+                    laserParent.insertBefore(laserCanvas, laserNextSibling);
+                }
+                // Обновляем точку HP
                 updateBlockDot(r, c);
                 // Лазер продолжает лететь БЕЗ начисления наград
                 await step(r + d.y, c + d.x, d, ch, px, py);
@@ -7673,6 +7683,9 @@ function handleBlock(block, row, col, charge, dir, processed, x, y) {
     if (block.durability <= 0) {
         block.isBroken = true;
         showFloatingEarn(row, col, '💥 Сломался!', 'broken');
+        // Мгновенно перерисовываем сетку
+        renderGrid();
+        // Обновляем точку HP
         updateBlockDot(row, col);
         spawnCharge(row, col, x, y, dir, charge, processed);
         return;
@@ -8149,18 +8162,36 @@ function updateBlockDot(row, col) {
     dot.style.background = dotColor;
     dot.style.boxShadow = `0 0 6px ${dotColor}`;
 
-    // ОБНОВЛЕНИЕ: Обновляем CSS-классы блока для мгновенного визуального эффекта
+    // МГНОВЕННОЕ обновление визуального состояния блока через inline-стили с !important
     const blockEl = cell.querySelector('.block');
     if (blockEl) {
-        // Удаляем старые классы состояния
+        // Удаляем старые классы
         blockEl.classList.remove('block-broken', 'block-damaged');
         
-        // Добавляем актуальные классы
+        // Применяем стили напрямую с !important для мгновенного эффекта
         if (block.isBroken) {
             blockEl.classList.add('block-broken');
-        } else if (block.durability < block.maxDurability * 0.3) {
+            blockEl.style.setProperty('background', 'linear-gradient(135deg, #4a0e0e, #2c0808)', 'important');
+            blockEl.style.setProperty('border', '3px solid #6b1a1a', 'important');
+            blockEl.style.setProperty('box-shadow', '0 4px 15px rgba(107, 26, 26, 0.7), inset 0 2px 10px rgba(255,0,0,0.1)', 'important');
+            blockEl.style.setProperty('filter', 'grayscale(0.7) brightness(0.5)', 'important');
+            blockEl.style.setProperty('animation', 'broken-smoke 3s ease-in-out infinite', 'important');
+        } else if (block.maxDurability > 0 && block.durability < block.maxDurability * 0.3) {
             blockEl.classList.add('block-damaged');
+            blockEl.style.setProperty('border-color', '#f39c12', 'important');
+            blockEl.style.setProperty('box-shadow', '0 4px 15px rgba(243, 156, 18, 0.4), inset 0 2px 10px rgba(255,255,255,0.15)', 'important');
+        } else {
+            // Сбрасываем inline-стили если блок здоров
+            blockEl.style.removeProperty('background');
+            blockEl.style.removeProperty('border');
+            blockEl.style.removeProperty('box-shadow');
+            blockEl.style.removeProperty('filter');
+            blockEl.style.removeProperty('animation');
+            blockEl.style.removeProperty('border-color');
         }
+        
+        // Принудительный reflow
+        void blockEl.offsetWidth;
     }
 }
 
