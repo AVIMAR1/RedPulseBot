@@ -8148,6 +8148,20 @@ function updateBlockDot(row, col) {
     }
     dot.style.background = dotColor;
     dot.style.boxShadow = `0 0 6px ${dotColor}`;
+
+    // ОБНОВЛЕНИЕ: Обновляем CSS-классы блока для мгновенного визуального эффекта
+    const blockEl = cell.querySelector('.block');
+    if (blockEl) {
+        // Удаляем старые классы состояния
+        blockEl.classList.remove('block-broken', 'block-damaged');
+        
+        // Добавляем актуальные классы
+        if (block.isBroken) {
+            blockEl.classList.add('block-broken');
+        } else if (block.durability < block.maxDurability * 0.3) {
+            blockEl.classList.add('block-damaged');
+        }
+    }
 }
 
 // Подсчёт блоков на поле
