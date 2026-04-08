@@ -3084,10 +3084,10 @@ body {
 /* Точка здоровья блока */
 .hp-dot {
     position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 5px;
-    height: 5px;
+    top: 2px;
+    left: 2px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     z-index: 5;
     pointer-events: none;
@@ -6450,23 +6450,28 @@ window.loadGame = async function() {
                         gameState.grid = dbData.grid;
                         gameState.fieldRows = dbData.grid.length;
 
-                        // Инициализируем durability для всех блоков (если старые данные)
+                        // Инициализируем durability для ВСЕХ блоков из БД (включая CONDENSER)
                         for (let r = 0; r < gameState.grid.length; r++) {
                             if (!gameState.grid[r]) continue;
                             for (let c = 0; c < (gameState.grid[r].length || 0); c++) {
                                 const block = gameState.grid[r][c];
                                 if (!block) continue;
-                                if (typeof block.maxDurability !== 'number' || block.maxDurability === undefined) {
-                                    block.maxDurability = CONFIG.DURABILITY.BASE_PER_LEVEL * (block.level || 1);
+                                const lvl = block.level || 1;
+                                // Всегда пересчитываем maxDurability
+                                block.maxDurability = CONFIG.DURABILITY.BASE_PER_LEVEL * lvl;
+                                // durability: если null/0/undefined — восстанавливаем
+                                const dbDur = block.durability;
+                                if (dbDur === null || dbDur === undefined || dbDur <= 0) {
+                                    block.durability = block.isBroken ? 0 : block.maxDurability;
+                                } else {
+                                    block.durability = Math.min(dbDur, block.maxDurability);
                                 }
-                                if (typeof block.durability !== 'number' || block.durability === undefined) {
-                                    block.durability = block.maxDurability;
-                                }
-                                if (typeof block.isBroken !== 'boolean') {
-                                    block.isBroken = false;
-                                }
+                                // isBroken: строго boolean
+                                block.isBroken = !!block.isBroken;
                             }
                         }
+                        // После инициализации — принудительно рендерим
+                        setTimeout(() => { if (typeof renderGrid === 'function') renderGrid(); }, 100);
                     }
 
                     if (dbData.shopItems && Array.isArray(dbData.shopItems) && dbData.shopItems.length > 0) {
@@ -6992,12 +6997,16 @@ window.updateUI = function() {
     const repairBlockBtn = document.getElementById('repairBlockBtn');
     if (gameState.selectedCell) {
         const selBlock = gameState.grid[gameState.selectedCell.row]?.[gameState.selectedCell.col];
-        if (selBlock && (selBlock.isBroken || selBlock.durability < selBlock.maxDurability)) {
+        if (selBlock && selBlock.maxDurability && selBlock.maxDurability > 0) {
             const reactorLevel = gameState.reactor_level || 1;
             const repairCost = CONFIG.DURABILITY.REPAIR_BASE * Math.pow(selBlock.level, 2) * Math.pow(reactorLevel, 3);
-            const pct = Math.round((selBlock.durability / selBlock.maxDurability) * 100);
-            repairBlockBtn.style.display = 'flex';
-            repairBlockBtn.innerHTML = `<i class="fas fa-wrench"></i> Починить — ${formatNumber(repairCost)} 🪙 <span style="font-size:9px;color:#aaa;">(${pct}%)</span>`;
+            const pct = Math.max(0, Math.round((selBlock.durability / selBlock.maxDurability) * 100));
+            if (selBlock.isBroken || selBlock.durability < selBlock.maxDurability) {
+                repairBlockBtn.style.display = 'flex';
+                repairBlockBtn.innerHTML = `<i class="fas fa-wrench"></i> Починить — <span style="font-size:15px;font-weight:900;color:#fff;">${formatNumber(repairCost)}</span> 🪙 &nbsp;·&nbsp; <span style="font-size:13px;font-weight:700;color:${pct > 50 ? '#27ae60' : pct > 20 ? '#f39c12' : '#e74c3c'};">${pct}% HP</span>`;
+            } else {
+                repairBlockBtn.style.display = 'none';
+            }
         } else {
             repairBlockBtn.style.display = 'none';
         }
@@ -7118,15 +7127,15 @@ window.renderGrid = function() {
                     blockContent = `<span class="block-icon">${getBlockIcon(block)}</span><span class="block-level-badge">${block.level}</span>`;
                 }
 
-                // Точка здоровья в верхнем левом углу
+                // Точка здоровья — индикатор в верхнем левом углу
                 if (block.maxDurability && block.maxDurability > 0) {
-                    const pct = (block.durability || 0) / block.maxDurability;
+                    const pct = Math.round(((block.durability || 0) / block.maxDurability) * 100);
                     let dotColor;
                     if (block.isBroken) dotColor = '#1a1a1a';
-                    else if (pct > 0.5) dotColor = '#27ae60';
-                    else if (pct > 0.2) dotColor = '#f39c12';
+                    else if (pct > 50) dotColor = '#27ae60';
+                    else if (pct > 20) dotColor = '#f39c12';
                     else dotColor = '#e74c3c';
-                    blockContent += `<div class="hp-dot" style="background:${dotColor};box-shadow:0 0 4px ${dotColor}"></div>`;
+                    blockContent += `<div class="hp-dot" style="background:${dotColor};box-shadow:0 0 6px ${dotColor}"></div>`;
                 }
 
                 blockEl.innerHTML = blockContent;
@@ -8123,20 +8132,22 @@ function updateBlockDot(row, col) {
     if (!block || !block.maxDurability) return;
     const cell = document.querySelector(`.cell[data-row="${row}"][data-col="${col}"]`);
     if (!cell) return;
+
+    const pct = Math.round(((block.durability || 0) / block.maxDurability) * 100);
+    let dotColor;
+    if (block.isBroken) dotColor = '#1a1a1a';
+    else if (pct > 50) dotColor = '#27ae60';
+    else if (pct > 20) dotColor = '#f39c12';
+    else dotColor = '#e74c3c';
+
     let dot = cell.querySelector('.hp-dot');
     if (!dot) {
         dot = document.createElement('div');
         dot.className = 'hp-dot';
         cell.appendChild(dot);
     }
-    const pct = (block.durability || 0) / block.maxDurability;
-    let dotColor;
-    if (block.isBroken) dotColor = '#1a1a1a';
-    else if (pct > 0.5) dotColor = '#27ae60';
-    else if (pct > 0.2) dotColor = '#f39c12';
-    else dotColor = '#e74c3c';
     dot.style.background = dotColor;
-    dot.style.boxShadow = `0 0 4px ${dotColor}`;
+    dot.style.boxShadow = `0 0 6px ${dotColor}`;
 }
 
 // Подсчёт блоков на поле
