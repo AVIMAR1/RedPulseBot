@@ -41,14 +41,8 @@ function updateBalance() {
 function syncGameState() {
     if (typeof state === 'undefined' || typeof gameState === 'undefined') return;
 
-    // ВАЖНО: НЕ перезаписываем gameState.coins из state!
-    // gameState.coins — это основной баланс фермы (загружается из БД)
-    // state.click_coins — это основной баланс меню (включает выведенные монеты)
-    // Они должны быть равны, но syncGameState НЕ должен синхронизировать их напрямую
-    // Синхронизация происходит через withdraw() и syncWithFarm()
-
-    // state → gameState (только для кристаллов и звёзд — они НЕ используются в ферме)
-    // gameState.coins = state.click_coins || 0;  // ← УБРАНО!
+    // state → gameState (валюта из state для отображения в ферме)
+    gameState.coins = state.click_coins || 0;
     gameState.crystals = state.crystals || 0;
     gameState.stars = state.stars || 0;
     gameState.totalTaps = state.total_clicks || 0;
@@ -70,6 +64,12 @@ function syncGameState() {
     if (gameState.stars > (state.stars || 0)) {
         state.stars = gameState.stars;
     }
+
+    console.log('[syncGameState]', {
+        gameState_coins: gameState.coins,
+        gameState_bankCoins: gameState.bankCoins || 0,
+        state_click_coins: state.click_coins
+    });
 }
 
 // Функции для изменения баланса (автоматически вызывают updateBalance)
@@ -735,6 +735,7 @@ function handleBlock(block, row, col, charge, dir, processed, chargeEl, x, y) {
             gameState.totalEarned += coins;
             showFloatingEarn(row, col, `+${coins.toFixed(2)} 🪙`, 'coin');
             spawnCharge(x, y, dir, charge, processed, 5);
+            console.log('[handleBlock COIN] bankCoins:', gameState.bankCoins, 'gameState.coins:', gameState.coins, 'state.click_coins:', state.click_coins);
             updateBalance();
             break;
 
@@ -1120,6 +1121,13 @@ function sellSelected() {
 
 function withdraw() {
     let withdrawn = false;
+    console.log('[withdraw] ДО:', {
+        bankCoins: gameState.bankCoins,
+        bankCrystals: gameState.bankCrystals,
+        bankStars: gameState.bankStars,
+        state_click_coins: state.click_coins,
+        gameState_coins: gameState.coins
+    });
     if ((gameState.bankCoins || 0) >= 1) {
         const amount = Math.floor(gameState.bankCoins);
         gameState.bankCoins -= amount;
@@ -1139,6 +1147,13 @@ function withdraw() {
         withdrawn = true;
     }
     if (withdrawn) {
+        console.log('[withdraw] ПОСЛЕ:', {
+            bankCoins: gameState.bankCoins,
+            bankCrystals: gameState.bankCrystals,
+            bankStars: gameState.bankStars,
+            state_click_coins: state.click_coins,
+            gameState_coins: gameState.coins
+        });
         showToast('Выведено!', 'success');
         if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
 
@@ -1154,7 +1169,7 @@ function withdraw() {
         syncGameState();
         saveGame();
         updateUI();
-        
+
         // НЕМЕДЛЕННОЕ сохранение в БД после вывода
         saveFarmStatsImmediate();
     } else {
@@ -1178,12 +1193,16 @@ async function saveFarmStatsImmediate() {
             blocks_placed: gameState.blocks_placed || 0,
             reactions_triggered: gameState.totalTaps || 0,
             total_energy_produced: gameState.totalEarned || 0,
-            // ВАЖНО: НЕ отправляем click_coins/stars/crystals — они управляются через save-clicks
-            // Отправляем ТОЛЬКО банк фермы
+            click_coins: Math.floor(state.click_coins || 0),
+            stars: Math.floor(state.stars || 0),
+            crystals: Math.floor(state.crystals || 0),
+            // Банк фермы
             bank_coins: Math.floor(gameState.bankCoins || 0),
             bank_stars: Math.floor(gameState.bankStars || 0),
             bank_crystals: Math.floor(gameState.bankCrystals || 0)
         };
+
+        console.log('[saveFarmStatsImmediate] ОТПРАВКА в БД:', JSON.stringify(farmStats));
 
         console.log('[saveFarmStatsImmediate] Сохранение в БД:', farmStats);
 

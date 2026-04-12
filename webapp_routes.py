@@ -229,6 +229,8 @@ async def save_clicks(request: Request):
     final_coins = max(old_coins, click_coins)
     final_stars = max(old_stars, stars)
     final_crystals = max(old_crystals, crystals)
+
+    print(f'[save-clicks] userId={user_id}: БД было click_coins={old_coins}, от клиента={click_coins} -> финал={final_coins}')
     
     delta_clicks = max(0, total_clicks - old_total_clicks)
     xp_gain = delta_clicks * 10  # 1 клик = 10 XP
@@ -414,10 +416,13 @@ async def save_farm_stats(request: Request):
 
     try:
         # Получаем текущие значения из БД
-        cursor.execute("SELECT bank_coins, bank_stars, bank_crystals, reactions_triggered, blocks_placed, reactor_level, total_energy_produced FROM users WHERE telegram_id = ?", (user_id,))
+        cursor.execute("SELECT click_coins, stars, crystals, bank_coins, bank_stars, bank_crystals, reactions_triggered, blocks_placed, reactor_level, total_energy_produced FROM users WHERE telegram_id = ?", (user_id,))
         row = cursor.fetchone()
 
         if row:
+            db_coins = int(row["click_coins"] or 0)
+            db_stars = int(row["stars"] or 0)
+            db_crystals = int(row["crystals"] or 0)
             db_bank_coins = int(row["bank_coins"] or 0)
             db_bank_stars = int(row["bank_stars"] or 0)
             db_bank_crystals = int(row["bank_crystals"] or 0)
@@ -426,7 +431,9 @@ async def save_farm_stats(request: Request):
             db_reactor = int(row["reactor_level"] or 1)
             db_energy = int(row["total_energy_produced"] or 0)
 
-            # Берём БОЛЬШЕЕ значение для банка (чтобы не потерять данные)
+            final_coins = max(db_coins, bank_coins)
+            final_stars = max(db_stars, bank_stars)
+            final_crystals = max(db_crystals, bank_crystals)
             final_bank_coins = max(db_bank_coins, bank_coins)
             final_bank_stars = max(db_bank_stars, bank_stars)
             final_bank_crystals = max(db_bank_crystals, bank_crystals)
@@ -436,8 +443,11 @@ async def save_farm_stats(request: Request):
             final_reactor = max(db_reactor, reactor_level)
             final_energy = max(db_energy, total_energy_produced)
 
-            print(f'[save-farm-stats] БД: было реакции={db_reactions}, стало={final_reactions}')
+            print(f'[save-farm-stats] БД: было click_coins={db_coins}, банк={db_bank_coins} -> финал_click={final_coins}, финал_банк={final_bank_coins}')
         else:
+            final_coins = bank_coins
+            final_stars = bank_stars
+            final_crystals = bank_crystals
             final_bank_coins = bank_coins
             final_bank_stars = bank_stars
             final_bank_crystals = bank_crystals
@@ -454,6 +464,9 @@ async def save_farm_stats(request: Request):
                 reactions_triggered = ?,
                 total_energy_produced = ?,
                 core_version = ?,
+                click_coins = ?,
+                stars = ?,
+                crystals = ?,
                 bank_coins = ?,
                 bank_stars = ?,
                 bank_crystals = ?,
@@ -462,12 +475,13 @@ async def save_farm_stats(request: Request):
             WHERE telegram_id = ?
         """, (final_reactor, final_blocks, final_reactions, final_energy,
               core_version,
+              final_coins, final_stars, final_crystals,
               final_bank_coins, final_bank_stars, final_bank_crystals,
               user_id))
         conn.commit()
         conn.close()
-        print(f'[save-farm-stats] ✅ Успешно сохранено в БД')
-        return {"status": "ok", "bank_coins": final_bank_coins}
+        print(f'[save-farm-stats] ✅ Успешно сохранено в БД: click_coins={final_coins}, bank_coins={final_bank_coins}')
+        return {"status": "ok", "click_coins": final_coins, "stars": final_stars, "crystals": final_crystals, "bank_coins": final_bank_coins}
     except Exception as e:
         print(f"[save-farm-stats] ❌ Ошибка: {e}")
         conn.close()
@@ -548,9 +562,13 @@ async def get_farm_state(user_id: int):
                 # Добавляем lastTapTime из farm_state_json
                 if 'lastTapTime' in farm_state:
                     result['lastTapTime'] = farm_state['lastTapTime']
+                # Логируем что именно перезаписывается из farm_state_json
+                overlap_keys = set(result.keys()) & set(farm_state.keys())
+                if overlap_keys:
+                    print(f'[get_farm-state] farm_state_json ПЕРЕЗАПИСЫВАЕТ ключи: {overlap_keys}')
                 result = { **result, **farm_state }
 
-            print(f'[get_farm_state] userId={user_id}, данные:', result)
+            print(f'[get_farm-state] ОТВЕТ: coins={result.get("coins")}, bankCoins={result.get("bankCoins")}, click_coins_БД={row["click_coins"]}, bank_coins_БД={row["bank_coins"]}')
             return result
         else:
             print(f'[get_farm_state] userId={user_id}, данных нет в БД')
@@ -625,7 +643,7 @@ async def save_farm_state(request: Request):
             import time
             final_last_tap_time = farm_state.get('lastTapTime', int(time.time() * 1000))
 
-            print(f'[save-farm-state] max(): реакции {db_row["reactions_triggered"]} -> {final_reactions}, блоки {db_row["blocks_placed"]} -> {final_blocks}')
+            print(f'[save-farm-state] БД: click_coins={db_row["click_coins"]}, bank_coins={db_row["bank_coins"]} -> финал_click={final_coins}, финал_банк={final_bank_coins}')
         else:
             # Нет данных в БД - используем значения из запроса
             import time
@@ -688,7 +706,7 @@ async def save_farm_state(request: Request):
             final_first_play,
             user_id
         ))
-        print(f'[save-farm-state] ✅ Сохранено: реакции={final_reactions}, блоки={final_blocks}, монеты={final_coins}')
+        print(f'[save-farm-state] ✅ Сохранено: click_coins={final_coins}, bank_coins={final_bank_coins}, реакции={final_reactions}')
         conn.commit()
         conn.close()
         return {"status": "ok"}

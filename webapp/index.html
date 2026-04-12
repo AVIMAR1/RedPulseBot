@@ -5044,7 +5044,11 @@ body {
         // Синхронизация с фермой
         async function syncWithFarm() {
             try {
-                console.log('[syncWithFarm] До синхронизации: state.click_coins=', state.click_coins, 'gameState.coins=', gameState?.coins);
+                console.log('[syncWithFarm] ДО:', {
+                    state_click_coins: state.click_coins,
+                    gameState_coins: gameState?.coins,
+                    gameState_bankCoins: gameState?.bankCoins
+                });
 
                 // Ферма использует gameState, синхронизируем с state (берём БОЛЬШЕЕ значение!)
                 if (typeof gameState !== 'undefined') {
@@ -5056,7 +5060,11 @@ body {
                     if (gameState.level > 1) state.level = Math.max(state.level || 1, gameState.level);
                     if (gameState.chargePower > 1) state.click_power = Math.floor(gameState.chargePower);
 
-                    console.log('[syncWithFarm] После синхронизации: state.click_coins=', state.click_coins);
+                    console.log('[syncWithFarm] ПОСЛЕ:', {
+                        state_click_coins: state.click_coins,
+                        gameState_coins: gameState.coins,
+                        gameState_bankCoins: gameState.bankCoins
+                    });
 
                     // Сохраняем state на сервер напрямую (чтобы избежать рекурсии с saveData)
                     if (userId) {
@@ -7949,10 +7957,13 @@ window.loadGame = async function() {
                     console.log('[loadGame] Загружены данные из БД:', JSON.stringify(dbData, null, 2));
 
                     // Загружаем ВСЕ данные из БД (НЕ перезаписываем если значение 0 или null)
+                    console.log('[loadGame] ДО загрузки coins:', gameState.coins);
                     if (dbData.coins > 0) gameState.coins = dbData.coins;
-                    if (dbData.crystals > 0) gameState.crystals = dbData.crystals;
-                    if (dbData.stars > 0) gameState.stars = dbData.stars;
-                    if (dbData.bankCoins > 0) gameState.bankCoins = dbData.bankCoins;
+                    console.log('[loadGame] ПОСЛЕ загрузки coins:', gameState.coins, 'dbData.coins:', dbData.coins);
+                    if (dbData.bankCoins > 0) {
+                        gameState.bankCoins = dbData.bankCoins;
+                        console.log('[loadGame] bankCoins установлен:', gameState.bankCoins);
+                    }
                     if (dbData.bankCrystals > 0) gameState.bankCrystals = dbData.bankCrystals;
                     if (dbData.bankStars > 0) gameState.bankStars = dbData.bankStars;
                     if (dbData.level > 1) gameState.level = dbData.level;
@@ -8182,8 +8193,11 @@ window.loadGame = async function() {
     // firstPlay уже установлен в true по умолчанию в gameState
     // Подсказка показывается в initGame() если firstPlay === true
 
-    // НЕ перезаписываем gameState нулями из state - берём максимум
-    gameState.coins = Math.max(state.click_coins || 0, gameState.coins || 0);
+    // ВАЖНО: НЕ используем state.click_coins для gameState.coins!
+    // gameState.coins — это основной баланс фермы (загружается из БД)
+    // state.click_coins — это основной баланс меню (включает выведенные монеты)
+    // Они синхронизируются ТОЛЬКО через withdraw() и syncWithFarm()
+    // gameState.coins = Math.max(state.click_coins || 0, gameState.coins || 0);  // ← УБРАНО!
     gameState.crystals = Math.max(state.crystals || 0, gameState.crystals || 0);
     gameState.stars = Math.max(state.stars || 0, gameState.stars || 0);
     // НЕ синхронизируем XP/level обратно в state - state уже имеет актуальный прогресс из /api/user
@@ -8253,14 +8267,15 @@ async function saveFarmStats() {
             total_energy_produced: gameState.totalEarned || 0,
             // Версия ядра
             core_version: gameState.coreVersion || '1.0',
-            // ВАЖНО: НЕ отправляем stars/crystals — они управляются через save-clicks
-            // Отправляем ТОЛЬКО банк фермы
+            stars: Math.floor(state.stars || 0),
+            crystals: Math.floor(state.crystals || 0),
+            // Банк фермы
             bank_coins: Math.floor(gameState.bankCoins || 0),
             bank_stars: Math.floor(gameState.bankStars || 0),
             bank_crystals: Math.floor(gameState.bankCrystals || 0)
         };
 
-        console.log('[saveFarmStats] ОТПРАВКА в БД:', farmStats);
+        console.log('[saveFarmStats] ОТПРАВКА в БД:', JSON.stringify(farmStats));
         console.log('[saveFarmStats] Банк:', farmStats.bank_coins, '🪙,', farmStats.bank_stars, '⭐,', farmStats.bank_crystals, '💎');
 
         // Отправляем на сервер
