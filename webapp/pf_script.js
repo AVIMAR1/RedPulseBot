@@ -325,6 +325,9 @@ function saveGame() {
 
     localStorage.setItem('pulseFarmSave_v2', JSON.stringify(gameState));
     localStorage.setItem('redpulse_state', JSON.stringify(state));
+
+    // Сохраняем банк фермы на сервер (click_coins НЕ отправляется - управляется через save-clicks)
+    saveFarmStatsImmediate();
 }
 
 function updateUI() {
@@ -1169,10 +1172,8 @@ async function saveFarmStatsImmediate() {
             blocks_placed: gameState.blocks_placed || 0,
             reactions_triggered: gameState.totalTaps || 0,
             total_energy_produced: gameState.totalEarned || 0,
-            click_coins: Math.floor(state.click_coins || 0),
-            stars: Math.floor(state.stars || 0),
-            crystals: Math.floor(state.crystals || 0),
-            // Банк фермы
+            // ВАЖНО: НЕ отправляем click_coins/stars/crystals — они управляются через save-clicks
+            // Отправляем ТОЛЬКО банк фермы
             bank_coins: Math.floor(gameState.bankCoins || 0),
             bank_stars: Math.floor(gameState.bankStars || 0),
             bank_crystals: Math.floor(gameState.bankCrystals || 0)

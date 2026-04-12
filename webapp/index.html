@@ -5042,7 +5042,7 @@ body {
         }
 
         // Синхронизация с фермой
-        function syncWithFarm() {
+        async function syncWithFarm() {
             try {
                 console.log('[syncWithFarm] До синхронизации: state.click_coins=', state.click_coins, 'gameState.coins=', gameState?.coins);
 
@@ -5058,8 +5058,28 @@ body {
 
                     console.log('[syncWithFarm] После синхронизации: state.click_coins=', state.click_coins);
 
-                    // НЕ сохраняем в localStorage - данные синхронизируются с БД через saveGame()
-                    if (typeof saveGame === 'function') saveGame();
+                    // Сохраняем state на сервер напрямую (чтобы избежать рекурсии с saveData)
+                    if (userId) {
+                        try {
+                            await fetch('/api/save-clicks', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    userId,
+                                    click_coins: state.click_coins,
+                                    stars: state.stars,
+                                    crystals: state.crystals,
+                                    total_clicks: state.total_clicks,
+                                    click_power: state.click_power,
+                                    auto_clicker: state.auto_clicker,
+                                    max_energy: state.max_energy
+                                })
+                            });
+                            console.log('[syncWithFarm] Сохранено на сервер');
+                        } catch (e) {
+                            console.error('[syncWithFarm] Ошибка сохранения:', e);
+                        }
+                    }
                 }
                 // Обновляем баланс казино и главного экрана
                 updateCasinoBalance();
@@ -8233,9 +8253,8 @@ async function saveFarmStats() {
             total_energy_produced: gameState.totalEarned || 0,
             // Версия ядра
             core_version: gameState.coreVersion || '1.0',
-            stars: Math.floor(state.stars || 0),
-            crystals: Math.floor(state.crystals || 0),
-            // Банк фермы
+            // ВАЖНО: НЕ отправляем stars/crystals — они управляются через save-clicks
+            // Отправляем ТОЛЬКО банк фермы
             bank_coins: Math.floor(gameState.bankCoins || 0),
             bank_stars: Math.floor(gameState.bankStars || 0),
             bank_crystals: Math.floor(gameState.bankCrystals || 0)

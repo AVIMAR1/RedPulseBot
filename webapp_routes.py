@@ -392,7 +392,7 @@ async def get_profile(user_id: int):
 
 @router.post("/api/save-farm-stats")
 async def save_farm_stats(request: Request):
-    """Сохраняет статистику фермы (реактора) и валюту в БД"""
+    """Сохраняет статистику фермы (реактора) и банк фермы в БД"""
     data = await request.json()
     user_id = data.get("userId")
 
@@ -402,31 +402,22 @@ async def save_farm_stats(request: Request):
     total_energy_produced = int(data.get("total_energy_produced", 0))
     core_version = data.get("core_version", "1.0")
 
-    # Валюта из фермы (основной баланс)
-    click_coins = int(data.get("click_coins", 0))
-    stars = int(data.get("stars", 0))
-    crystals = int(data.get("crystals", 0))
-
-    # Банк фермы (виртуальный)
+    # Банк фермы (виртуальный) - монеты заработанные в ферме, но ещё не выведенные
     bank_coins = int(data.get("bank_coins", 0))
     bank_stars = int(data.get("bank_stars", 0))
     bank_crystals = int(data.get("bank_crystals", 0))
 
-    print(f'[save-farm-stats] userId={user_id}, банк={bank_coins}🪙/{bank_stars}⭐/{bank_crystals}💎, монеты={click_coins}')
+    print(f'[save-farm-stats] userId={user_id}, банк={bank_coins}🪙/{bank_stars}⭐/{bank_crystals}💎')
 
     conn = get_db()
     cursor = conn.cursor()
 
     try:
         # Получаем текущие значения из БД
-        cursor.execute("SELECT click_coins, stars, crystals, bank_coins, bank_stars, bank_crystals, reactions_triggered, blocks_placed, reactor_level, total_energy_produced FROM users WHERE telegram_id = ?", (user_id,))
+        cursor.execute("SELECT bank_coins, bank_stars, bank_crystals, reactions_triggered, blocks_placed, reactor_level, total_energy_produced FROM users WHERE telegram_id = ?", (user_id,))
         row = cursor.fetchone()
 
         if row:
-            # Берём БОЛЬШЕЕ значение для валюты (чтобы не потерять данные)
-            db_coins = int(row["click_coins"] or 0)
-            db_stars = int(row["stars"] or 0)
-            db_crystals = int(row["crystals"] or 0)
             db_bank_coins = int(row["bank_coins"] or 0)
             db_bank_stars = int(row["bank_stars"] or 0)
             db_bank_crystals = int(row["bank_crystals"] or 0)
@@ -435,13 +426,11 @@ async def save_farm_stats(request: Request):
             db_reactor = int(row["reactor_level"] or 1)
             db_energy = int(row["total_energy_produced"] or 0)
 
-            final_coins = max(db_coins, click_coins)
-            final_stars = max(db_stars, stars)
-            final_crystals = max(db_crystals, crystals)
+            # Берём БОЛЬШЕЕ значение для банка (чтобы не потерять данные)
             final_bank_coins = max(db_bank_coins, bank_coins)
             final_bank_stars = max(db_bank_stars, bank_stars)
             final_bank_crystals = max(db_bank_crystals, bank_crystals)
-            # ВАЖНО: для статистики тоже берём максимум (чтобы не сбросить прогресс)
+            # Для статистики тоже берём максимум (чтобы не сбросить прогресс)
             final_reactions = max(db_reactions, reactions_triggered)
             final_blocks = max(db_blocks, blocks_placed)
             final_reactor = max(db_reactor, reactor_level)
@@ -449,9 +438,6 @@ async def save_farm_stats(request: Request):
 
             print(f'[save-farm-stats] БД: было реакции={db_reactions}, стало={final_reactions}')
         else:
-            final_coins = click_coins
-            final_stars = stars
-            final_crystals = crystals
             final_bank_coins = bank_coins
             final_bank_stars = bank_stars
             final_bank_crystals = bank_crystals
@@ -468,9 +454,6 @@ async def save_farm_stats(request: Request):
                 reactions_triggered = ?,
                 total_energy_produced = ?,
                 core_version = ?,
-                click_coins = ?,
-                stars = ?,
-                crystals = ?,
                 bank_coins = ?,
                 bank_stars = ?,
                 bank_crystals = ?,
@@ -479,13 +462,12 @@ async def save_farm_stats(request: Request):
             WHERE telegram_id = ?
         """, (final_reactor, final_blocks, final_reactions, final_energy,
               core_version,
-              final_coins, final_stars, final_crystals,
               final_bank_coins, final_bank_stars, final_bank_crystals,
               user_id))
         conn.commit()
         conn.close()
         print(f'[save-farm-stats] ✅ Успешно сохранено в БД')
-        return {"status": "ok", "click_coins": final_coins, "stars": final_stars, "crystals": final_crystals, "bank_coins": final_bank_coins}
+        return {"status": "ok", "bank_coins": final_bank_coins}
     except Exception as e:
         print(f"[save-farm-stats] ❌ Ошибка: {e}")
         conn.close()
@@ -608,9 +590,8 @@ async def save_farm_state(request: Request):
         req_reactions = farm_state.get('reactions_triggered', 0)
         req_reactor = farm_state.get('reactor_level', 1)
         req_energy = farm_state.get('total_energy_produced', 0)
-        req_coins = farm_state.get('coins', 0)
-        req_stars = farm_state.get('stars', 0)
-        req_crystals = farm_state.get('crystals', 0)
+        # ВАЖНО: coins/stars/crystals НЕ берём из farmState - они управляются через save-clicks
+        # Берём только банк из farmState
         req_bank_coins = farm_state.get('bankCoins', 0)
         req_bank_stars = farm_state.get('bankStars', 0)
         req_bank_crystals = farm_state.get('bankCrystals', 0)
@@ -625,11 +606,11 @@ async def save_farm_state(request: Request):
             final_reactions = max(int(db_row["reactions_triggered"] or 0), req_reactions)
             final_reactor = max(int(db_row["reactor_level"] or 1), req_reactor)
             final_energy = max(int(db_row["total_energy_produced"] or 0), req_energy)
-            # ВАЖНО: для валюты берём значение из запроса напрямую (НЕ max!)
-            # чтобы потраченные монеты не перезаписывались старым значением из БД
-            final_coins = req_coins
-            final_stars = req_stars
-            final_crystals = req_crystals
+            # ВАЖНО: для валюты НЕ обновляем из запроса - click_coins/stars/crystals управляются через save-clicks
+            # Сохраняем текущие значения из БД
+            final_coins = int(db_row["click_coins"] or 0)
+            final_stars = int(db_row["stars"] or 0)
+            final_crystals = int(db_row["crystals"] or 0)
             final_bank_coins = req_bank_coins
             final_bank_stars = req_bank_stars
             final_bank_crystals = req_bank_crystals
@@ -652,10 +633,10 @@ async def save_farm_state(request: Request):
             final_reactions = req_reactions
             final_reactor = req_reactor
             final_energy = req_energy
-            # Для новой записи — берём напрямую
-            final_coins = req_coins
-            final_stars = req_stars
-            final_crystals = req_crystals
+            # Для новой записи — валюту НЕ устанавливаем (остается 0 или значение по умолчанию)
+            final_coins = 0
+            final_stars = 0
+            final_crystals = 0
             final_bank_coins = req_bank_coins
             final_bank_stars = req_bank_stars
             final_bank_crystals = req_bank_crystals
