@@ -188,6 +188,7 @@ async def on_startup():
         add_col("bank_stars", "INTEGER DEFAULT 0")
         add_col("bank_crystals", "INTEGER DEFAULT 0")
         add_col("first_play", "BOOLEAN DEFAULT 1")
+        add_col("core_version", "TEXT DEFAULT '1.0'")
         
         conn.commit()
         conn.close()

@@ -735,6 +735,478 @@
         .game-action-btn.secondary { background: linear-gradient(135deg, #27ae60, #1e8449); }
         .game-action-btn.danger { background: linear-gradient(135deg, #e74c3c, #c0392b); }
 
+        /* Casino Navigation */
+        .casino-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .casino-nav-btn {
+            flex: 1;
+            padding: 12px 8px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .casino-nav-btn:hover { background: rgba(255,255,255,0.1); }
+        .casino-nav-btn.active {
+            background: var(--gradient-primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+        .casino-nav-btn span { font-size: 18px; }
+
+        /* Casino Game Container */
+        .casino-game { display: block; }
+        .casino-game.hidden { display: none; }
+
+        /* ===== CRASH GAME ===== */
+        .crash-container {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .crash-phase {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .crash-timer {
+            font-size: 32px;
+            font-weight: 900;
+            color: var(--primary);
+        }
+        .crash-phase-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .crash-graph {
+            position: relative;
+            height: 200px;
+            background: radial-gradient(ellipse at center bottom, rgba(231,76,60,0.1) 0%, rgba(0,0,0,0.6) 70%);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        .crash-graph::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: linear-gradient(to top, rgba(231,76,60,0.15), transparent);
+            pointer-events: none;
+        }
+        .crash-svg {
+            width: 100%;
+            height: 100%;
+        }
+        .crash-multiplier {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: 900;
+            color: #fff;
+            z-index: 2;
+            transition: color 0.3s;
+        }
+        .crash-multiplier.crashed { color: #e74c3c; }
+        .crash-multiplier.cashed { color: #2ecc71; }
+        .crash-result {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 16px;
+            font-weight: 700;
+            padding: 6px 16px;
+            border-radius: 8px;
+            z-index: 3;
+        }
+        .crash-result.win { background: rgba(46,204,113,0.2); color: #2ecc71; }
+        .crash-result.lose { background: rgba(231,76,60,0.2); color: #e74c3c; }
+        .crash-particles {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 1;
+        }
+        .crash-particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: particleFly 0.8s ease-out forwards;
+        }
+        @keyframes particleFly {
+            0% { opacity: 1; transform: translate(0, 0) scale(1); }
+            100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0); }
+        }
+        .crash-stars {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+        }
+        .crash-star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 50%;
+            animation: starTwinkle 2s ease-in-out infinite;
+        }
+        @keyframes starTwinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 0.8; }
+        }
+        /* Players List */
+        .crash-players {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 12px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        .crash-players-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 8px 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+        .crash-players-list { margin-top: 6px; }
+        .crash-player {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 3px;
+        }
+        .crash-player.win { background: rgba(46,204,113,0.1); }
+        .crash-player.lose { background: rgba(231,76,60,0.1); }
+        .crash-player .player-name { color: var(--text-secondary); }
+        .crash-player .player-bet { color: #f1c40f; font-weight: 600; }
+        .crash-player .player-status { font-weight: 700; }
+        .crash-player .player-status.win { color: #2ecc71; }
+        .crash-player .player-status.lose { color: #e74c3c; }
+        .crash-player .player-status.playing { color: #3498db; }
+        /* History */
+        .crash-history {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+            min-height: 28px;
+        }
+        .crash-history-item {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .crash-history-item.low { background: rgba(231,76,60,0.2); color: #e74c3c; }
+        .crash-history-item.medium { background: rgba(241,196,15,0.2); color: #f1c40f; }
+        .crash-history-item.high { background: rgba(46,204,113,0.2); color: #2ecc71; }
+        .crash-controls .crash-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .crash-controls .crash-buttons .casino-btn { flex: 1; }
+
+        /* ===== MINES GAME ===== */
+        .mines-container {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .mines-info-bar {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .mines-info-item {
+            flex: 1;
+            text-align: center;
+            padding: 8px 4px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            min-width: 70px;
+        }
+        .mines-info-label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .mines-info-value {
+            display: block;
+            font-size: 16px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .mines-info-value.highlight { color: #f1c40f; }
+        .mines-info-value.win { color: #2ecc71; }
+        .mines-settings {
+            margin-bottom: 12px;
+            padding: 10px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+        }
+        .mines-setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mines-setting-row label {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .mines-counter {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(0,0,0,0.3);
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
+        .mines-counter span {
+            font-size: 18px;
+            font-weight: 700;
+            min-width: 30px;
+            text-align: center;
+        }
+        .mines-counter-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            background: var(--gradient-primary);
+            color: #fff;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .mines-counter-btn:hover { filter: brightness(1.2); }
+        .mines-counter-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .mines-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .mines-cell {
+            aspect-ratio: 1;
+            border-radius: 10px;
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            border: 2px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .mines-cell:hover:not(.revealed):not(.disabled) {
+            background: linear-gradient(145deg, #333, #222);
+            border-color: rgba(255,255,255,0.2);
+            transform: scale(1.03);
+        }
+        .mines-cell:active:not(.revealed):not(.disabled) {
+            transform: scale(0.95);
+        }
+        .mines-cell.revealed.safe {
+            background: linear-gradient(145deg, #1a472a, #0d3320);
+            border-color: #2ecc71;
+            animation: minesReveal 0.3s ease;
+        }
+        .mines-cell.revealed.mine {
+            background: linear-gradient(145deg, #4a1a1a, #330d0d);
+            border-color: #e74c3c;
+            animation: minesExplode 0.5s ease;
+        }
+        .mines-cell.revealed { cursor: default; }
+        .mines-cell.disabled {
+            cursor: default;
+            opacity: 0.5;
+        }
+        @keyframes minesReveal {
+            0% { transform: scale(0.5) rotateY(180deg); opacity: 0.5; }
+            100% { transform: scale(1) rotateY(0); opacity: 1; }
+        }
+        @keyframes minesExplode {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.2); }
+            50% { transform: scale(0.9); }
+            100% { transform: scale(1); }
+        }
+        .mines-controls .mines-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .mines-controls .mines-buttons .casino-btn { flex: 1; }
+
+        /* ===== TOWER GAME ===== */
+        .tower-container {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .tower-info-bar {
+            display: flex;
+            justify-content: space-around;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .tower-info-item {
+            text-align: center;
+            padding: 8px 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            flex: 1;
+        }
+        .tower-info-label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        .tower-info-value {
+            display: block;
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+        }
+        .tower-info-value.highlight { color: #f1c40f; }
+        .tower-info-value.win { color: #2ecc71; }
+        .tower-grid {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 6px;
+            margin-bottom: 16px;
+            max-height: 420px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .tower-grid::-webkit-scrollbar { width: 4px; }
+        .tower-grid::-webkit-scrollbar-track { background: transparent; }
+        .tower-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+        .tower-floor {
+            display: flex;
+            gap: 8px;
+            padding: 8px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            transition: all 0.4s ease;
+        }
+        .tower-floor.active {
+            background: rgba(231,76,60,0.08);
+            border-color: rgba(231,76,60,0.3);
+            box-shadow: 0 0 15px rgba(231,76,60,0.15);
+        }
+        .tower-floor.completed {
+            background: rgba(46,204,113,0.06);
+            border-color: rgba(46,204,113,0.2);
+        }
+        .tower-floor.locked {
+            opacity: 0.35;
+        }
+        .tower-floor-label {
+            width: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            background: rgba(255,255,255,0.05);
+            border-radius: 6px;
+        }
+        .tower-door {
+            flex: 1;
+            padding: 14px 8px;
+            border-radius: 8px;
+            background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+            border: 2px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .tower-door:hover:not(.revealed):not(.disabled) {
+            background: linear-gradient(145deg, #333, #222);
+            border-color: rgba(255,255,255,0.25);
+            transform: scale(1.05);
+        }
+        .tower-door:active:not(.revealed):not(.disabled) {
+            transform: scale(0.95);
+        }
+        .tower-door.safe {
+            background: linear-gradient(145deg, #1a472a, #0d3320);
+            border-color: #2ecc71;
+            box-shadow: 0 0 10px rgba(46,204,113,0.3);
+        }
+        .tower-door.trap {
+            background: linear-gradient(145deg, #4a1a1a, #330d0d);
+            border-color: #e74c3c;
+            box-shadow: 0 0 10px rgba(231,76,60,0.3);
+        }
+        .tower-door.revealed { cursor: default; }
+        .tower-door.disabled { cursor: default; opacity: 0.4; }
+        .tower-controls .tower-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .tower-controls .tower-buttons .casino-btn { flex: 1; }
+
+        /* Casino Buttons */
+        .casino-btn {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        .casino-btn.primary { background: var(--gradient-primary); color: #fff; }
+        .casino-btn.primary:hover { filter: brightness(1.1); }
+        .casino-btn.success { background: linear-gradient(135deg, #2ecc71, #27ae60); color: #fff; }
+        .casino-btn.success:hover { filter: brightness(1.1); }
+        .casino-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Utility */
+        .hidden { display: none !important; }
+
+
         /* Coin Game */
         .coin-choice {
             display: grid;
@@ -2923,6 +3395,62 @@ body {
 .trajectory-btn:hover { background: rgba(231,76,60,0.2); color: var(--primary); }
 .trajectory-btn.active { background: var(--gradient-primary); color: #fff; border-color: var(--primary); }
 
+/* Кнопка улучшения ядра */
+.upgrade-core-btn {
+    background: rgba(155, 89, 182, 0.15);
+    border: 2px solid rgba(155, 89, 182, 0.4);
+    color: #9b59b6;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+.upgrade-core-btn:hover { background: rgba(155, 89, 182, 0.3); border-color: #9b59b6; }
+.upgrade-core-btn.affordable {
+    background: rgba(155, 89, 182, 0.3);
+    border-color: #9b59b6;
+    animation: upgrade-pulse 1.5s ease-in-out infinite;
+    color: #fff;
+    box-shadow: 0 0 15px rgba(155, 89, 182, 0.5);
+}
+
+/* Inline кнопка улучшения ядра (в заголовке реактора) */
+.upgrade-core-btn-inline {
+    background: rgba(231, 76, 60, 0.15);
+    border: 1.5px solid rgba(231, 76, 60, 0.4);
+    color: #e74c3c;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    padding: 0;
+}
+.upgrade-core-btn-inline:hover { background: rgba(231, 76, 60, 0.3); border-color: #e74c3c; }
+.upgrade-core-btn-inline.affordable {
+    background: rgba(231, 76, 60, 0.3);
+    border-color: #e74c3c;
+    animation: upgrade-pulse 1.5s ease-in-out infinite;
+    color: #fff;
+    box-shadow: 0 0 12px rgba(231, 76, 60, 0.5);
+}
+
+@keyframes upgrade-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(231, 76, 60, 0.5); }
+    50% { transform: scale(1.1); box-shadow: 0 0 25px rgba(231, 76, 60, 0.7); }
+}
+
 .field-grid {
     display: grid;
     grid-template-columns: repeat(7, var(--cell-size));
@@ -3084,13 +3612,14 @@ body {
 /* Точка здоровья блока */
 .hp-dot {
     position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 7px;
-    height: 7px;
+    top: 3px;
+    left: 3px;
+    width: 11px;
+    height: 11px;
     border-radius: 50%;
     z-index: 5;
     pointer-events: none;
+    border: 2px solid rgba(0,0,0,0.6);
 }
 
 /* Полоска прочности (убрана, заменена на точку) */
@@ -3796,9 +4325,16 @@ body {
             <div class="core-section">
                 <div class="core-content">
                     <div class="core-info">
-                        <div class="core-title">
+                        <div class="core-title" style="display:flex;align-items:center;justify-content:center;gap:10px;">
                             <i class="fas fa-bolt" style="color: var(--primary);"></i>
-                            Ядро
+                            <span>Ядро</span>
+                            <!-- Версия ядра и кнопка улучшения -->
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <div style="font-size:15px;font-weight:700;color:var(--primary);" id="coreVersionDisplay">v1.0</div>
+                                <button class="upgrade-core-btn-inline" id="upgradeCoreBtn" onclick="showUpgradeModal()" title="Улучшить ядро">
+                                    <i class="fas fa-arrow-up"></i>
+                                </button>
+                            </div>
                         </div>
                         <div class="stats-row">
                             <div class="stat-item">
@@ -3937,6 +4473,24 @@ body {
                     </div>
                 </div>
             </div>
+
+            <!-- Core Upgrade Modal -->
+            <div class="modal-overlay" id="upgradeCoreModal" style="display:none;">
+                <div class="modal" style="max-width: 360px;">
+                    <div class="modal-title" style="background: var(--gradient-primary); padding: 14px; margin: -24px -24px 20px -24px; border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0; font-size: 18px; letter-spacing: 0.5px;">
+                        <i class="fas fa-rocket" style="margin-right: 8px;"></i>Улучшение ядра
+                    </div>
+                    <div class="modal-body" id="upgradeCoreBody">
+                        <!-- Заполняется динамически -->
+                    </div>
+                    <div class="modal-buttons">
+                        <button class="modal-btn" onclick="closeUpgradeModal()">Отмена</button>
+                        <button class="modal-btn primary" id="upgradeCoreConfirmBtn" onclick="upgradeCoreVersion()">
+                            <i class="fas fa-arrow-up" style="margin-right: 6px;"></i>Улучшить
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Casino Page -->
@@ -3945,10 +4499,159 @@ body {
                 <i class="fas fa-dice"></i>
                 Казино
             </div>
-            <div class="coming-soon-placeholder">
-                <div class="coming-soon-icon">🚧</div>
-                <div class="coming-soon-title">Раздел в разработке</div>
-                <div class="coming-soon-desc">Скоро здесь появятся игры казино</div>
+
+            <!-- Casino Navigation -->
+            <div class="casino-nav">
+                <button class="casino-nav-btn active" data-game="crash" onclick="showCasinoGame('crash')">
+                    <span>📈</span> Краш
+                </button>
+                <button class="casino-nav-btn" data-game="mines" onclick="showCasinoGame('mines')">
+                    <span>💣</span> Минёр
+                </button>
+                <button class="casino-nav-btn" data-game="tower" onclick="showCasinoGame('tower')">
+                    <span>🗼</span> Башня
+                </button>
+            </div>
+
+            <!-- Casino Balance -->
+            <div class="casino-balance">
+                💰 Баланс: <span id="casinoBalance">0</span> 🪙
+            </div>
+
+            <!-- CRASH Game -->
+            <div class="casino-game" id="casino-crash">
+                <div class="crash-container">
+                    <div class="crash-phase" id="crashPhase">
+                        <div class="crash-timer" id="crashTimer">15.0</div>
+                        <div class="crash-phase-text" id="crashPhaseText">До следующего раунда</div>
+                    </div>
+                    <div class="crash-graph" id="crashGraph">
+                        <div class="crash-stars" id="crashStars"></div>
+                        <div class="crash-particles" id="crashParticles"></div>
+                        <svg class="crash-svg" id="crashSvg" viewBox="0 0 500 200" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="rocketTrail" x1="0%" y1="100%" x2="0%" y2="0%">
+                                    <stop offset="0%" style="stop-color:#e74c3c;stop-opacity:0.1" />
+                                    <stop offset="100%" style="stop-color:#e74c3c;stop-opacity:0.8" />
+                                </linearGradient>
+                            </defs>
+                            <path id="crashPath" fill="none" stroke="#e74c3c" stroke-width="3" d="M 0 200" />
+                            <g id="crashRocket" style="display:none;">
+                                <text font-size="24" x="0" y="0">🚀</text>
+                            </g>
+                        </svg>
+                        <div class="crash-multiplier" id="crashMultiplier">1.00×</div>
+                        <div class="crash-result" id="crashResult" style="display:none;"></div>
+                    </div>
+                    <!-- Players List -->
+                    <div class="crash-players" id="crashPlayers">
+                        <div class="crash-players-header">
+                            <span>Игрок</span>
+                            <span>Ставка</span>
+                            <span>Статус</span>
+                        </div>
+                        <div class="crash-players-list" id="crashPlayersList"></div>
+                    </div>
+                    <div class="crash-history" id="crashHistory"></div>
+                    <div class="crash-controls">
+                        <div class="bet-input">
+                            <label>Ставка</label>
+                            <input type="number" id="crashBet" placeholder="Введите ставку..." min="1" value="100">
+                        </div>
+                        <div class="crash-buttons">
+                            <button class="casino-btn primary" id="crashBetBtn" onclick="crashPlaceBet()">
+                                🎯 Поставить
+                            </button>
+                            <button class="casino-btn success hidden" id="crashCashoutBtn" onclick="crashCashout()">
+                                💰 Забрать
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MINES Game -->
+            <div class="casino-game hidden" id="casino-mines">
+                <div class="mines-container">
+                    <div class="mines-info-bar">
+                        <div class="mines-info-item">
+                            <span class="mines-info-label">💣 Мин</span>
+                            <span class="mines-info-value" id="minesCountDisplay">3</span>
+                        </div>
+                        <div class="mines-info-item">
+                            <span class="mines-info-label">💰 Множитель</span>
+                            <span class="mines-info-value highlight" id="minesMultiplierDisplay">1.00×</span>
+                        </div>
+                        <div class="mines-info-item">
+                            <span class="mines-info-label">✅ Открыто</span>
+                            <span class="mines-info-value" id="minesOpenedDisplay">0</span>
+                        </div>
+                        <div class="mines-info-item">
+                            <span class="mines-info-label">🏆 Выигрыш</span>
+                            <span class="mines-info-value win" id="minesWinDisplay">0 🪙</span>
+                        </div>
+                    </div>
+                    <div class="mines-grid" id="minesGrid"></div>
+                    <div class="mines-controls">
+                        <div class="mines-settings">
+                            <div class="mines-setting-row">
+                                <label>💣 Кол-во мин:</label>
+                                <div class="mines-counter">
+                                    <button class="mines-counter-btn" onclick="changeMinesCount(-1)">−</button>
+                                    <span id="minesCount">3</span>
+                                    <button class="mines-counter-btn" onclick="changeMinesCount(1)">+</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bet-input">
+                            <label>Ставка</label>
+                            <input type="number" id="minesBet" placeholder="Введите ставку..." min="1" value="100">
+                        </div>
+                        <div class="mines-buttons">
+                            <button class="casino-btn primary" id="minesStartBtn" onclick="minesStart()">
+                                💣 Начать игру
+                            </button>
+                            <button class="casino-btn success hidden" id="minesCashoutBtn" onclick="minesCashout()">
+                                💰 Забрать <span id="minesCashoutAmount"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TOWER Game -->
+            <div class="casino-game hidden" id="casino-tower">
+                <div class="tower-container">
+                    <div class="tower-info-bar">
+                        <div class="tower-info-item">
+                            <span class="tower-info-label">🏗️ Этаж</span>
+                            <span class="tower-info-value" id="towerFloorDisplay">0/10</span>
+                        </div>
+                        <div class="tower-info-item">
+                            <span class="tower-info-label">💰 Множитель</span>
+                            <span class="tower-info-value highlight" id="towerMultiplierDisplay">1.00×</span>
+                        </div>
+                        <div class="tower-info-item">
+                            <span class="tower-info-label">🏆 Выигрыш</span>
+                            <span class="tower-info-value win" id="towerWinDisplay">0 🪙</span>
+                        </div>
+                    </div>
+                    <div class="tower-grid" id="towerGrid"></div>
+                    <div class="tower-controls">
+                        <div class="bet-input">
+                            <label>Ставка</label>
+                            <input type="number" id="towerBet" placeholder="Введите ставку..." min="1" value="100">
+                        </div>
+                        <div class="tower-buttons">
+                            <button class="casino-btn primary" id="towerStartBtn" onclick="towerStart()">
+                                🗼 Начать игру
+                            </button>
+                            <button class="casino-btn success hidden" id="towerCashoutBtn" onclick="towerCashout()">
+                                💰 Забрать <span id="towerCashoutAmount"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -4180,7 +4883,24 @@ body {
             CONDENSER_COOLING_PER_LEVEL: 5,
             RARITY_PRICE_MULT: { COIN: 1.0, ROUTER: 2.0, MULTIPLIER: 2.5, DIAMOND: 1.4, STAR: 1.5, CONDENSER: 2.0 },
             PRICES: { BLOCK_BASE: 25, BLOCK_GROWTH: 1.25, BLOCK_ADD: 8, REROLL_BASE: 100, REROLL_GROWTH: 1.15, REROLL_ADD: 15, EXPAND_BASE: 2000, EXPAND_GROWTH: 1.35, EXPAND_ADD: 800 },
-            XP: { BASE_PER_TAP: 5, BASE_PER_LEVEL: 200, GROWTH: 1.35, LEVEL_BONUS_CHARGE: 0.05, LEVEL_BONUS_TEMP: 10 },
+            XP: { BASE_PER_TAP: 5, BASE_PER_LEVEL: 100, GROWTH: 1.18, LEVEL_BONUS_CHARGE: 0.05, LEVEL_BONUS_TEMP: 10 },
+            // Версии ядра — ограничения на множители/конденсаторы и XP буст
+            CORE_VERSIONS: {
+                '1.0': { maxMultipliers: 2, maxCondensers: 1, xpMult: 1.0, upgradeCost: 0 },
+                '1.1': { maxMultipliers: 2, maxCondensers: 1, xpMult: 1.15, upgradeCost: 5000 },
+                '1.2': { maxMultipliers: 3, maxCondensers: 1, xpMult: 1.3, upgradeCost: 25000 },
+                '1.3': { maxMultipliers: 3, maxCondensers: 2, xpMult: 1.5, upgradeCost: 100000 },
+                '1.4': { maxMultipliers: 4, maxCondensers: 2, xpMult: 1.75, upgradeCost: 500000 },
+                '2.0': { maxMultipliers: 4, maxCondensers: 2, xpMult: 2.0, upgradeCost: 2000000 },
+                '2.1': { maxMultipliers: 5, maxCondensers: 2, xpMult: 2.3, upgradeCost: 8000000 },
+                '2.2': { maxMultipliers: 5, maxCondensers: 3, xpMult: 2.6, upgradeCost: 30000000 },
+                '2.3': { maxMultipliers: 6, maxCondensers: 3, xpMult: 3.0, upgradeCost: 100000000 },
+                '2.4': { maxMultipliers: 6, maxCondensers: 3, xpMult: 3.5, upgradeCost: 400000000 },
+                '3.0': { maxMultipliers: 8, maxCondensers: 3, xpMult: 4.0, upgradeCost: 1500000000 },
+                '3.1': { maxMultipliers: 8, maxCondensers: 4, xpMult: 4.5, upgradeCost: 5000000000 },
+                '3.2': { maxMultipliers: 10, maxCondensers: 4, xpMult: 5.0, upgradeCost: 20000000000 },
+            },
+            CORE_VERSION_ORDER: ['1.0', '1.1', '1.2', '1.3', '1.4', '2.0', '2.1', '2.2', '2.3', '2.4', '3.0', '3.1', '3.2'],
             CONVERSION: { COIN: 1, DIAMOND: 3000, STAR: 50000 },
             SELL_BASE: 20,
             SELL_LEVEL_MULT: 1.5,
@@ -4244,8 +4964,19 @@ body {
             theme: 'default',
             bank_coins: 0,
             bank_crystals: 0,
-            bank_stars: 0
+            bank_stars: 0,
+            core_version: '1.0'
         };
+
+        // Загрузка казино-баланса из localStorage (для локального теста)
+        try {
+            var savedCasino = localStorage.getItem('redpulse_casino_coins');
+            if (savedCasino) state.click_coins = parseFloat(savedCasino) || 0;
+        } catch(e) {}
+
+        function saveCasinoCoins() {
+            try { localStorage.setItem('redpulse_casino_coins', state.click_coins); } catch(e) {}
+        }
 
         // ==========================================
         // Casino State (глобально для доступа из onclick)
@@ -4265,23 +4996,18 @@ body {
         // Форматирование больших чисел: 1000→1К, 1070→1,07К, 10000→10К, 1000000→1КК
         // Второй параметр — для звёзд: показываем N знаков после запятой
         function formatNumber(num, starDigits) {
-            if (!num || num === 0) return '0';
+            if (!num || num === 0) return '0.00';
             // Звёзды с фиксированным количеством знаков
             if (starDigits) {
                 num = Math.round(num * Math.pow(10, starDigits)) / Math.pow(10, starDigits);
                 return num.toFixed(starDigits);
             }
-            num = Math.floor(num);
             if (num >= 1000000000) return (num / 1000000000).toFixed(1).replace(/\.0$/, '') + 'ККК';
             if (num >= 1000000) return (num / 1000000).toFixed(1).replace(/\.0$/, '') + 'КК';
             if (num >= 10000) return (num / 1000).toFixed(1).replace(/\.0$/, '') + 'К';
-            if (num >= 1000) {
-                const k = num / 1000;
-                if (k >= 100) return Math.floor(k) + 'К';
-                if (k >= 10) return k.toFixed(1).replace(/\.0$/, '') + 'К';
-                return k.toFixed(2).replace(/\.?0+$/, '') + 'К';
-            }
-            return num.toLocaleString();
+            if (num >= 1000) return num.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            // Всегда 2 знака
+            return num.toFixed(2);
         }
 
         // Центральная функция обновления баланса (главная страница)
@@ -4319,7 +5045,7 @@ body {
         function syncWithFarm() {
             try {
                 console.log('[syncWithFarm] До синхронизации: state.click_coins=', state.click_coins, 'gameState.coins=', gameState?.coins);
-                
+
                 // Ферма использует gameState, синхронизируем с state (берём БОЛЬШЕЕ значение!)
                 if (typeof gameState !== 'undefined') {
                     // gameState → state (сохраняем изменения из фермы, НО НЕ перезаписываем нулями!)
@@ -4484,9 +5210,10 @@ body {
                     // Уровень игрока и ядра
                     const coreLevel = data.core_level || 1;
                     const playerLevel = data.level || 1;
+                    const coreVersion = data.core_version || gameState.coreVersion || '1.0';
                     const coreLevelEl = document.getElementById('profile-core-level');
                     const playerLevelEl = document.getElementById('profile-level');
-                    if (coreLevelEl) coreLevelEl.textContent = coreLevel;
+                    if (coreLevelEl) coreLevelEl.textContent = `${coreLevel} (v${coreVersion})`;
                     if (playerLevelEl) playerLevelEl.textContent = playerLevel;
 
                     // Блоки и реакции (из profile API)
@@ -4820,6 +5547,23 @@ body {
                 console.log('[showPage] Вызываем loadProfile()');
                 window.loadProfile();
             }
+
+            // Обновляем баланс казино при открытии страницы
+            if (pageId === 'casino') {
+                updateCasinoBalance();
+                // Если краш уже летит — показываем текущее состояние
+                if (crashPhase === 'FLYING' || crashPhase === 'CRASHED') {
+                    renderPlayersList();
+                    renderCrashHistory();
+                    if (crashPhase === 'FLYING') {
+                        document.getElementById('crashPhase').style.display = 'none';
+                        document.getElementById('crashMultiplier').style.display = 'block';
+                        document.getElementById('crashRocket').style.display = 'block';
+                    }
+                } else {
+                    initCrashGame();
+                }
+            }
             if (pageId === 'tasks') window.loadTasks && window.loadTasks();
             if (pageId === 'rating') window.loadRating && window.loadRating();
             if (pageId === 'shop') showShopCategory('cases', document.querySelector('.shop-category'));
@@ -4910,6 +5654,7 @@ body {
                     updateBalanceDisplay();
 
                     updateUI();
+                    updateCasinoBalance();
                     console.log('=== loadUserData: DONE ===');
                     return;
                 }
@@ -5602,9 +6347,10 @@ body {
                     // Уровень игрока и ядра
                     const coreLevel = data.core_level || 1;
                     const playerLevel = data.level || 1;
+                    const coreVersion = data.core_version || gameState.coreVersion || '1.0';
                     const coreLevelEl = document.getElementById('profile-core-level');
                     const playerLevelEl = document.getElementById('profile-level');
-                    if (coreLevelEl) coreLevelEl.textContent = coreLevel;
+                    if (coreLevelEl) coreLevelEl.textContent = `${coreLevel} (v${coreVersion})`;
                     if (playerLevelEl) playerLevelEl.textContent = playerLevel;
 
                     // Блоки и реакции (из profile API)
@@ -6126,6 +6872,803 @@ window.renderGrid = function() {
                 <div id="dice-result"></div>
             `;
         }
+
+        // ==========================================
+        // НОВОЕ КАЗИНО: Crash, Mines, Tower
+        // ==========================================
+
+        // --- Навигация ---
+        window.showCasinoGame = function(game) {
+            document.querySelectorAll('.casino-game').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.casino-nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('casino-' + game).classList.remove('hidden');
+            document.querySelector(`.casino-nav-btn[data-game="${game}"]`).classList.add('active');
+        };
+
+        // --- Баланс казино ---
+        function getCasinoBalance() {
+            return Math.floor(state.click_coins || 0);
+        }
+        function updateCasinoBalance() {
+            const el = document.getElementById('casinoBalance');
+            if (el) el.textContent = formatNumber(getCasinoBalance());
+        }
+
+        async function saveCasinoData() {
+            saveCasinoCoins();
+            if (!userId || typeof userId === 'undefined') return;
+            try {
+                await fetch('/api/save-clicks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userId: userId,
+                        click_coins: state.click_coins,
+                        stars: state.stars,
+                        crystals: state.crystals,
+                        total_clicks: state.total_clicks,
+                        click_power: state.click_power,
+                        auto_clicker: state.auto_clicker,
+                        max_energy: state.max_energy
+                    })
+                });
+            } catch (e) { /* игнорируем — нет сервера */ }
+        }
+
+        // ==========================================
+        // CRASH GAME — авто-раунды, ракета дугой, house edge 3%
+        var HOUSE_EDGE = 0.03; // 3%
+        var CRASH_ROUND_TIME = 15; // секунд между раундами
+        var crashPhase = 'BETTING'; // BETTING, FLYING, CRASHED
+        var crashTimer = CRASH_ROUND_TIME;
+        var crashMultiplier = 1.0;
+        var crashPoint = 0;
+        var crashBetAmount = 0;
+        var playerBet = false;
+        var playerCashedOut = false;
+        var crashAnimFrame = null;
+        var crashStartTime = 0;
+        var crashHistoryArr = [];
+        var crashPathPoints = [];
+
+        // Генерация точки краша с house edge
+        function generateCrashPoint() {
+            var e = Math.pow(2, 32);
+            var h = Math.floor(Math.random() * e);
+            var rawPoint = (100 * e - h) / (e - h) / 100;
+            // House edge: сдвигаем вниз
+            var finalPoint = rawPoint * (1 - HOUSE_EDGE);
+            if (finalPoint < 1.0) finalPoint = 1.0;
+            return Math.round(finalPoint * 100) / 100;
+        }
+
+        // Фейковые игроки (боты)
+        var fakePlayers = [
+            { name: 'Player_77', bet: 0, cashedOut: false, cashMult: 0 },
+            { name: 'LuckyDoge', bet: 0, cashedOut: false, cashMult: 0 },
+            { name: 'xXProGamerXx', bet: 0, cashedOut: false, cashMult: 0 },
+            { name: 'CryptoKing', bet: 0, cashedOut: false, cashMult: 0 },
+            { name: 'MoonShot', bet: 0, cashedOut: false, cashMult: 0 },
+            { name: 'Diamond_Hands', bet: 0, cashedOut: false, cashMult: 0 }
+        ];
+
+        function generateFakeBets() {
+            fakePlayers.forEach(function(p) {
+                p.bet = Math.floor(Math.random() * 500 + 10);
+                p.cashedOut = false;
+                p.cashMult = 0;
+                // Шанс кэшаута: 60% на случайном множителе 1.1x-3.0x
+                p.willCash = Math.random() < 0.6;
+                p.cashTarget = 1.1 + Math.random() * 2.5;
+            });
+        }
+
+        function updateFakePlayers(mult) {
+            fakePlayers.forEach(function(p) {
+                if (!p.cashedOut && p.willCash && mult >= p.cashTarget) {
+                    p.cashedOut = true;
+                    p.cashMult = Math.round(p.cashTarget * 100) / 100;
+                }
+            });
+        }
+
+        function renderPlayersList() {
+            var list = document.getElementById('crashPlayersList');
+            var html = '';
+            // Игрок
+            if (playerBet) {
+                var pClass = playerCashedOut ? 'win' : (crashPhase === 'CRASHED' ? 'lose' : 'playing');
+                var pStatus = playerCashedOut ? 'WIN +' + formatNumber(Math.floor(crashBetAmount * crashMultiplier)) : (crashPhase === 'CRASHED' ? 'LOSE' : 'Играет...');
+                html += '<div class="crash-player ' + pClass + '">' +
+                    '<span class="player-name">👤 Вы</span>' +
+                    '<span class="player-bet">' + formatNumber(crashBetAmount) + ' 🪙</span>' +
+                    '<span class="player-status ' + pClass + '">' + pStatus + '</span>' +
+                    '</div>';
+            }
+            // Боты
+            fakePlayers.forEach(function(p) {
+                var cls = p.cashedOut ? 'win' : (crashPhase === 'CRASHED' ? 'lose' : 'playing');
+                var status = p.cashedOut ? 'WIN +' + formatNumber(Math.floor(p.bet * p.cashMult)) : (crashPhase === 'CRASHED' ? 'LOSE' : 'Играет...');
+                html += '<div class="crash-player ' + cls + '">' +
+                    '<span class="player-name">' + p.name + '</span>' +
+                    '<span class="player-bet">' + formatNumber(p.bet) + ' 🪙</span>' +
+                    '<span class="player-status ' + cls + '">' + status + '</span>' +
+                    '</div>';
+            });
+            list.innerHTML = html;
+        }
+
+        // Кривая ракеты — плавная квадратичная кривая
+        function getRocketPath(mult) {
+            var svgW = 500, svgH = 200;
+            var progress = Math.min((mult - 1) / 10, 1);
+            var endX = progress * svgW;
+            var endY = svgH - (Math.pow(progress, 0.7) * svgH * 0.88);
+            // Control point для плавной дуги
+            var cpX = endX * 0.5;
+            var cpY = svgH;
+            return 'M 0,' + svgH + ' Q ' + cpX.toFixed(1) + ',' + cpY.toFixed(1) + ' ' + endX.toFixed(1) + ',' + endY.toFixed(1);
+        }
+
+        function getRocketPosition(mult) {
+            var svgW = 500, svgH = 200;
+            var progress = Math.min((mult - 1) / 10, 1);
+            var x = progress * svgW;
+            var y = svgH - (Math.pow(progress, 0.7) * svgH * 0.88);
+            return { x: x, y: y };
+        }
+
+        // Начало раунда
+        function startCrashRound() {
+            crashPhase = 'FLYING';
+            crashMultiplier = 1.0;
+            crashPoint = generateCrashPoint();
+            crashStartTime = Date.now();
+            playerCashedOut = false;
+
+            generateFakeBets();
+
+            if (playerBet) {
+                document.getElementById('crashBetBtn').classList.add('hidden');
+                document.getElementById('crashCashoutBtn').classList.remove('hidden');
+            }
+
+            document.getElementById('crashPhase').style.display = 'none';
+            document.getElementById('crashMultiplier').style.display = 'block';
+            document.getElementById('crashMultiplier').className = 'crash-multiplier';
+            document.getElementById('crashResult').style.display = 'none';
+            document.getElementById('crashRocket').style.display = 'block';
+            document.getElementById('crashPath').setAttribute('d', 'M 0,200');
+
+            // Звёзды на фон
+            createCrashStars();
+
+            crashPathPoints = [];
+            renderPlayersList();
+            crashAnimLoop();
+        }
+
+        function createCrashStars() {
+            var container = document.getElementById('crashStars');
+            container.innerHTML = '';
+            for (var i = 0; i < 30; i++) {
+                var star = document.createElement('div');
+                star.className = 'crash-star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 2 + 's';
+                star.style.opacity = 0.1 + Math.random() * 0.4;
+                container.appendChild(star);
+            }
+        }
+
+        function crashAnimLoop() {
+            if (crashPhase !== 'FLYING') return;
+
+            var elapsed = (Date.now() - crashStartTime) / 1000;
+            crashMultiplier = 1 + elapsed * 0.15 + Math.pow(elapsed, 1.4) * 0.05;
+            crashMultiplier = Math.round(crashMultiplier * 100) / 100;
+
+            if (crashMultiplier >= crashPoint) {
+                // CRASH!
+                crashPhase = 'CRASHED';
+                crashMultiplier = crashPoint;
+                onCrash();
+                return;
+            }
+
+            // Обновляем UI
+            document.getElementById('crashMultiplier').textContent = crashMultiplier.toFixed(2) + '×';
+            updateFakePlayers(crashMultiplier);
+            renderPlayersList();
+
+            // Рисуем кривую
+            var pos = getRocketPosition(crashMultiplier);
+            var pathD = getRocketPath(crashMultiplier);
+            document.getElementById('crashPath').setAttribute('d', pathD);
+            document.getElementById('crashPath').setAttribute('stroke', '#e74c3c');
+
+            // Ракета
+            var rocket = document.getElementById('crashRocket');
+            rocket.setAttribute('transform', 'translate(' + (pos.x - 12) + ', ' + (pos.y - 20) + ')');
+
+            // Частицы вокруг ракеты
+            spawnCrashParticles(pos.x, pos.y);
+
+            crashAnimFrame = requestAnimationFrame(crashAnimLoop);
+        }
+
+        function spawnCrashParticles(rx, ry) {
+            var container = document.getElementById('crashParticles');
+            if (!container) return;
+            // Частицы огня летят вниз/назад от ракеты (след ракеты)
+            for (var i = 0; i < 3; i++) {
+                var p = document.createElement('div');
+                p.className = 'crash-particle';
+                var size = 3 + Math.random() * 5;
+                // Частицы летят вниз и немного в стороны
+                var dx = (Math.random() - 0.5) * 30;
+                var dy = 20 + Math.random() * 50; // вниз
+                var hue = Math.random() < 0.6 ? '30, 100%, ' + (50 + Math.random() * 20) + '%' : '0, 90%, 55%';
+                p.style.cssText = 'left:' + (rx - size/2) + 'px;top:' + (ry - size/2) + 'px;width:' + size + 'px;height:' + size + 'px;background:hsl(' + hue + ');--dx:' + dx + 'px;--dy:' + dy + 'px;';
+                container.appendChild(p);
+                (function(el) { setTimeout(function() { if (el.parentNode) el.remove(); }, 800); })(p);
+            }
+        }
+
+        function onCrash() {
+            document.getElementById('crashMultiplier').textContent = crashPoint.toFixed(2) + '×';
+            document.getElementById('crashMultiplier').className = 'crash-multiplier crashed';
+
+            // Проигрыш игрока
+            if (playerBet && !playerCashedOut) {
+                var result = document.getElementById('crashResult');
+                result.style.display = 'block';
+                result.className = 'crash-result lose';
+                result.textContent = '−' + formatNumber(crashBetAmount) + ' 🪙';
+            }
+
+            // Финальный список игроков
+            renderPlayersList();
+
+            // История
+            crashHistoryArr.unshift(crashPoint);
+            if (crashHistoryArr.length > 10) crashHistoryArr.pop();
+            document.getElementById('crashHistory').innerHTML = crashHistoryArr.map(function(v) {
+                var c = v < 2 ? 'low' : v < 5 ? 'medium' : 'high';
+                return '<div class="crash-history-item ' + c + '">' + v.toFixed(2) + '×</div>';
+            }).join('');
+
+            // Кнопки
+            document.getElementById('crashBetBtn').classList.remove('hidden');
+            document.getElementById('crashCashoutBtn').classList.add('hidden');
+            playerBet = false;
+            crashBetAmount = 0;
+
+            // Таймер до следующего раунда
+            setTimeout(function() {
+                crashPhase = 'BETTING';
+                crashTimer = CRASH_ROUND_TIME;
+                document.getElementById('crashPhase').style.display = 'block';
+                document.getElementById('crashMultiplier').style.display = 'none';
+                document.getElementById('crashResult').style.display = 'none';
+                document.getElementById('crashPath').setAttribute('d', 'M 0,200');
+                document.getElementById('crashRocket').style.display = 'none';
+                document.getElementById('crashStars').innerHTML = '';
+                updateCrashTimer();
+            }, 3000);
+        }
+
+        function updateCrashTimer() {
+            if (crashPhase !== 'BETTING') return;
+            crashTimer -= 0.1;
+            if (crashTimer <= 0) {
+                startCrashRound();
+                return;
+            }
+            document.getElementById('crashTimer').textContent = Math.max(0, crashTimer).toFixed(1);
+            setTimeout(updateCrashTimer, 100);
+        }
+
+        // Поставить ставку
+        window.crashPlaceBet = function() {
+            if (crashPhase !== 'BETTING') {
+                showToast('Дождитесь начала раунда!', 'warning');
+                return;
+            }
+            if (playerBet) { showToast('Ставка уже сделана!', 'warning'); return; }
+            var betInput = document.getElementById('crashBet');
+            var bet = Math.floor(parseInt(betInput.value) || 0);
+            var bal = getCasinoBalance();
+            if (bet < 1) { showToast('Минимальная ставка: 1 🪙', 'error'); return; }
+            if (bal <= 0) { showToast('У вас нет монет!', 'warning'); return; }
+            if (bet > bal) { showToast('Недостаточно монет! Баланс: ' + formatNumber(bal) + ' 🪙', 'error'); return; }
+
+            crashBetAmount = bet;
+            state.click_coins = Math.round((state.click_coins - bet) * 100) / 100;
+            saveCasinoCoins();
+            playerBet = true;
+            updateCasinoBalance();
+            renderPlayersList();
+
+            document.getElementById('crashBetBtn').classList.add('hidden');
+            showToast('Ставка ' + formatNumber(bet) + ' 🪙 принята!', 'success');
+        };
+
+        // Забрать выигрыш
+        window.crashCashout = function() {
+            if (!playerBet || playerCashedOut || crashPhase !== 'FLYING') return;
+            playerCashedOut = true;
+            var win = Math.floor(crashBetAmount * crashMultiplier);
+            state.click_coins = Math.round((state.click_coins + win) * 100) / 100;
+            saveCasinoCoins();
+            updateCasinoBalance();
+            saveCasinoData();
+
+            var result = document.getElementById('crashResult');
+            result.style.display = 'block';
+            result.className = 'crash-result win';
+            result.textContent = '+' + formatNumber(win) + ' 🪙 (' + crashMultiplier.toFixed(2) + '×)';
+
+            document.getElementById('crashMultiplier').className = 'crash-multiplier cashed';
+            document.getElementById('crashBetBtn').classList.remove('hidden');
+            document.getElementById('crashCashoutBtn').classList.add('hidden');
+            renderPlayersList();
+        };
+
+        // Запуск таймера при открытии
+        function initCrashGame() {
+            crashPhase = 'BETTING';
+            crashTimer = CRASH_ROUND_TIME;
+            crashHistoryArr = [];
+            playerBet = false;
+            document.getElementById('crashBetBtn').classList.remove('hidden');
+            document.getElementById('crashCashoutBtn').classList.add('hidden');
+            // Показываем историю если есть
+            renderCrashHistory();
+            updateCrashTimer();
+        }
+
+        function renderCrashHistory() {
+            var el = document.getElementById('crashHistory');
+            if (crashHistoryArr.length === 0) {
+                el.innerHTML = '<div style="text-align:center;color:#666;font-size:12px;padding:8px;">Ожидание первого раунда...</div>';
+                return;
+            }
+            el.innerHTML = crashHistoryArr.map(function(v) {
+                var c = v < 2 ? 'low' : v < 5 ? 'medium' : 'high';
+                return '<div class="crash-history-item ' + c + '">' + v.toFixed(2) + '×</div>';
+            }).join('');
+        }
+
+        // ==========================================
+        // MINES GAME — комбинаторика, house edge 3%, Provably Fair
+        // ==========================================
+        var MINES_HOUSE_EDGE = 0.03;
+        var minesBoard = [];
+        var minesOpenedCount = 0;
+        var minesBetAmount = 0;
+        var minesNumMines = 3;
+        var minesActive = false;
+        var minesCurrentMultiplier = 1.0;
+        var minesClientSeed = '';
+        var minesProvablyFair = {};
+
+        function changeMinesCount(delta) {
+            minesNumMines = Math.max(1, Math.min(24, minesNumMines + delta));
+            document.getElementById('minesCount').textContent = minesNumMines;
+            document.getElementById('minesCountDisplay').textContent = minesNumMines;
+        }
+
+        // Вычисление множителя по комбинаторике
+        function calculateMinesMultiplier(opened, totalMines) {
+            var totalCells = 25;
+            var safeCells = totalCells - totalMines;
+            var multiplier = 1;
+            for (var i = 0; i < opened; i++) {
+                multiplier *= totalCells - i;
+                multiplier /= safeCells - i;
+            }
+            multiplier *= (1 - MINES_HOUSE_EDGE);
+            return Math.round(multiplier * 100) / 100;
+        }
+
+        // Provably Fair: генерация позиций мин из seed
+        function generateMinesBoard(numMines, serverSeed, clientSeed) {
+            var hash = serverSeed + ':' + clientSeed;
+            var mines = [];
+            var seed = 0;
+            for (var i = 0; i < hash.length; i++) {
+                seed = ((seed << 5) - seed + hash.charCodeAt(i)) | 0;
+            }
+            while (mines.length < numMines) {
+                seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+                var pos = Math.abs(seed) % 25;
+                if (mines.indexOf(pos) === -1) mines.push(pos);
+            }
+            return mines;
+        }
+
+        function generateServerSeed() {
+            if (window.crypto && crypto.getRandomValues) {
+                var arr = new Uint32Array(4);
+                crypto.getRandomValues(arr);
+                return arr.map(function(n) { return n.toString(16); }).join('');
+            }
+            // Fallback для HTTP без crypto API
+            return Math.random().toString(36).substring(2) + Date.now().toString(36);
+        }
+
+        async function sha256(str) {
+            try {
+                if (window.crypto && crypto.subtle) {
+                    var buf = new TextEncoder().encode(str);
+                    var hash = await crypto.subtle.digest('SHA-256', buf);
+                    return Array.from(new Uint8Array(hash)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+                }
+            } catch (e) { /* Fallback ниже */ }
+            // Простой хеш fallback
+            var h = 0;
+            for (var i = 0; i < str.length; i++) {
+                h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+            }
+            return Math.abs(h).toString(16).padStart(64, '0');
+        }
+
+        window.minesStart = async function() {
+            console.log('[Mines] minesStart вызвана, minesActive:', minesActive);
+            if (minesActive) return;
+            var betInput = document.getElementById('minesBet');
+            var bet = Math.floor(parseInt(betInput.value) || 0);
+            var bal = getCasinoBalance();
+            console.log('[Mines] bet:', bet, 'balance:', bal, 'state.click_coins:', state.click_coins);
+            if (bet < 1) { showToast('Минимальная ставка: 1 🪙', 'error'); return; }
+            if (bal <= 0) { showToast('У вас нет монет! Баланс: ' + formatNumber(bal), 'warning'); return; }
+            if (bet > bal) { showToast('Недостаточно монет! Баланс: ' + formatNumber(bal) + ' 🪙', 'error'); return; }
+
+            minesBetAmount = bet;
+            state.click_coins = Math.round((state.click_coins - bet) * 100) / 100;
+            saveCasinoCoins();
+            updateCasinoBalance();
+
+            minesActive = true;
+            minesOpenedCount = 0;
+            minesCurrentMultiplier = 1.0;
+
+            // Provably Fair
+            var serverSeed = generateServerSeed();
+            minesClientSeed = Date.now().toString(36);
+            var serverSeedHash = await sha256(serverSeed);
+            minesBoard = generateMinesBoard(minesNumMines, serverSeed, minesClientSeed);
+
+            minesProvablyFair = { serverSeed: serverSeed, serverSeedHash: serverSeedHash, clientSeed: minesClientSeed };
+
+            document.getElementById('minesStartBtn').classList.add('hidden');
+            document.getElementById('minesCashoutBtn').classList.add('hidden');
+            document.getElementById('minesMultiplierDisplay').textContent = '1.00×';
+            document.getElementById('minesOpenedDisplay').textContent = '0';
+            document.getElementById('minesWinDisplay').textContent = '0 🪙';
+            document.getElementById('minesCashoutAmount').textContent = '';
+            document.getElementById('minesBet').disabled = true;
+            document.querySelector('.mines-settings').style.opacity = '0.5';
+
+            renderMinesGrid();
+        };
+
+        function renderMinesGrid() {
+            var grid = document.getElementById('minesGrid');
+            grid.innerHTML = '';
+            for (var i = 0; i < 25; i++) {
+                var cell = document.createElement('div');
+                cell.className = 'mines-cell';
+                cell.dataset.index = i;
+                cell.textContent = '?';
+                cell.style.color = 'rgba(255,255,255,0.15)';
+                cell.style.fontSize = '16px';
+                cell.style.fontWeight = '700';
+                (function(idx) {
+                    cell.onclick = function() { minesReveal(idx); };
+                })(i);
+                grid.appendChild(cell);
+            }
+        }
+
+        window.minesReveal = function(index) {
+            if (!minesActive) return;
+            var grid = document.getElementById('minesGrid');
+            var cell = grid.children[index];
+            if (cell.classList.contains('revealed')) return;
+
+            if (minesBoard.indexOf(index) !== -1) {
+                // 💣 БОМБА!
+                cell.classList.add('revealed', 'mine');
+                cell.textContent = '💣';
+                cell.style.color = ''; cell.style.fontSize = '28px'; cell.style.fontWeight = '';
+                minesActive = false;
+
+                minesBoard.forEach(function(mineIdx) {
+                    var c = grid.children[mineIdx];
+                    c.classList.add('revealed', 'mine');
+                    c.textContent = '💣';
+                    c.style.color = ''; c.style.fontSize = '28px'; c.style.fontWeight = '';
+                });
+                for (var i = 0; i < 25; i++) {
+                    if (minesBoard.indexOf(i) === -1) {
+                        var sc = grid.children[i];
+                        sc.classList.add('revealed');
+                        sc.style.opacity = '0.3';
+                    }
+                }
+
+                document.getElementById('minesStartBtn').classList.remove('hidden');
+                document.getElementById('minesCashoutBtn').classList.add('hidden');
+                document.getElementById('minesBet').disabled = false;
+                document.querySelector('.mines-settings').style.opacity = '1';
+                showToast('💥 Бомба! -' + formatNumber(minesBetAmount) + ' 🪙', 'error');
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                saveCasinoData();
+            } else {
+                // 💎 Безопасно!
+                cell.classList.add('revealed', 'safe');
+                cell.textContent = '💎';
+                cell.style.color = ''; cell.style.fontSize = '28px'; cell.style.fontWeight = '';
+                minesOpenedCount++;
+
+                minesCurrentMultiplier = calculateMinesMultiplier(minesOpenedCount, minesNumMines);
+                var potentialWin = Math.floor(minesBetAmount * minesCurrentMultiplier);
+
+                document.getElementById('minesMultiplierDisplay').textContent = minesCurrentMultiplier.toFixed(2) + '×';
+                document.getElementById('minesOpenedDisplay').textContent = minesOpenedCount;
+                document.getElementById('minesWinDisplay').textContent = formatNumber(potentialWin) + ' 🪙';
+                document.getElementById('minesCashoutAmount').textContent = formatNumber(potentialWin) + ' 🪙';
+
+                var safeTotal = 25 - minesNumMines;
+                if (minesOpenedCount >= safeTotal) {
+                    minesCashout();
+                    return;
+                }
+                document.getElementById('minesCashoutBtn').classList.remove('hidden');
+            }
+        };
+
+        window.minesCashout = function() {
+            if (!minesActive || minesOpenedCount === 0) return;
+            minesActive = false;
+
+            var win = Math.floor(minesBetAmount * minesCurrentMultiplier);
+            state.click_coins = Math.round((state.click_coins + win) * 100) / 100;
+            saveCasinoCoins();
+            updateCasinoBalance();
+            saveCasinoData();
+
+            document.getElementById('minesStartBtn').classList.remove('hidden');
+            document.getElementById('minesCashoutBtn').classList.add('hidden');
+            document.getElementById('minesBet').disabled = false;
+            document.querySelector('.mines-settings').style.opacity = '1';
+
+            var grid = document.getElementById('minesGrid');
+            minesBoard.forEach(function(mineIdx) {
+                var c = grid.children[mineIdx];
+                c.classList.add('revealed', 'mine');
+                c.textContent = '💣';
+                c.style.color = ''; c.style.fontSize = '28px'; c.style.fontWeight = '';
+            });
+
+            showToast('💰 Забрано ' + minesCurrentMultiplier.toFixed(2) + '× = +' + formatNumber(win) + ' 🪙', 'success');
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        };
+
+        // ==========================================
+        // TOWER
+        // ==========================================
+        var towerFloors = [];
+        var towerCurrentFloor = 0;
+        var towerBetAmount = 0;
+        var towerActive = false;
+        var towerCurrentMultiplier = 1.0;
+        var TOWER_TOTAL_FLOORS = 10;
+        var TOWER_DOORS_PER_FLOOR = 2;
+
+        window.towerStart = function() {
+            if (towerActive) return;
+            var betInput = document.getElementById('towerBet');
+            var bet = parseInt(betInput.value) || 0;
+            var bal = getCasinoBalance();
+            if (bet < 1) { showToast('Минимальная ставка: 1 🪙', 'error'); return; }
+            if (bal <= 0) { showToast('У вас нет монет! Заработайте на ферме и выведите из банка.', 'warning'); return; }
+            if (bet > bal) { showToast('Недостаточно монет! Баланс: ' + formatNumber(bal) + ' 🪙', 'error'); return; }
+
+            towerBetAmount = bet;
+            state.click_coins = Math.round((state.click_coins - bet) * 100) / 100;
+            saveCasinoCoins();
+            updateCasinoBalance();
+
+            towerActive = true;
+            towerCurrentFloor = 0;
+            towerCurrentMultiplier = 1.0;
+
+            towerFloors = [];
+            for (var i = 0; i < TOWER_TOTAL_FLOORS; i++) {
+                towerFloors.push({ safe: Math.floor(Math.random() * TOWER_DOORS_PER_FLOOR) });
+            }
+
+            document.getElementById('towerStartBtn').classList.add('hidden');
+            document.getElementById('towerCashoutBtn').classList.add('hidden');
+            document.getElementById('towerFloorDisplay').textContent = '0/' + TOWER_TOTAL_FLOORS;
+            document.getElementById('towerMultiplierDisplay').textContent = '1.00×';
+            document.getElementById('towerWinDisplay').textContent = '0 🪙';
+            document.getElementById('towerCashoutAmount').textContent = '';
+            document.getElementById('towerBet').disabled = true;
+
+            renderTowerGrid();
+        };
+
+        function renderTowerGrid() {
+            var grid = document.getElementById('towerGrid');
+            grid.innerHTML = '';
+            for (var f = 0; f < TOWER_TOTAL_FLOORS; f++) {
+                var floorEl = document.createElement('div');
+                floorEl.className = 'tower-floor';
+                floorEl.id = 'tower-floor-' + f;
+
+                if (f < towerCurrentFloor) {
+                    floorEl.classList.add('completed');
+                } else if (f === towerCurrentFloor && towerActive) {
+                    floorEl.classList.add('active');
+                } else {
+                    floorEl.classList.add('locked');
+                }
+
+                var label = document.createElement('div');
+                label.className = 'tower-floor-label';
+                label.textContent = (f + 1);
+                floorEl.appendChild(label);
+
+                for (var d = 0; d < TOWER_DOORS_PER_FLOOR; d++) {
+                    var door = document.createElement('div');
+                    door.className = 'tower-door';
+                    door.dataset.floor = f;
+                    door.dataset.door = d;
+                    door.textContent = '🚪';
+
+                    if (f < towerCurrentFloor) {
+                        door.classList.add('revealed');
+                        if (towerFloors[f].safe === d) {
+                            door.classList.add('safe');
+                            door.textContent = '✅';
+                        } else {
+                            door.classList.add('trap');
+                            door.textContent = '❌';
+                        }
+                    } else if (f === towerCurrentFloor && towerActive) {
+                        door.onclick = (function(fl, dr) { return function() { towerPick(fl, dr); }; })(f, d);
+                    } else {
+                        door.classList.add('disabled');
+                    }
+
+                    floorEl.appendChild(door);
+                }
+
+                grid.appendChild(floorEl);
+            }
+        }
+
+        window.towerPick = function(floor, door) {
+            if (!towerActive || floor !== towerCurrentFloor) return;
+
+            if (door === towerFloors[floor].safe) {
+                towerCurrentFloor++;
+                towerCurrentMultiplier *= 1.8;
+                towerCurrentMultiplier = Math.round(towerCurrentMultiplier * 100) / 100;
+                var potentialWin = Math.floor(towerBetAmount * towerCurrentMultiplier);
+
+                document.getElementById('towerFloorDisplay').textContent = towerCurrentFloor + '/' + TOWER_TOTAL_FLOORS;
+                document.getElementById('towerMultiplierDisplay').textContent = towerCurrentMultiplier.toFixed(2) + '×';
+                document.getElementById('towerWinDisplay').textContent = formatNumber(potentialWin) + ' 🪙';
+                document.getElementById('towerCashoutAmount').textContent = formatNumber(potentialWin) + ' 🪙';
+
+                if (towerCurrentFloor >= TOWER_TOTAL_FLOORS) {
+                    towerCashout();
+                    return;
+                }
+
+                document.getElementById('towerCashoutBtn').classList.remove('hidden');
+                renderTowerGrid();
+            } else {
+                towerActive = false;
+
+                // Показать двери на этажах до текущего + текущий с ловушкой
+                towerFloors.forEach(function(fl, fIdx) {
+                    var floorEl = document.getElementById('tower-floor-' + fIdx);
+                    if (floorEl) {
+                        if (fIdx < floor) {
+                            // Пройденные этажи
+                            floorEl.querySelectorAll('.tower-door').forEach(function(dEl, dIdx) {
+                                dEl.classList.add('revealed');
+                                if (dIdx === fl.safe) {
+                                    dEl.classList.add('safe');
+                                    dEl.textContent = '✅';
+                                } else {
+                                    dEl.classList.add('trap');
+                                    dEl.textContent = '🚪';
+                                    dEl.style.opacity = '0.3';
+                                }
+                            });
+                            floorEl.classList.remove('active', 'locked');
+                            floorEl.classList.add('completed');
+                        } else if (fIdx === floor) {
+                            // Этаж с ловушкой - показать обе двери
+                            floorEl.querySelectorAll('.tower-door').forEach(function(dEl, dIdx) {
+                                dEl.classList.add('revealed');
+                                if (dIdx === fl.safe) {
+                                    dEl.classList.add('safe');
+                                    dEl.textContent = '✅';
+                                } else {
+                                    dEl.classList.add('trap');
+                                    dEl.textContent = '❌';
+                                }
+                            });
+                        } else {
+                            floorEl.classList.remove('active', 'completed');
+                            floorEl.classList.add('locked');
+                        }
+                    }
+                });
+
+                document.getElementById('towerStartBtn').classList.remove('hidden');
+                document.getElementById('towerCashoutBtn').classList.add('hidden');
+                document.getElementById('towerBet').disabled = false;
+                showToast('💥 Ловушка на этаже ' + (floor + 1) + '! -' + formatNumber(towerBetAmount) + ' 🪙', 'error');
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                saveCasinoData();
+            }
+        };
+
+        window.towerCashout = function() {
+            if (!towerActive || towerCurrentFloor === 0) return;
+            towerActive = false;
+
+            var win = Math.floor(towerBetAmount * towerCurrentMultiplier);
+            state.click_coins = Math.round((state.click_coins + win) * 100) / 100;
+            saveCasinoCoins();
+            updateCasinoBalance();
+
+            document.getElementById('towerStartBtn').classList.remove('hidden');
+            document.getElementById('towerCashoutBtn').classList.add('hidden');
+            document.getElementById('towerBet').disabled = false;
+
+            // Показать двери только на сыгранных этажах
+            towerFloors.forEach(function(fl, fIdx) {
+                var floorEl = document.getElementById('tower-floor-' + fIdx);
+                if (floorEl) {
+                    if (fIdx < towerCurrentFloor) {
+                        // Уже пройденные этажи - показать только безопасную дверь
+                        floorEl.querySelectorAll('.tower-door').forEach(function(dEl, dIdx) {
+                            dEl.classList.add('revealed');
+                            if (dIdx === fl.safe) {
+                                dEl.classList.add('safe');
+                                dEl.textContent = '✅';
+                            } else {
+                                // Невыбранная дверь на пройденном этаже
+                                dEl.textContent = '🚪';
+                                dEl.style.opacity = '0.2';
+                                dEl.style.borderColor = 'transparent';
+                            }
+                        });
+                        floorEl.classList.remove('active', 'locked');
+                        floorEl.classList.add('completed');
+                    } else {
+                        // Непойгранные этажи - заблокированы
+                        floorEl.classList.remove('active', 'completed');
+                        floorEl.classList.add('locked');
+                    }
+                }
+            });
+
+            showToast('🏆 Забрано ' + towerCurrentMultiplier.toFixed(2) + '× = +' + formatNumber(win) + ' 🪙', 'success');
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            saveCasinoData();
+        };
     </script>
 
     <!-- ==========================================
@@ -6202,14 +7745,9 @@ window.syncGameState = function() {
     state.bank_crystals = Math.max(state.bank_crystals || 0, gameState.bankCrystals || 0);
     state.bank_stars = Math.max(state.bank_stars || 0, gameState.bankStars || 0);
 
-    console.log('[syncGameState] Синхронизация:', {
-        coins: state.click_coins,
-        stars: state.stars,
-        crystals: state.crystals,
-        bank_coins: state.bank_coins,
-        level: state.level,
-        xp: state.xp
-    });
+    // Синхронизация версии ядра
+    state.core_version = gameState.coreVersion || '1.0';
+    gameState.coreVersion = state.core_version || '1.0';
 }
 
 // Функции для изменения баланса (автоматически вызывают updateBalance)
@@ -6278,7 +7816,9 @@ let gameState = {
     damageTaken: 0, lastDamageReset: Date.now(), coreBrokenUntil: 0,
     // Статистика фермы (загружается из БД)
     reactor_level: 1, blocks_placed: 0, reactions_triggered: 0,
-    totalBlocksBought: 0
+    totalBlocksBought: 0,
+    // Версия ядра
+    coreVersion: '1.0'
 };
 
 function initGrid() {
@@ -6479,6 +8019,13 @@ window.loadGame = async function() {
                         gameState.shopItems = dbData.shopItems;
                     }
 
+                    // Загружаем версию ядра из БД
+                    if (dbData.coreVersion) {
+                        gameState.coreVersion = dbData.coreVersion;
+                        state.core_version = dbData.coreVersion;
+                        console.log('[loadGame] Версия ядра из БД:', dbData.coreVersion);
+                    }
+
                     // Пересчитываем chargePower
                     gameState.chargePower = CONFIG.BASE_CHARGE_POWER + (gameState.level - 1) * CONFIG.CHARGE_PER_LEVEL;
 
@@ -6624,6 +8171,7 @@ window.loadGame = async function() {
     console.log('[loadGame] После синхронизации: state.click_coins=', state.click_coins, 'gameState.coins=', gameState.coins);
 
     updateUI();
+    updateCasinoBalance();
     setTimeout(() => renderGrid(), 100);
     // startPassiveEffects() вызывается в initGame() после loadGame()
 }
@@ -6674,6 +8222,7 @@ async function saveFarmStats() {
         }
 
         // ВАЖНО: Синхронизируем валюту перед сохранением
+        // coins НЕ отправляем — click_coins управляется через saveCasinoData
         syncGameState();
 
         const farmStats = {
@@ -6682,8 +8231,8 @@ async function saveFarmStats() {
             blocks_placed: blocksCount,
             reactions_triggered: gameState.reactions_triggered || 0,
             total_energy_produced: gameState.totalEarned || 0,
-            // ВАЖНО: сохраняем валюту из state (главное состояние бота)
-            click_coins: Math.floor(state.click_coins || 0),
+            // Версия ядра
+            core_version: gameState.coreVersion || '1.0',
             stars: Math.floor(state.stars || 0),
             crystals: Math.floor(state.crystals || 0),
             // Банк фермы
@@ -6790,10 +8339,8 @@ async function saveFarmState() {
             baseBlockPrice: gameState.baseBlockPrice || CONFIG.PRICES.BLOCK_BASE,
             rerollCost: gameState.rerollCost || CONFIG.PRICES.REROLL_BASE,
             expandCost: gameState.expandCost || CONFIG.PRICES.EXPAND_BASE,
-            // ВАЖНО: используем state для валюты (главное состояние бота)
-            coins: state.click_coins || 0,
-            crystals: state.crystals || 0,
-            stars: state.stars || 0,
+            // Версия ядра
+            coreVersion: gameState.coreVersion || '1.0',
             bankCoins: gameState.bankCoins,
             bankCrystals: gameState.bankCrystals,
             bankStars: gameState.bankStars,
@@ -6814,7 +8361,7 @@ async function saveFarmState() {
         console.log('[saveFarmState] Сохранение:', {
             level: farmStateToSave.level,
             xp: farmStateToSave.xp,
-            coins: farmStateToSave.coins,
+            bank_coins: farmStateToSave.bankCoins,
             blocks: blocksCount,
             reactor_level: maxBlockLevel,
             firstPlay: farmStateToSave.firstPlay,
@@ -6944,6 +8491,28 @@ window.updateUI = function() {
 
     const rerollCostEl = document.getElementById('rerollCost');
     if (rerollCostEl) rerollCostEl.textContent = formatNumber(gameState.rerollCost || CONFIG.PRICES.REROLL_BASE);
+
+    // Обновляем версию ядра и кнопку улучшения
+    const coreVerDisplay = document.getElementById('coreVersionDisplay');
+    const verConfig = getCoreVersionConfig();
+    if (coreVerDisplay) coreVerDisplay.textContent = `v${getCoreVersion()}`;
+
+    // Обновляем кнопку улучшения
+    const upgradeCoreBtn = document.getElementById('upgradeCoreBtn');
+    const nextVer = getNextCoreVersion();
+    const nextConfig = getNextCoreVersionConfig();
+    if (upgradeCoreBtn) {
+        if (nextVer && nextConfig) {
+            const affordable = (Math.min(gameState.coins || 0, state.click_coins || 0)) >= nextConfig.upgradeCost;
+            upgradeCoreBtn.classList.toggle('affordable', affordable);
+            upgradeCoreBtn.style.opacity = '1';
+            upgradeCoreBtn.title = `Улучшить до v${nextVer} — ${formatNumber(nextConfig.upgradeCost)} 🪙`;
+        } else {
+            upgradeCoreBtn.classList.remove('affordable');
+            upgradeCoreBtn.style.opacity = '0.4';
+            upgradeCoreBtn.title = 'Максимальная версия';
+        }
+    }
     
     const expandCostEl = document.getElementById('expandCost');
     if (expandCostEl) expandCostEl.textContent = formatNumber(gameState.expandCost || CONFIG.PRICES.EXPAND_BASE);
@@ -7854,7 +9423,11 @@ function finishCharging() {
 }
 
 function addXP(amount) {
-    const xpGained = amount;
+    // Учитываем множитель XP от версии ядра
+    const coreVer = gameState.coreVersion || '1.0';
+    const versionConfig = CONFIG.CORE_VERSIONS[coreVer];
+    const xpMult = versionConfig ? versionConfig.xpMult : 1.0;
+    const xpGained = Math.round(amount * xpMult);
     gameState.xp = (gameState.xp || 0) + xpGained;
     while (gameState.xp >= gameState.xpToNext) levelUp();
     updateBalance();
@@ -7876,6 +9449,116 @@ function levelUp() {
     if (chargeDiff > 0) {
         setTimeout(() => showToast(`⚡ Сила ядра +${chargeDiff}!`, 'info'), 1500);
     }
+}
+
+// === СИСТЕМА ВЕРСИЙ ЯДРА ===
+
+// Получить текущую версию ядра
+function getCoreVersion() {
+    return gameState.coreVersion || '1.0';
+}
+
+// Получить конфиг текущей версии
+function getCoreVersionConfig() {
+    const ver = getCoreVersion();
+    return CONFIG.CORE_VERSIONS[ver] || CONFIG.CORE_VERSIONS['1.0'];
+}
+
+// Получить следующую версию
+function getNextCoreVersion() {
+    const order = CONFIG.CORE_VERSION_ORDER;
+    const currentIdx = order.indexOf(getCoreVersion());
+    if (currentIdx < 0 || currentIdx >= order.length - 1) return null;
+    return order[currentIdx + 1];
+}
+
+// Получить конфиг следующей версии
+function getNextCoreVersionConfig() {
+    const nextVer = getNextCoreVersion();
+    if (!nextVer) return null;
+    return CONFIG.CORE_VERSIONS[nextVer];
+}
+
+// Форматировать цену для отображения
+function formatUpgradeCost(cost) {
+    return formatNumber(cost);
+}
+
+// Улучшение ядра
+window.upgradeCoreVersion = function() {
+    const nextVer = getNextCoreVersion();
+    if (!nextVer) {
+        showToast('🏆 Максимальная версия ядра достигнута!', 'info');
+        return;
+    }
+
+    const nextConfig = getNextCoreVersionConfig();
+    if (!nextConfig) return;
+
+    const cost = nextConfig.upgradeCost;
+    const availableCoins = Math.min(gameState.coins || 0, state.click_coins || 0);
+
+    if (availableCoins < cost) {
+        showToast(`Недостаточно монет! Нужно: ${formatUpgradeCost(cost)} 🪙`, 'error');
+        return;
+    }
+
+    // Списываем монеты
+    state.click_coins = (state.click_coins || 0) - cost;
+    if (gameState.coins > 0) gameState.coins -= cost;
+
+    // Обновляем версию
+    gameState.coreVersion = nextVer;
+    state.core_version = nextVer;
+
+    showToast(`🚀 Ядро улучшено до v${nextVer}! Множитель XP: x${nextConfig.xpMult.toFixed(2)}`, 'success');
+    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+    // Показываем новые возможности
+    const currentConfig = getCoreVersionConfig();
+    const benefits = [];
+    if (nextConfig.maxMultipliers > currentConfig.maxMultipliers) {
+        benefits.push(`Макс. множителей: ${nextConfig.maxMultipliers}`);
+    }
+    if (nextConfig.maxCondensers > currentConfig.maxCondensers) {
+        benefits.push(`Макс. конденсаторов: ${nextConfig.maxCondensers}`);
+    }
+    if (benefits.length > 0) {
+        setTimeout(() => showToast(`📋 Новые лимиты:\n${benefits.join('\n')}`, 'info'), 1500);
+    }
+
+    updateBalance();
+    renderGrid();
+    saveGame();
+};
+
+// Получить количество множителей на поле
+function countBlocksOnFieldType(type) {
+    let count = 0;
+    if (gameState.grid) {
+        for (let r = 0; r < gameState.fieldRows; r++) {
+            if (gameState.grid[r]) {
+                for (let c = 0; c < FIELD_COLS; c++) {
+                    if (gameState.grid[r][c] && gameState.grid[r][c].type === type) {
+                        count++;
+                    }
+                }
+            }
+        }
+    }
+    return count;
+}
+
+// Проверить лимит блоков при покупке
+function canPlaceBlock(type) {
+    const config = getCoreVersionConfig();
+    if (type === BLOCK_TYPES.MULTIPLIER) {
+        return countBlocksOnFieldType(BLOCK_TYPES.MULTIPLIER) < config.maxMultipliers;
+    }
+    if (type === BLOCK_TYPES.CONDENSER) {
+        return countBlocksOnFieldType(BLOCK_TYPES.CONDENSER) < config.maxCondensers;
+    }
+    return true; // Остальные без ограничений
 }
 
 // Глобальная функция для покупки блока в ферме
@@ -7902,6 +9585,17 @@ window.buyShopItem = function(index) {
 
     if (!emptyCell) {
         showToast('Нет места!', 'error');
+        return;
+    }
+
+    // Проверка лимитов по версии ядра
+    if (!canPlaceBlock(item.type)) {
+        const config = getCoreVersionConfig();
+        if (item.type === BLOCK_TYPES.MULTIPLIER) {
+            showToast(`❌ Лимит множителей: ${config.maxMultipliers}! Улучшите ядро.`, 'error');
+        } else if (item.type === BLOCK_TYPES.CONDENSER) {
+            showToast(`❌ Лимит конденсаторов: ${config.maxCondensers}! Улучшите ядро.`, 'error');
+        }
         return;
     }
 
@@ -8071,6 +9765,114 @@ window.repairBlock = function() {
     renderGrid();
     if (typeof saveGame === 'function') saveGame();
 }
+
+// Показать модальное окно улучшения ядра
+window.showUpgradeModal = function() {
+    const nextVer = getNextCoreVersion();
+    const nextConfig = getNextCoreVersionConfig();
+    const currentVer = getCoreVersion();
+    const currentConfig = getCoreVersionConfig();
+
+    const modal = document.getElementById('upgradeCoreModal');
+    const body = document.getElementById('upgradeCoreBody');
+    const confirmBtn = document.getElementById('upgradeCoreConfirmBtn');
+
+    if (!nextVer) {
+        body.innerHTML = `
+            <div style="text-align:center;padding:16px 12px;">
+                <div style="font-size:40px;margin-bottom:8px;">🏆</div>
+                <div style="font-size:15px;font-weight:700;color:var(--primary);margin-bottom:6px;">Максимальная версия!</div>
+                <div style="font-size:13px;color:var(--text-secondary);">Вы достигли v${currentVer} — это последняя версия ядра.</div>
+                <div style="margin-top:10px;font-size:12px;color:#888;">Множитель XP: <span style="color:var(--primary);font-weight:700;">x${currentConfig.xpMult.toFixed(2)}</span></div>
+            </div>
+        `;
+        confirmBtn.style.display = 'none';
+    } else {
+        const affordable = (Math.min(gameState.coins || 0, state.click_coins || 0)) >= nextConfig.upgradeCost;
+        const currentMultiplierCount = countBlocksOnFieldType(BLOCK_TYPES.MULTIPLIER);
+        const currentCondenserCount = countBlocksOnFieldType(BLOCK_TYPES.CONDENSER);
+        
+        // Множители
+        const multDiff = nextConfig.maxMultipliers - currentConfig.maxMultipliers;
+        const multLine = `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#f39c12,#e67e22);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;">×${Math.min(currentMultiplierCount, currentConfig.maxMultipliers)}</div>
+                    <div style="font-size:12px;font-weight:600;color:var(--text-primary);">Множители</div>
+                </div>
+                <div style="font-size:12px;color:#888;">
+                    ${currentConfig.maxMultipliers} → <b style="color:#2ecc71;">${nextConfig.maxMultipliers}</b>
+                    ${multDiff > 0 ? `<span style="color:#2ecc71;">(+${multDiff})</span>` : ''}
+                </div>
+            </div>
+        `;
+        
+        // Конденсаторы
+        const condDiff = nextConfig.maxCondensers - currentConfig.maxCondensers;
+        const condLine = `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#3498db,#2980b9);display:flex;align-items:center;justify-content:center;font-size:14px;">❄️</div>
+                    <div style="font-size:12px;font-weight:600;color:var(--text-primary);">Конденсаторы</div>
+                </div>
+                <div style="font-size:12px;color:#888;">
+                    ${currentConfig.maxCondensers} → <b style="color:#2ecc71;">${nextConfig.maxCondensers}</b>
+                    ${condDiff > 0 ? `<span style="color:#2ecc71;">(+${condDiff})</span>` : ''}
+                </div>
+            </div>
+        `;
+        
+        // XP множитель
+        const xpLine = `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#9b59b6,#8e44ad);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;">XP</div>
+                    <div style="font-size:12px;font-weight:600;color:var(--text-primary);">Множитель опыта</div>
+                </div>
+                <div style="font-size:12px;color:#888;">
+                    x${currentConfig.xpMult.toFixed(2)} → <b style="color:#3498db;">x${nextConfig.xpMult.toFixed(2)}</b>
+                </div>
+            </div>
+        `;
+
+        body.innerHTML = `
+            <div style="padding:2px 0;">
+                <!-- Компактная информация о версии -->
+                <div style="text-align:center;margin-bottom:14px;">
+                    <div style="font-size:11px;color:#888;margin-bottom:4px;">Текущая версия</div>
+                    <div style="font-size:20px;font-weight:700;color:var(--primary);">v${currentVer} <span style="font-size:13px;color:#888;">→ v${nextVer}</span></div>
+                </div>
+                <div style="background:rgba(30,30,30,0.8);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 12px;margin-bottom:10px;">
+                    ${multLine}
+                    ${condLine}
+                    ${xpLine}
+                </div>
+                <div style="text-align:center;font-size:12px;color:#888;">
+                    Стоимость: <b style="color:#fff;">${formatNumber(nextConfig.upgradeCost)} 🪙</b>
+                    <span style="color:${affordable ? '#2ecc71' : '#e74c3c'};margin-left:6px;">${affordable ? '✅' : '❌'}</span>
+                </div>
+            </div>
+        `;
+        confirmBtn.style.display = affordable ? 'block' : 'none';
+    }
+
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+};
+
+window.closeUpgradeModal = function() {
+    const modal = document.getElementById('upgradeCoreModal');
+    modal.style.display = 'none';
+    modal.classList.remove('active');
+};
+
+// Закрытие по клику на overlay
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('upgradeCoreModal');
+    if (e.target === modal) {
+        closeUpgradeModal();
+    }
+});
 
 // Глобальная функция для вывода из банка
 window.withdraw = function() {

@@ -100,6 +100,7 @@ def reset_database():
             temp INTEGER DEFAULT 0,
             max_temp INTEGER DEFAULT 100,
             first_play INTEGER DEFAULT 1,  # 1 = true, 0 = false
+            core_version TEXT DEFAULT '1.0',
 
             -- БАНК ФЕРМЫ
             bank_coins INTEGER DEFAULT 0,

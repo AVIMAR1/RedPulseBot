@@ -344,7 +344,7 @@ async def get_profile(user_id: int):
             SELECT first_name, username, level, total_clicks, tasks_completed,
                    streak_days, click_power, referrals_count, created_at,
                    reactor_level, blocks_placed, reactions_triggered,
-                   click_coins, stars, crystals
+                   click_coins, stars, crystals, core_version
             FROM users WHERE telegram_id = ?
         """, (user_id,))
         user = cursor.fetchone()
@@ -380,6 +380,7 @@ async def get_profile(user_id: int):
             "referrals_count": user["referrals_count"] or 0,
             "created_at": user["created_at"] or "",
             "core_level": user["reactor_level"] or 1,
+            "core_version": user["core_version"] or "1.0",
             "blocks_placed": user["blocks_placed"] or 0,
             "reactions_triggered": reactions,
             "click_coins": user["click_coins"] or 0,
@@ -399,6 +400,7 @@ async def save_farm_stats(request: Request):
     blocks_placed = int(data.get("blocks_placed", 0))
     reactions_triggered = int(data.get("reactions_triggered", 0))
     total_energy_produced = int(data.get("total_energy_produced", 0))
+    core_version = data.get("core_version", "1.0")
 
     # Валюта из фермы (основной баланс)
     click_coins = int(data.get("click_coins", 0))
@@ -465,6 +467,7 @@ async def save_farm_stats(request: Request):
                 blocks_placed = ?,
                 reactions_triggered = ?,
                 total_energy_produced = ?,
+                core_version = ?,
                 click_coins = ?,
                 stars = ?,
                 crystals = ?,
@@ -475,6 +478,7 @@ async def save_farm_stats(request: Request):
                 last_activity = CURRENT_TIMESTAMP
             WHERE telegram_id = ?
         """, (final_reactor, final_blocks, final_reactions, final_energy,
+              core_version,
               final_coins, final_stars, final_crystals,
               final_bank_coins, final_bank_stars, final_bank_crystals,
               user_id))
@@ -496,7 +500,7 @@ async def get_farm_stats(user_id: int):
 
     try:
         cursor.execute("""
-            SELECT reactor_level, blocks_placed, reactions_triggered, total_energy_produced
+            SELECT reactor_level, blocks_placed, reactions_triggered, total_energy_produced, core_version
             FROM users WHERE telegram_id = ?
         """, (user_id,))
         row = cursor.fetchone()
@@ -507,7 +511,8 @@ async def get_farm_stats(user_id: int):
                 "reactor_level": row["reactor_level"] or 1,
                 "blocks_placed": row["blocks_placed"] or 0,
                 "reactions_triggered": row["reactions_triggered"] or 0,
-                "total_energy_produced": row["total_energy_produced"] or 0
+                "total_energy_produced": row["total_energy_produced"] or 0,
+                "core_version": row["core_version"] or "1.0"
             }
 
     except Exception as e:
@@ -529,7 +534,7 @@ async def get_farm_state(user_id: int):
         cursor.execute("""
             SELECT farm_state_json, reactor_level, blocks_placed, reactions_triggered,
                    temp, max_temp, level, xp, click_coins, stars, crystals,
-                   bank_coins, bank_stars, bank_crystals, first_play
+                   bank_coins, bank_stars, bank_crystals, first_play, core_version
             FROM users WHERE telegram_id = ?
         """, (user_id,))
         row = cursor.fetchone()
@@ -550,7 +555,8 @@ async def get_farm_state(user_id: int):
                 "bankCoins": row["bank_coins"] or 0,
                 "bankCrystals": row["bank_crystals"] or 0,
                 "bankStars": row["bank_stars"] or 0,
-                "firstPlay": bool(row["first_play"]) if row["first_play"] is not None else True
+                "firstPlay": bool(row["first_play"]) if row["first_play"] is not None else True,
+                "coreVersion": row["core_version"] or "1.0"
             }
 
             # Если есть farm_state_json, объединяем
@@ -591,12 +597,13 @@ async def save_farm_state(request: Request):
         cursor.execute("""
             SELECT blocks_placed, reactions_triggered, reactor_level, total_energy_produced,
                    click_coins, stars, crystals, bank_coins, bank_stars, bank_crystals,
-                   level, xp, temp, max_temp, first_play
+                   level, xp, temp, max_temp, first_play, core_version
             FROM users WHERE telegram_id = ?
         """, (user_id,))
         db_row = cursor.fetchone()
-        
+
         # Значения из запроса
+        req_core_version = farm_state.get('coreVersion', '1.0')
         req_blocks = farm_state.get('blocks_placed', 0)
         req_reactions = farm_state.get('reactions_triggered', 0)
         req_reactor = farm_state.get('reactor_level', 1)
@@ -645,6 +652,7 @@ async def save_farm_state(request: Request):
             final_reactions = req_reactions
             final_reactor = req_reactor
             final_energy = req_energy
+            # Для новой записи — берём напрямую
             final_coins = req_coins
             final_stars = req_stars
             final_crystals = req_crystals
@@ -665,6 +673,7 @@ async def save_farm_state(request: Request):
                 reactions_triggered = ?,
                 reactor_level = ?,
                 total_energy_produced = ?,
+                core_version = ?,
                 click_coins = ?,
                 stars = ?,
                 crystals = ?,
@@ -684,6 +693,7 @@ async def save_farm_state(request: Request):
             final_reactions,
             final_reactor,
             final_energy,
+            req_core_version,
             final_coins,
             final_stars,
             final_crystals,

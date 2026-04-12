@@ -76,6 +76,7 @@ cursor.execute("""
         temp INTEGER DEFAULT 0,
         max_temp INTEGER DEFAULT 100,
         first_play INTEGER DEFAULT 1,
+        core_version TEXT DEFAULT '1.0',
         bank_coins INTEGER DEFAULT 0,
         bank_stars INTEGER DEFAULT 0,
         bank_crystals INTEGER DEFAULT 0,
