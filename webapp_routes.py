@@ -583,7 +583,7 @@ async def save_farm_state(request: Request):
         # Получаем текущие значения из БД
         cursor.execute("""
             SELECT blocks_placed, reactions_triggered, reactor_level, total_energy_produced,
-                   click_coins, stars, crystals, bank_coins, bank_stars, bank_crystals,
+                   bank_coins, bank_stars, bank_crystals,
                    level, xp, temp, max_temp, first_play, core_version
             FROM users WHERE telegram_id = ?
         """, (user_id,))
@@ -611,11 +611,7 @@ async def save_farm_state(request: Request):
             final_reactions = max(int(db_row["reactions_triggered"] or 0), req_reactions)
             final_reactor = max(int(db_row["reactor_level"] or 1), req_reactor)
             final_energy = max(int(db_row["total_energy_produced"] or 0), req_energy)
-            # ВАЖНО: для валюты НЕ обновляем из запроса - click_coins/stars/crystals управляются через save-clicks
-            # Сохраняем текущие значения из БД
-            final_coins = int(db_row["click_coins"] or 0)
-            final_stars = int(db_row["stars"] or 0)
-            final_crystals = int(db_row["crystals"] or 0)
+            # Банк: используем значение из запроса НАПРЯМУЮ
             final_bank_coins = req_bank_coins
             final_bank_stars = req_bank_stars
             final_bank_crystals = req_bank_crystals
@@ -630,7 +626,7 @@ async def save_farm_state(request: Request):
             import time
             final_last_tap_time = farm_state.get('lastTapTime', int(time.time() * 1000))
 
-            print(f'[save-farm-state] БД: click_coins={db_row["click_coins"]}, bank_coins={db_row["bank_coins"]} -> финал_click={final_coins}, финал_банк={final_bank_coins}')
+            print(f'[save-farm-state] БД: банк={db_row["bank_coins"]} -> финал_банк={final_bank_coins}')
         else:
             # Нет данных в БД - используем значения из запроса
             import time
@@ -638,10 +634,6 @@ async def save_farm_state(request: Request):
             final_reactions = req_reactions
             final_reactor = req_reactor
             final_energy = req_energy
-            # Для новой записи — валюту НЕ устанавливаем (остается 0 или значение по умолчанию)
-            final_coins = 0
-            final_stars = 0
-            final_crystals = 0
             final_bank_coins = req_bank_coins
             final_bank_stars = req_bank_stars
             final_bank_crystals = req_bank_crystals
@@ -660,9 +652,6 @@ async def save_farm_state(request: Request):
                 reactor_level = ?,
                 total_energy_produced = ?,
                 core_version = ?,
-                click_coins = ?,
-                stars = ?,
-                crystals = ?,
                 bank_coins = ?,
                 bank_stars = ?,
                 bank_crystals = ?,
@@ -680,9 +669,6 @@ async def save_farm_state(request: Request):
             final_reactor,
             final_energy,
             req_core_version,
-            final_coins,
-            final_stars,
-            final_crystals,
             final_bank_coins,
             final_bank_stars,
             final_bank_crystals,
@@ -693,7 +679,7 @@ async def save_farm_state(request: Request):
             final_first_play,
             user_id
         ))
-        print(f'[save-farm-state] ✅ Сохранено: click_coins={final_coins}, bank_coins={final_bank_coins}, реакции={final_reactions}')
+        print(f'[save-farm-state] ✅ Сохранено: банк={final_bank_coins}, реакции={final_reactions}')
         conn.commit()
         conn.close()
         return {"status": "ok"}
