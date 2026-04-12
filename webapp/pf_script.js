@@ -41,6 +41,12 @@ function updateBalance() {
 function syncGameState() {
     if (typeof state === 'undefined' || typeof gameState === 'undefined') return;
 
+    console.log('[syncGameState] ДО:', {
+        state_click_coins: state.click_coins,
+        gameState_coins: gameState.coins,
+        gameState_bankCoins: gameState.bankCoins || 0
+    });
+
     // state → gameState (валюта из state для отображения в ферме)
     gameState.coins = state.click_coins || 0;
     gameState.crystals = state.crystals || 0;
@@ -56,6 +62,7 @@ function syncGameState() {
     // ВАЖНО: gameState.coins/crystals/stars → state (обратная синхронизация валюты)
     // Это нужно чтобы валюта заработанная в ферме попадала в главное состояние
     if (gameState.coins > (state.click_coins || 0)) {
+        console.log('[syncGameState] ОБРАТНАЯ СИНХРОНИЗАЦИЯ! gameState.coins > state.click_coins:', gameState.coins, '>', state.click_coins);
         state.click_coins = gameState.coins;
     }
     if (gameState.crystals > (state.crystals || 0)) {
@@ -65,10 +72,10 @@ function syncGameState() {
         state.stars = gameState.stars;
     }
 
-    console.log('[syncGameState]', {
+    console.log('[syncGameState] ПОСЛЕ:', {
+        state_click_coins: state.click_coins,
         gameState_coins: gameState.coins,
-        gameState_bankCoins: gameState.bankCoins || 0,
-        state_click_coins: state.click_coins
+        gameState_bankCoins: gameState.bankCoins || 0
     });
 }
 
@@ -1193,10 +1200,8 @@ async function saveFarmStatsImmediate() {
             blocks_placed: gameState.blocks_placed || 0,
             reactions_triggered: gameState.totalTaps || 0,
             total_energy_produced: gameState.totalEarned || 0,
-            click_coins: Math.floor(state.click_coins || 0),
-            stars: Math.floor(state.stars || 0),
-            crystals: Math.floor(state.crystals || 0),
-            // Банк фермы
+            // ВАЖНО: НЕ отправляем click_coins/stars/crystals — они управляются через save-clicks
+            // Отправляем ТОЛЬКО банк фермы
             bank_coins: Math.floor(gameState.bankCoins || 0),
             bank_stars: Math.floor(gameState.bankStars || 0),
             bank_crystals: Math.floor(gameState.bankCrystals || 0)
