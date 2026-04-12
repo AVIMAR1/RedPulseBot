@@ -59,18 +59,9 @@ function syncGameState() {
     state.xpToNext = gameState.xpToNext || 100;
     state.click_power = Math.floor(gameState.chargePower) || 1;
 
-    // ВАЖНО: gameState.coins/crystals/stars → state (обратная синхронизация валюты)
-    // Это нужно чтобы валюта заработанная в ферме попадала в главное состояние
-    if (gameState.coins > (state.click_coins || 0)) {
-        console.log('[syncGameState] ОБРАТНАЯ СИНХРОНИЗАЦИЯ! gameState.coins > state.click_coins:', gameState.coins, '>', state.click_coins);
-        state.click_coins = gameState.coins;
-    }
-    if (gameState.crystals > (state.crystals || 0)) {
-        state.crystals = gameState.crystals;
-    }
-    if (gameState.stars > (state.stars || 0)) {
-        state.stars = gameState.stars;
-    }
+    // УБРАНА обратная синхронизация для coins/crystals/stars!
+    // click_coins управляется ТОЛЬКО через save-clicks и withdraw()
+    // gameState.coins — это отображение state.click_coins, НЕ наоборот
 
     console.log('[syncGameState] ПОСЛЕ:', {
         state_click_coins: state.click_coins,
