@@ -41,8 +41,14 @@ function updateBalance() {
 function syncGameState() {
     if (typeof state === 'undefined' || typeof gameState === 'undefined') return;
 
-    // state → gameState (валюта из state для отображения в ферме)
-    gameState.coins = state.click_coins || 0;
+    // ВАЖНО: НЕ перезаписываем gameState.coins из state!
+    // gameState.coins — это основной баланс фермы (загружается из БД)
+    // state.click_coins — это основной баланс меню (включает выведенные монеты)
+    // Они должны быть равны, но syncGameState НЕ должен синхронизировать их напрямую
+    // Синхронизация происходит через withdraw() и syncWithFarm()
+
+    // state → gameState (только для кристаллов и звёзд — они НЕ используются в ферме)
+    // gameState.coins = state.click_coins || 0;  // ← УБРАНО!
     gameState.crystals = state.crystals || 0;
     gameState.stars = state.stars || 0;
     gameState.totalTaps = state.total_clicks || 0;
@@ -52,7 +58,7 @@ function syncGameState() {
     state.xp = gameState.xp || 0;
     state.xpToNext = gameState.xpToNext || 100;
     state.click_power = Math.floor(gameState.chargePower) || 1;
-    
+
     // ВАЖНО: gameState.coins/crystals/stars → state (обратная синхронизация валюты)
     // Это нужно чтобы валюта заработанная в ферме попадала в главное состояние
     if (gameState.coins > (state.click_coins || 0)) {
